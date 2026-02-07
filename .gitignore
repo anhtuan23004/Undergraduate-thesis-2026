@@ -1,2 +1,6 @@
 .DS_Store
 .env
+.omc
+CLAUDE.md
+des-detailed.md
+des-hybrid.md
