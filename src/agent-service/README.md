@@ -2,51 +2,107 @@
 
 ReAct-based AI agent for insurance claim decision-making using LangGraph and OpenAI.
 
-**Port**: 8003
+## Overview
+
+The Agent Service implements a ReAct (Reasoning + Acting) AI agent that processes insurance claims and makes approval decisions. It uses the LangGraph framework to orchestrate a loop of observation, thinking, action, and reflection to arrive at well-reasoned claim decisions.
+
+This service is the decision-making core of the claims processing system, leveraging the RAG service for policy context and persisting state to MongoDB for reliability.
 
 ## Features
 
-- **ReAct Loop**: Reasoning + Acting framework
-- **Tool System**: Extensible tool registry
-- **State Persistence**: MongoDB checkpointing
-- **Structured Output**: JSON decision format
-- **LangGraph**: Modern agent framework
+- ReAct (Reasoning + Acting) loop architecture
+- Extensible tool system for claim validation
+- MongoDB checkpointing for state persistence
+- Structured JSON output for decisions
+- LangGraph-based agent framework
+- Confidence scoring for decisions
 
-## ReAct Architecture
+## Architecture
 
 ```
 ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
 │ Observe │───▶│  Think  │───▶│   Act   │───▶│ Reflect │───▶│ Decide  │
 │         │    │         │    │ (Tool)  │    │         │    │         │
 └─────────┘    └─────────┘    └─────────┘    └────┬────┘    └─────────┘
-                                                   │
-                                              (loop if needed)
+       ▲                                           │
+       │                                           │
+       └───────────────────────────────────────────┘
+                    (loop if needed)
 ```
 
-## API Endpoints
+### State Flow
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/api/v1/agent/decide` | POST | Process claim and make decision |
-| `/api/v1/agent/graph` | GET | Get graph structure |
+```
+Input (claim_id, extracted_data, policy_number)
+    ↓
+Observe → Gather context from RAG service
+    ↓
+Think → Analyze and plan next action
+    ↓
+Act → Execute tool (icd_lookup, policy_check, etc.)
+    ↓
+Reflect → Evaluate results and decide to continue or decide
+    ↓
+Output (decision, confidence_score, reasoning)
+```
 
 ## Quick Start
 
+### Prerequisites
+
+- MongoDB running (port 27017)
+- RAG Service running (port 8002)
+- OpenAI API Key
+
+### Setup
+
 ```bash
-# Install dependencies
+cd src/agent-service
 pip install -r requirements.txt
+```
 
-# Configure environment
-cp .env.example .env
-# Edit .env with OPENAI_API_KEY
+### Configuration
 
-# Run service
+Create a `.env` file:
+
+```bash
+OPENAI_API_KEY=your_openai_key_here
+MONGODB_URL=mongodb://claims_app:claims_password@localhost:27017/claims
+RAG_SERVICE_URL=http://localhost:8002
+```
+
+### Run Service
+
+```bash
 uvicorn app.main:app --reload --port 8003
 ```
 
-## Usage Example
+## Configuration
 
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | OpenAI API key | Required |
+| `OPENAI_MODEL` | Model name | `gpt-4` |
+| `MONGODB_URL` | MongoDB connection string | Required |
+| `RAG_SERVICE_URL` | RAG service endpoint | `http://localhost:8002` |
+| `MAX_ITERATIONS` | Max ReAct iterations | `10` |
+| `CONFIDENCE_THRESHOLD` | Decision threshold | `0.7` |
+
+## Usage
+
+### Health Check
+
+```bash
+curl http://localhost:8003/health
+```
+
+### Process Claim
+
+**Endpoint:** `POST /api/v1/agent/decide`
+
+Process a claim and return a decision with reasoning.
+
+**Example:**
 ```bash
 curl -X POST http://localhost:8003/api/v1/agent/decide \
   -H "Content-Type: application/json" \
@@ -62,8 +118,7 @@ curl -X POST http://localhost:8003/api/v1/agent/decide \
   }'
 ```
 
-## Response Format
-
+**Response:**
 ```json
 {
   "claim_id": "CLM-001",
@@ -77,29 +132,18 @@ curl -X POST http://localhost:8003/api/v1/agent/decide \
 }
 ```
 
-## Available Tools
+### Get Graph Structure
 
-| Tool | Description |
-|------|-------------|
-| `icd_lookup` | Validate ICD-10 diagnosis codes |
-| `policy_check` | Check policy terms and coverage |
-| `coverage_calc` | Calculate eligible claim amounts |
-| `document_query` | Query extracted document fields |
+**Endpoint:** `GET /api/v1/agent/graph`
 
-## Configuration
+Returns the LangGraph structure for visualization.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `OPENAI_MODEL` | Model name | gpt-4 |
-| `MONGODB_URL` | MongoDB connection | Required |
-| `MAX_ITERATIONS` | Max ReAct iterations | 10 |
-| `CONFIDENCE_THRESHOLD` | Decision threshold | 0.7 |
+## Development
 
-## Project Structure
+### Project Structure
 
 ```
-.
+src/agent-service/
 ├── api/
 │   └── routes/
 │       └── agent.py           # Agent endpoints
@@ -108,22 +152,33 @@ curl -X POST http://localhost:8003/api/v1/agent/decide \
 ├── core/
 │   ├── graph/
 │   │   ├── state.py           # AgentState definition
-│   │   ├── nodes.py           # ReAct nodes
+│   │   ├── nodes.py           # ReAct nodes (observe, think, act, reflect)
 │   │   ├── edges.py           # Conditional edges
 │   │   └── builder.py         # Graph builder
 │   ├── memory/
 │   │   └── mongodb_checkpointer.py  # State persistence
 │   └── llm/
 │       └── client.py          # LLM client
-└── tools/
-    ├── registry.py            # Tool registry
-    ├── icd_lookup.py          # ICD-10 tool
-    ├── policy_check.py        # Policy tool
-    ├── coverage_calc.py       # Calculator tool
-    └── document_query.py      # Document tool
+├── tools/
+│   ├── registry.py            # Tool registry
+│   ├── icd_lookup.py          # ICD-10 tool
+│   ├── policy_check.py        # Policy tool
+│   ├── coverage_calc.py       # Calculator tool
+│   └── document_query.py      # Document tool
+├── requirements.txt           # Python dependencies
+└── README.md                 # This file
 ```
 
-## ReAct State
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `icd_lookup` | Validate ICD-10 diagnosis codes |
+| `policy_check` | Check policy terms and coverage |
+| `coverage_calc` | Calculate eligible claim amounts |
+| `document_query` | Query extracted document fields |
+
+### ReAct State
 
 ```python
 {
@@ -148,3 +203,35 @@ curl -X POST http://localhost:8003/api/v1/agent/decide \
   "reasoning": str
 }
 ```
+
+## Troubleshooting
+
+### MongoDB connection errors
+
+- Verify MongoDB is running on port 27017
+- Check `MONGODB_URL` in `.env` file
+- Ensure credentials are correct
+
+### RAG service unavailable
+
+- Verify RAG service is running on port 8002
+- Check `RAG_SERVICE_URL` in `.env` file
+- Review RAG service logs
+
+### OpenAI API errors
+
+- Verify `OPENAI_API_KEY` is set correctly
+- Check that the API key has not expired
+- Review rate limits on your OpenAI account
+
+### Decision timeout
+
+- Increase `MAX_ITERATIONS` if complex claims need more processing
+- Check that all tools are responding correctly
+- Review logs for specific error messages
+
+## API Documentation
+
+Interactive API documentation is available at:
+- **Swagger UI**: `http://localhost:8003/docs`
+- **ReDoc**: `http://localhost:8003/redoc`
