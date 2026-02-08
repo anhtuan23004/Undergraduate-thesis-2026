@@ -1,0 +1,83 @@
+# Langflow - Visual LLM Workflow Designer
+# https://github.com/langflow-ai/langflow
+
+version: '3.8'
+
+services:
+  langflow:
+    image: langflowai/langflow:1.0.19
+    container_name: claims-langflow
+    restart: unless-stopped
+    ports:
+      - "${LANGFLOW_PORT:-7860}:7860"
+    environment:
+      # Database
+      - LANGFLOW_DATABASE_URL=postgresql://langflow:${LANGFLOW_DB_PASSWORD:-langflow}@langflow-db:5432/langflow
+      - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-changeme-secret-key-min-32-characters}
+
+      # Auto-login (disable for production)
+      - LANGFLOW_AUTO_LOGIN=${LANGFLOW_AUTO_LOGIN:-true}
+      - LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin}
+      - LANGFLOW_SUPERUSER_PASSWORD=${LANGFLOW_SUPERUSER_PASSWORD:-admin123}
+
+      # API Keys for LLM components
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+      # Service URLs (for custom components)
+      - RAG_SERVICE_URL=http://rag-service:8000
+      - AGENT_SERVICE_URL=http://agent-service:8000
+      - OCR_SERVICE_URL=http://ocr-service:8000
+
+      # Langfuse integration (optional)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://langfuse-web:3000}
+
+      # Feature flags
+      - LANGFLOW_DEV_MODE=${LANGFLOW_DEV_MODE:-false}
+      - LANGFLOW_LOG_LEVEL=${LANGFLOW_LOG_LEVEL:-INFO}
+
+    volumes:
+      - langflow_data:/app/langflow
+      - ./custom-components:/app/custom-components:ro
+    networks:
+      - backend
+    depends_on:
+      langflow-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  langflow-db:
+    image: postgres:15-alpine
+    container_name: claims-langflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langflow
+      POSTGRES_PASSWORD: ${LANGFLOW_DB_PASSWORD:-langflow}
+      POSTGRES_DB: langflow
+    volumes:
+      - langflow_postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  langflow_data:
+    driver: local
+  langflow_postgres_data:
+    driver: local
+
+networks:
+  backend:
+    external: true
