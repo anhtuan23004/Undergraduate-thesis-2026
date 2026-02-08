@@ -2,40 +2,49 @@
 
 FastAPI-based REST API for document OCR processing using Google Gemini AI. Part of the Insurance Claims Processing System.
 
-**Port**: 8001
+## Overview
+
+The OCR Service provides document text extraction capabilities using Google's Gemini AI models. It supports both raw text extraction and structured field extraction from various document formats including PDFs and images.
+
+This service is the entry point for document processing in the claims workflow, extracting text that can then be ingested into the RAG service for policy search and analysis.
 
 ## Features
 
-- 🔍 **Raw Text Extraction**: Extract all text from documents in natural reading order
-- 📋 **Structured Field Extraction**: Extract specific fields with JSON output
-- 🧠 **Thinking Mode Support**: Control model reasoning depth (Gemini 2.5 & 3.x)
-- ⚙️ **Fine-grained Generation Control**: Temperature, top-p, top-k, max tokens
-- 🔄 **Auto-detection**: Automatically detects Gemini 2.5 vs 3.x models
-- 📁 **Multiple Input Methods**: Upload files or provide URLs
-- 🛡️ **Security**: Built-in file validation, size limits, and MIME type checking
+- Raw text extraction from documents in natural reading order
+- Structured field extraction with JSON output
+- Thinking mode support for controlling model reasoning depth (Gemini 2.5 & 3.x)
+- Fine-grained generation control (temperature, top-p, top-k, max tokens)
+- Auto-detection of Gemini 2.5 vs 3.x models
+- Multiple input methods (file upload or URL)
+- Security with file validation, size limits, and MIME type checking
 
-## Features
+## Architecture
 
-- 🔍 **Raw Text Extraction**: Extract all text from documents in natural reading order
-- 📋 **Structured Field Extraction**: Extract specific fields with JSON output
-- 🧠 **Thinking Mode Support**: Control model reasoning depth (Gemini 2.5 & 3.x)
-- ⚙️ **Fine-grained Generation Control**: Temperature, top-p, top-k, max tokens
-- 🔄 **Auto-detection**: Automatically detects Gemini 2.5 vs 3.x models
-- 📁 **Multiple Input Methods**: Upload files or provide URLs
-- 🛡️ **Security**: Built-in file validation, size limits, and MIME type checking
-
-## Prerequisites
-
-- Python 3.9+
-- A Gemini API key ([Get one here](https://aistudio.google.com/apikey))
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Client    │────▶│   FastAPI   │────▶│   Gemini    │
+│  (Upload)   │     │   Server    │     │    API      │
+└─────────────┘     └─────────────┘     └─────────────┘
+                            │
+                            ▼
+                     ┌─────────────┐
+                     │   Logging   │
+                     │  (ocr.log)  │
+                     └─────────────┘
+```
 
 ## Quick Start
 
-### 1. Installation
+### Prerequisites
+
+- Python 3.9+
+- Gemini API key (get from https://aistudio.google.com/apikey)
+
+### Setup
 
 ```bash
-# Clone and navigate to the project
-cd Gemini-OCR
+# Navigate to service directory
+cd src/ocr-service
 
 # Create virtual environment
 python3 -m venv .venv
@@ -45,9 +54,9 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Configuration
+### Configuration
 
-Create a `.env` file or set environment variables:
+Create a `.env` file:
 
 ```bash
 # Required
@@ -55,21 +64,12 @@ GEMINI_API_KEY=your_api_key_here
 
 # Optional (with defaults)
 GEMINI_MODEL=gemini-2.5-pro
-
-# Generation Config (Optional)
 GEMINI_TEMPERATURE=0.2
 GEMINI_TOP_P=0.95
-# GEMINI_TOP_K=40
-# GEMINI_MAX_OUTPUT_TOKENS=8192
-
-# Thinking Config (version-specific)
-# For Gemini 2.5: -1=dynamic, 0=disabled, >0=token budget
 GEMINI_THINKING_BUDGET=-1
-# For Gemini 3: minimal/low/medium/high (leave commented for default "high")
-# GEMINI_THINKING_LEVEL=low
 ```
 
-### 3. Run the Server
+### Run the Server
 
 ```bash
 # Development mode with auto-reload
@@ -81,17 +81,37 @@ uvicorn api.main:app --host 0.0.0.0 --port 8001
 
 The API will be available at `http://localhost:8001`
 
-## API Endpoints
+## Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GEMINI_API_KEY` | Gemini API key (required) | - |
+| `GEMINI_MODEL` | Model to use | `gemini-2.5-pro` |
+| `GEMINI_TEMPERATURE` | Randomness control (0.0-2.0) | None |
+| `GEMINI_TOP_P` | Nucleus sampling | None |
+| `GEMINI_TOP_K` | Top-k sampling | None |
+| `GEMINI_MAX_OUTPUT_TOKENS` | Max output tokens | None |
+| `GEMINI_THINKING_BUDGET` | Gemini 2.5 thinking budget | None |
+| `GEMINI_THINKING_LEVEL` | Gemini 3 thinking level | None |
+| `PROJECT_NAME` | API name | `Gemini OCR API` |
+| `VERSION` | API version | `1.0.0` |
+| `API_PREFIX` | API route prefix | `/api/v1` |
+| `LOG_LEVEL` | Logging level | `INFO` |
+| `LOG_FILE` | Log file path | `ocr_service.log` |
+
+## Usage
 
 ### Health Check
-- **GET** `/health` - Check API status
 
-### OCR Endpoints
+```bash
+curl http://localhost:8001/health
+```
 
-#### Raw Text Extraction
-**POST** `/api/v1/ocr/raw`
+### Raw Text Extraction
 
 Extract all text from a document in natural reading order.
+
+**Endpoint:** `POST /api/v1/ocr/raw`
 
 **Parameters:**
 - `file` (file, optional): Upload file directly
@@ -113,10 +133,11 @@ curl -X POST "http://localhost:8001/api/v1/ocr/raw" \
   -F "temperature=0.2"
 ```
 
-#### Structured Field Extraction
-**POST** `/api/v1/ocr/fields`
+### Structured Field Extraction
 
 Extract specific fields from a document with structured JSON output.
+
+**Endpoint:** `POST /api/v1/ocr/fields`
 
 **Parameters:** Same as `/ocr/raw`
 
@@ -138,11 +159,40 @@ curl -X POST "http://localhost:8001/api/v1/ocr/fields" \
 }
 ```
 
-## Advanced Usage
+### Using File URLs
+
+Instead of uploading, provide a URL:
+```bash
+curl -X POST "http://localhost:8001/api/v1/ocr/raw" \
+  -F "file_url=https://example.com/document.pdf" \
+  -F "prompt=Extract text"
+```
+
+## Development
+
+### Project Structure
+
+```
+src/ocr-service/
+├── api/
+│   ├── main.py              # FastAPI application entry
+│   ├── routes.py            # API endpoints
+│   └── dependencies.py      # FastAPI dependencies
+├── core/
+│   ├── ocr_engine.py        # Gemini OCR implementation
+│   └── file_handler.py      # File upload handling
+├── app/
+│   └── config.py            # Configuration management
+├── utils/
+│   └── logging_config.py    # Logging setup
+├── requirements.txt         # Python dependencies
+└── README.md               # This file
+```
 
 ### Thinking Mode
 
 #### Gemini 2.5 Series
+
 Control reasoning depth with token budget:
 ```bash
 # Dynamic thinking (recommended)
@@ -156,6 +206,7 @@ Control reasoning depth with token budget:
 ```
 
 #### Gemini 3 Series
+
 Control reasoning level:
 ```bash
 # Minimal thinking (fastest, Gemini 3 Flash only)
@@ -184,15 +235,6 @@ curl -X POST "http://localhost:8001/api/v1/ocr/fields" \
   -F "max_output_tokens=2048"
 ```
 
-### Using File URLs
-
-Instead of uploading, provide a URL:
-```bash
-curl -X POST "http://localhost:8001/api/v1/ocr/raw" \
-  -F "file_url=https://example.com/document.pdf" \
-  -F "prompt=Extract text"
-```
-
 ## API Documentation
 
 Interactive API documentation is available at:
@@ -209,80 +251,31 @@ Interactive API documentation is available at:
 - `gemini-3-flash-preview`
 - `gemini-3-pro` (when available)
 
-> **Note**: Gemini 3 thinking level API requires SDK update. Current implementation is prepared for future SDK support.
-
 ## File Support
 
 - **Formats**: PNG, JPG, JPEG, PDF
 - **Max Size**: 50 MB
 - **Security**: Automatic MIME type validation and file sanitization
 
-## Environment Variables Reference
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GEMINI_API_KEY` | Gemini API key (required) | - |
-| `GEMINI_MODEL` | Model to use | `gemini-2.5-pro` |
-| `GEMINI_TEMPERATURE` | Randomness control (0.0-2.0) | `None` |
-| `GEMINI_TOP_P` | Nucleus sampling | `None` |
-| `GEMINI_TOP_K` | Top-k sampling | `None` |
-| `GEMINI_MAX_OUTPUT_TOKENS` | Max output tokens | `None` |
-| `GEMINI_THINKING_BUDGET` | Gemini 2.5 thinking budget | `None` |
-| `GEMINI_THINKING_LEVEL` | Gemini 3 thinking level | `None` |
-| `PROJECT_NAME` | API name | `Gemini OCR API` |
-| `VERSION` | API version | `1.0.0` |
-| `API_PREFIX` | API route prefix | `/api/v1` |
-| `LOG_LEVEL` | Logging level | `INFO` |
-| `LOG_FILE` | Log file path | `ocr_service.log` |
-
-## Architecture
-
-```
-Gemini-OCR/
-├── src/
-│   ├── app.py              # FastAPI application
-│   ├── config.py           # Configuration management
-│   ├── routes.py           # API endpoints
-│   ├── ocr_service.py      # Gemini OCR service
-│   ├── utils.py            # Utility functions
-│   └── logging_config.py   # Logging setup
-├── requirements.txt        # Python dependencies
-├── .env                    # Environment variables
-└── README.md              # This file
-```
-
 ## Troubleshooting
 
-### Common Issues
-
-**1. SDK doesn't support `thinkingLevel` for Gemini 3**
+### SDK doesn't support `thinkingLevel` for Gemini 3
 - Current SDK version doesn't support Gemini 3's `thinkingLevel` parameter
 - Code is prepared for future SDK updates
 - Gemini 3 will use default "high" thinking mode until SDK is updated
 
-**2. File too large error**
+### File too large error
 - Maximum file size is 50 MB
 - Compress or split large PDFs before uploading
 
-**3. Invalid MIME type**
+### Invalid MIME type
 - Only PNG, JPG, JPEG, and PDF files are supported
 - Check file extension and actual file type
 
-**4. API key errors**
+### API key errors
 - Verify your API key is valid at [Google AI Studio](https://aistudio.google.com/apikey)
 - Ensure the key has access to the selected model
 
 ## License
 
 MIT License - See LICENSE file for details
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues and questions:
-- Check the [API Documentation](http://localhost:8001/docs)
-- Review logs in `ocr_service.log`
-- Open an issue on GitHub
