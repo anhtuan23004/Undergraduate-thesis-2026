@@ -1,47 +1,113 @@
-from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+"""API routes for the OCR service."""
+
+from typing import Any, Optional
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.config import settings
-from core.ocr_engine import GeminiOCRService, GeminiConfigError
+from core.ocr_engine import GeminiConfigError, GeminiOCRService
 from core.utils import download_file_from_url
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Health check router
+# Router definitions
 health_router = APIRouter()
-
-@health_router.get("/health")
-async def health_check():
-    """
-    Health check endpoint.
-    
-    Returns:
-        dict: Service status, name, and version.
-    """
-    return {"status": "healthy", "service": settings.PROJECT_NAME, "version": settings.VERSION}
-
-
-# OCR router
 ocr_router = APIRouter(prefix=f"{settings.API_PREFIX}/ocr", tags=["ocr"])
 
+# Common OCR parameters type alias
+OCRParams = dict[str, Any]
+
+
 def get_ocr_service(api_key: Optional[str] = Form(None)) -> GeminiOCRService:
-    """
-    Dependency to get OCR service instance.
-    
+    """Dependency to get OCR service instance.
+
     Args:
         api_key: Optional API key override.
-        
+
     Returns:
         GeminiOCRService instance.
-        
+
     Raises:
         HTTPException: If configuration is invalid.
     """
     try:
         return GeminiOCRService(api_key=api_key)
-    except GeminiConfigError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except GeminiConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+async def get_file_content(
+    file: Optional[UploadFile],
+    file_url: Optional[str],
+    operation: str,
+) -> tuple[bytes, str, str]:
+    """Get file content from upload or URL.
+
+    Args:
+        file: Uploaded file (optional).
+        file_url: URL to download file from (optional).
+        operation: Name of the operation for logging.
+
+    Returns:
+        Tuple of (file bytes, filename, MIME type).
+
+    Raises:
+        HTTPException: If neither file nor URL is provided, or validation fails.
+    """
+    if not file and not file_url:
+        logger.warning(f"{operation} request missing both file and file_url")
+        raise HTTPException(
+            status_code=400,
+            detail="Either 'file' or 'file_url' must be provided.",
+        )
+
+    if file:
+        if not file.content_type:
+            raise HTTPException(status_code=400, detail="File must have a content type")
+
+        file_bytes = await file.read()
+        file_name = file.filename or "uploaded_file"
+        mime_type = file.content_type
+        logger.info(f"Processing upload file: {file_name} ({mime_type})")
+        return file_bytes, file_name, mime_type
+
+    # Download from URL
+    logger.info(f"Downloading file from URL: {file_url}")
+    return await download_file_from_url(file_url)
+
+
+def handle_ocr_error(operation: str, exc: Exception) -> None:
+    """Handle OCR errors consistently.
+
+    Args:
+        operation: Name of the operation.
+        exc: The exception that occurred.
+
+    Raises:
+        HTTPException: With appropriate status code and detail.
+    """
+    if isinstance(exc, GeminiConfigError):
+        logger.error(f"Configuration error: {exc}")
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    logger.error(f"Unexpected error in {operation}: {exc}", exc_info=True)
+    raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@health_router.get("/health")
+async def health_check() -> dict[str, str]:
+    """Health check endpoint.
+
+    Returns:
+        Service status information.
+    """
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+    }
+
 
 @ocr_router.post("/raw")
 async def ocr_raw(
@@ -56,11 +122,11 @@ async def ocr_raw(
     thinking_budget: Optional[int] = Form(None),
     thinking_level: Optional[str] = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
-):
-    """
-    Raw text extraction from images/PDFs.
+) -> str:
+    """Extract raw text from images/PDFs.
+
     Provide either 'file' (upload) or 'file_url'.
-    
+
     Args:
         file: Uploaded file.
         file_url: URL to download file from.
@@ -70,32 +136,21 @@ async def ocr_raw(
         top_p: Nucleus sampling threshold.
         top_k: Top-k sampling parameter.
         max_output_tokens: Maximum tokens to generate.
-        thinking_budget: Token budget for Gemini 2.5 (-1=dynamic, 0=disabled, >0=budget).
-        thinking_level: Thinking level for Gemini 3 (minimal/low/medium/high).
-        service: OCR service instance.
-        
+        thinking_budget: Token budget for Gemini 2.5.
+        thinking_level: Thinking level for Gemini 3.
+        service: OCR service instance (injected).
+
     Returns:
-        dict: Extracted raw text.
+        Extracted raw text.
     """
-    if not file and not file_url:
-        logger.warning("ocr_raw request missing both file and file_url")
-        raise HTTPException(status_code=400, detail="Either 'file' or 'file_url' must be provided.")
-
     try:
-        if file:
-            if not file.content_type:
-                 raise HTTPException(status_code=400, detail="File must have a content type")
-            file_bytes = await file.read()
-            file_name_val = file.filename or "uploaded_file"
-            mime_type = file.content_type
-            logger.info(f"Processing upload file: {file_name_val} ({mime_type})")
-        else:
-            logger.info(f"Downloading file from URL: {file_url}")
-            file_bytes, file_name_val, mime_type = await download_file_from_url(file_url) # type: ignore
+        file_bytes, file_name, mime_type = await get_file_content(
+            file, file_url, "ocr_raw"
+        )
 
-        result = service.parse_raw(
+        return service.parse_raw(
             file_bytes=file_bytes,
-            file_name=file_name_val,
+            file_name=file_name,
             mime_type=mime_type,
             prompt=prompt or "",
             model_name=model_name,
@@ -106,14 +161,8 @@ async def ocr_raw(
             thinking_budget=thinking_budget,
             thinking_level=thinking_level,
         )
-        return result
-        # return {"raw_text": result}
-    except GeminiConfigError as e:
-        logger.error(f"Configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Unexpected error in ocr_raw: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        handle_ocr_error("ocr_raw", exc)
 
 
 @ocr_router.post("/fields")
@@ -129,11 +178,11 @@ async def ocr_fields(
     thinking_budget: Optional[int] = Form(None),
     thinking_level: Optional[str] = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
-):
-    """
-    Structured field extraction (JSON format) from images/PDFs.
+) -> Any:
+    """Extract structured fields (JSON format) from images/PDFs.
+
     Provide either 'file' (upload) or 'file_url'.
-    
+
     Args:
         file: Uploaded file.
         file_url: URL to download file from.
@@ -143,32 +192,21 @@ async def ocr_fields(
         top_p: Nucleus sampling threshold.
         top_k: Top-k sampling parameter.
         max_output_tokens: Maximum tokens to generate.
-        thinking_budget: Token budget for Gemini 2.5 (-1=dynamic, 0=disabled, >0=budget).
-        thinking_level: Thinking level for Gemini 3 (minimal/low/medium/high).
-        service: OCR service instance.
-        
+        thinking_budget: Token budget for Gemini 2.5.
+        thinking_level: Thinking level for Gemini 3.
+        service: OCR service instance (injected).
+
     Returns:
-        dict: Extracted fields.
+        Extracted fields as JSON.
     """
-    if not file and not file_url:
-         logger.warning("ocr_fields request missing both file and file_url")
-         raise HTTPException(status_code=400, detail="Either 'file' or 'file_url' must be provided.")
-
     try:
-        if file:
-            if not file.content_type:
-                raise HTTPException(status_code=400, detail="File must have a content type")
-            file_bytes = await file.read()
-            file_name_val = file.filename or "uploaded_file"
-            mime_type = file.content_type
-            logger.info(f"Processing upload file: {file_name_val} ({mime_type})")
-        else:
-            logger.info(f"Downloading file from URL: {file_url}")
-            file_bytes, file_name_val, mime_type = await download_file_from_url(file_url) # type: ignore
+        file_bytes, file_name, mime_type = await get_file_content(
+            file, file_url, "ocr_fields"
+        )
 
-        result = service.parse_fields(
+        return service.parse_fields(
             file_bytes=file_bytes,
-            file_name=file_name_val,
+            file_name=file_name,
             mime_type=mime_type,
             prompt=prompt or "",
             model_name=model_name,
@@ -179,14 +217,8 @@ async def ocr_fields(
             thinking_budget=thinking_budget,
             thinking_level=thinking_level,
         )
-        return result
-        # return {"extracted_fields": result}
-    except GeminiConfigError as e:
-        logger.error(f"Configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Unexpected error in ocr_fields: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        handle_ocr_error("ocr_fields", exc)
 
 
 @ocr_router.post("/document")
@@ -202,9 +234,9 @@ async def ocr_document(
     thinking_budget: Optional[int] = Form(None),
     thinking_level: Optional[str] = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
-):
-    """
-    Document structure extraction (JSON format) from images/PDFs.
+) -> Any:
+    """Extract document structure (JSON format) from images/PDFs.
+
     Provide either 'file' (upload) or 'file_url'.
 
     Args:
@@ -216,32 +248,21 @@ async def ocr_document(
         top_p: Nucleus sampling threshold.
         top_k: Top-k sampling parameter.
         max_output_tokens: Maximum tokens to generate.
-        thinking_budget: Token budget for Gemini 2.5 (-1=dynamic, 0=disabled, >0=budget).
-        thinking_level: Thinking level for Gemini 3 (minimal/low/medium/high).
-        service: OCR service instance.
+        thinking_budget: Token budget for Gemini 2.5.
+        thinking_level: Thinking level for Gemini 3.
+        service: OCR service instance (injected).
 
     Returns:
-        dict: Extracted document structure.
+        Extracted document structure as JSON.
     """
-    if not file and not file_url:
-         logger.warning("ocr_document request missing both file and file_url")
-         raise HTTPException(status_code=400, detail="Either 'file' or 'file_url' must be provided.")
-
     try:
-        if file:
-            if not file.content_type:
-                raise HTTPException(status_code=400, detail="File must have a content type")
-            file_bytes = await file.read()
-            file_name_val = file.filename or "uploaded_file"
-            mime_type = file.content_type
-            logger.info(f"Processing upload file: {file_name_val} ({mime_type})")
-        else:
-            logger.info(f"Downloading file from URL: {file_url}")
-            file_bytes, file_name_val, mime_type = await download_file_from_url(file_url) # type: ignore
+        file_bytes, file_name, mime_type = await get_file_content(
+            file, file_url, "ocr_document"
+        )
 
-        result = service.parse_document(
+        return service.parse_document(
             file_bytes=file_bytes,
-            file_name=file_name_val,
+            file_name=file_name,
             mime_type=mime_type,
             prompt=prompt or "",
             model_name=model_name,
@@ -252,10 +273,5 @@ async def ocr_document(
             thinking_budget=thinking_budget,
             thinking_level=thinking_level,
         )
-        return result
-    except GeminiConfigError as e:
-        logger.error(f"Configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Unexpected error in ocr_document: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as exc:
+        handle_ocr_error("ocr_document", exc)

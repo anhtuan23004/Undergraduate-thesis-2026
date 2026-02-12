@@ -1,24 +1,30 @@
+"""Main FastAPI application for the OCR service."""
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from utils.logging import setup_logging
+
 from api.routes import health_router, ocr_router
 from app.config import settings
+from utils.logging import setup_logging
 
-# Configure Logging
+# Configure logging on module load
 setup_logging()
 
-app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    """Custom validation error handler that returns only error messages.
-    
+async def validation_exception_handler(request, exc: RequestValidationError) -> JSONResponse:
+    """Handle validation errors with simplified error messages.
+
     Args:
         request: The incoming request.
         exc: The validation exception.
-        
+
     Returns:
         JSONResponse with simplified error messages.
     """
@@ -27,13 +33,15 @@ async def validation_exception_handler(request, exc):
         field = " -> ".join(str(x) for x in error["loc"])
         message = error["msg"]
         errors.append(f"{field}: {message}")
-    
+
+    detail = errors[0] if len(errors) == 1 else errors if errors else "Validation error"
+
     return JSONResponse(
         status_code=422,
-        content={"detail": errors if len(errors) > 1 else errors[0] if errors else "Validation error"}
+        content={"detail": detail},
     )
 
 
-# Include Routers
+# Include routers
 app.include_router(health_router)
 app.include_router(ocr_router)
