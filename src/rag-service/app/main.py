@@ -1,11 +1,11 @@
 """Main FastAPI application for RAG service."""
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import structlog
 
-from api.routes import search, query, ingest
+from api.routes import ingest, query, search
 from app.config import settings
 
 logger = structlog.get_logger()
@@ -45,7 +45,7 @@ app.include_router(ingest.router, prefix="/api/v1", tags=["ingest"])
 
 
 @app.get("/")
-async def root():
+async def root() -> dict:
     """Root endpoint."""
     return {
         "service": settings.APP_NAME,
@@ -54,7 +54,7 @@ async def root():
             "Hybrid Search (BM25 + Vector)",
             "Reciprocal Rank Fusion",
             "Parent-Child Chunking",
-            "OpenAI Embeddings",
+            "Gemini Embeddings",
             "Milvus Vector DB"
         ],
         "endpoints": {
@@ -66,7 +66,7 @@ async def root():
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict:
     """Health check."""
     return {"status": "healthy"}
 
