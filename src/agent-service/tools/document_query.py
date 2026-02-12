@@ -4,6 +4,25 @@ from typing import Any, Dict, List
 from tools.base import BaseTool
 
 
+# Mock document data
+MOCK_DOCUMENT_DATA = {
+    "patient": "Nguyễn Văn A",
+    "patient_id": "123456789",
+    "dob": "1980-05-15",
+    "hospital": "Bệnh viện Chợ Rẫy",
+    "admission_date": "2025-01-10",
+    "discharge_date": "2025-01-15",
+    "diagnosis": "Viêm phổi",
+    "diagnosis_codes": ["J18.9"],
+    "procedures": ["X-quang ngực", "Kháng sinh IV"],
+    "medications": ["Ceftriaxone", "Azithromycin"],
+    "total_amount": 15_500_000,
+    "doctor": "BS. Trần Văn B"
+}
+
+REQUIRED_FIELDS = ["patient", "hospital", "total_amount"]
+
+
 class DocumentQueryTool(BaseTool):
     """Tool for querying extracted document fields."""
 
@@ -28,29 +47,8 @@ class DocumentQueryTool(BaseTool):
         # TODO: Connect to MongoDB for actual document lookup
         # For now, return mock data
 
-        mock_data = {
-            "patient": "Nguyễn Văn A",
-            "patient_id": "123456789",
-            "dob": "1980-05-15",
-            "hospital": "Bệnh viện Chợ Rẫy",
-            "admission_date": "2025-01-10",
-            "discharge_date": "2025-01-15",
-            "diagnosis": "Viêm phổi",
-            "diagnosis_codes": ["J18.9"],
-            "procedures": ["X-quang ngực", "Kháng sinh IV"],
-            "medications": ["Ceftriaxone", "Azithromycin"],
-            "total_amount": 15_500_000,
-            "doctor": "BS. Trần Văn B"
-        }
-
-        if fields:
-            result = {k: v for k, v in mock_data.items() if k in fields}
-        else:
-            result = mock_data
-
-        # Check for missing required fields
-        required = ["patient", "hospital", "total_amount"]
-        missing = [f for f in required if f not in result or not result[f]]
+        result = {k: v for k, v in MOCK_DOCUMENT_DATA.items() if not fields or k in fields}
+        missing = [f for f in REQUIRED_FIELDS if f not in result or not result[f]]
 
         return {
             "status": "success" if not missing else "incomplete",

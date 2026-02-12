@@ -1,9 +1,9 @@
 """MongoDB checkpointer for LangGraph state persistence."""
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-from motor.motor_asyncio import AsyncIOMotorClient
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from motor.motor_asyncio import AsyncIOMotorClient
 
 
 class MongoDBCheckpointer(BaseCheckpointSaver):
@@ -37,13 +37,9 @@ class MongoDBCheckpointer(BaseCheckpointSaver):
         """
         doc = await self.collection.find_one(
             {"thread_id": thread_id},
-            sort={"timestamp": -1}  # Get most recent
+            sort={"timestamp": -1}
         )
-
-        if doc:
-            return doc.get("state")
-
-        return None
+        return doc.get("state") if doc else None
 
     async def aset(
         self,

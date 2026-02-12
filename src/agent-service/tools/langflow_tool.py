@@ -3,7 +3,8 @@
 This module provides a bridge between Langflow-exported Python flows
 and the Agent Service's tool system.
 """
-from typing import Dict, Any, Type
+from typing import Any, Dict, Type
+
 import structlog
 
 from tools.base import BaseTool
@@ -16,18 +17,7 @@ class LangflowTool(BaseTool):
     """Wrapper for Langflow-exported flows as Agent tools.
 
     This tool wraps a Langflow flow (exported as Python) and makes it
-    callable by the ReAct agent. It handles:
-    - Input/output formatting
-    - Error handling
-    - Logging
-
-    Example:
-        tool = LangflowTool(FraudDetectionFlow)
-        result = await tool.arun(
-            claim_id="CLM-001",
-            amount=15000000,
-            hospital="BV Cho Ray"
-        )
+callable by the ReAct agent.
     """
 
     def __init__(self, flow_class: Type, name: str = None):
@@ -49,11 +39,7 @@ class LangflowTool(BaseTool):
     @property
     def description(self) -> str:
         """Tool description."""
-        return getattr(
-            self.flow_class,
-            "__doc__",
-            f"Execute {self._name} workflow"
-        )
+        return getattr(self.flow_class, "__doc__", f"Execute {self._name} workflow")
 
     async def arun(self, **kwargs) -> Dict[str, Any]:
         """Execute the Langflow flow.
@@ -65,40 +51,15 @@ class LangflowTool(BaseTool):
             Flow execution result
         """
         try:
-            logger.info(
-                "Running Langflow workflow",
-                tool=self._name,
-                inputs=list(kwargs.keys())
-            )
-
-            # Run the flow
+            logger.info("Running Langflow workflow", tool=self._name, inputs=list(kwargs.keys()))
             result = await self.flow.run(kwargs)
+            logger.info("Langflow workflow completed", tool=self._name, success=True)
 
-            logger.info(
-                "Langflow workflow completed",
-                tool=self._name,
-                success=True
-            )
-
-            return {
-                "tool": self._name,
-                "status": "success",
-                "result": result
-            }
+            return {"tool": self._name, "status": "success", "result": result}
 
         except Exception as e:
-            logger.error(
-                "Langflow workflow failed",
-                tool=self._name,
-                error=str(e)
-            )
-
-            return {
-                "tool": self._name,
-                "status": "error",
-                "error": str(e),
-                "result": None
-            }
+            logger.error("Langflow workflow failed", tool=self._name, error=str(e))
+            return {"tool": self._name, "status": "error", "error": str(e), "result": None}
 
 
 class FraudDetectionTool(BaseTool):
@@ -109,14 +70,6 @@ class FraudDetectionTool(BaseTool):
     - Suspicious keyword detection
     - Diagnosis code risk assessment
     - Claim velocity tracking
-
-    Example:
-        result = await tool.arun(
-            claim_id="CLM-001",
-            amount=15000000,
-            hospital="BV Cho Ray",
-            diagnosis_codes=["J18.9"]
-        )
     """
 
     def __init__(self):
@@ -170,7 +123,6 @@ class FraudDetectionTool(BaseTool):
 
         try:
             result = await self.flow.run(claim_data)
-
             return {
                 "tool": self.name,
                 "status": "success",
