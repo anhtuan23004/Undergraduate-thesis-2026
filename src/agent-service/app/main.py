@@ -5,7 +5,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import agent
+from api.routes import agent, skills
 from app.config import settings
 
 logger = structlog.get_logger()
@@ -41,6 +41,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
+app.include_router(skills.router, prefix="/api/v1", tags=["skills"])
 
 
 @app.get("/")
@@ -49,11 +50,21 @@ async def root() -> dict:
     return {
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "architecture": "ReAct Agent with LangGraph",
+        "architecture": "ReAct Agent + Skill-Based Orchestrator with LangGraph",
         "endpoints": {
-            "health": "/api/v1/agent/health",
-            "decide": "/api/v1/agent/decide (POST)",
-            "graph": "/api/v1/agent/graph"
+            "health": "/health",
+            "agent": {
+                "health": "/api/v1/agent/health",
+                "decide": "/api/v1/agent/decide (POST)",
+                "graph": "/api/v1/agent/graph"
+            },
+            "skills": {
+                "list": "/api/v1/skills/",
+                "get": "/api/v1/skills/{skill_name}",
+                "process": "/api/v1/skills/process (POST)",
+                "execute": "/api/v1/skills/execute (POST)",
+                "reload": "/api/v1/skills/reload (POST)"
+            }
         }
     }
 
