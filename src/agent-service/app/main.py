@@ -1,9 +1,9 @@
 """Main FastAPI application for agent service."""
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import structlog
 
 from api.routes import agent
 from app.config import settings
@@ -14,14 +14,12 @@ logger = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    # Startup
     logger.info(
         "Starting Agent Service",
         version=settings.APP_VERSION,
         model=settings.OPENAI_MODEL
     )
     yield
-    # Shutdown
     logger.info("Shutting down Agent Service")
 
 
@@ -46,7 +44,7 @@ app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
 
 
 @app.get("/")
-async def root():
+async def root() -> dict:
     """Root endpoint."""
     return {
         "service": settings.APP_NAME,
@@ -61,7 +59,7 @@ async def root():
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict:
     """Health check."""
     return {"status": "healthy"}
 

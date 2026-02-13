@@ -1,6 +1,7 @@
 """BM25 keyword search implementation."""
-from typing import List, Dict, Any, Optional
 import re
+from typing import Any, Dict, List, Optional
+
 import jieba
 from rank_bm25 import BM25Okapi
 
@@ -10,13 +11,13 @@ from app.config import settings
 class BM25Search:
     """BM25 keyword search for document retrieval."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize BM25 searcher."""
-        self.documents: List[Dict[str, Any]] = []
-        self.tokenized_docs: List[List[str]] = []
-        self.bm25: Optional[BM25Okapi] = None
-        self.k1 = settings.BM25_K1
-        self.b = settings.BM25_B
+        self._documents: List[Dict[str, Any]] = []
+        self._tokenized_docs: List[List[str]] = []
+        self._bm25: Optional[BM25Okapi] = None
+        self._k1 = settings.BM25_K1
+        self._b = settings.BM25_B
 
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text for BM25.
@@ -29,18 +30,14 @@ class BM25Search:
         Returns:
             List of tokens
         """
-        # Lowercase and remove special chars
-        text = text.lower()
-        text = re.sub(r'[^\w\s]', ' ', text)
+        cleaned_text = re.sub(r"[^\w\s]", " ", text.lower())
 
-        # Try jieba for Chinese, fallback to simple split
         try:
-            tokens = list(jieba.cut(text))
-        except:
-            tokens = text.split()
+            tokens = list(jieba.cut(cleaned_text))
+        except Exception:
+            tokens = cleaned_text.split()
 
-        # Filter empty tokens
-        return [t.strip() for t in tokens if t.strip()]
+        return [token.strip() for token in tokens if token.strip()]
 
     def add_documents(self, documents: List[Dict[str, Any]]) -> None:
         """Add documents to BM25 index.
@@ -48,18 +45,17 @@ class BM25Search:
         Args:
             documents: List of document dicts with 'content' field
         """
-        self.documents = documents
-        self.tokenized_docs = [
-            self._tokenize(doc['content'])
+        self._documents = documents
+        self._tokenized_docs = [
+            self._tokenize(doc["content"])
             for doc in documents
         ]
 
-        # Build BM25 index
-        if self.tokenized_docs:
-            self.bm25 = BM25Okapi(
-                self.tokenized_docs,
-                k1=self.k1,
-                b=self.b
+        if self._tokenized_docs:
+            self._bm25 = BM25Okapi(
+                self._tokenized_docs,
+                k1=self._k1,
+                b=self._b
             )
 
     def search(
@@ -76,30 +72,27 @@ class BM25Search:
         Returns:
             List of results with BM25 scores
         """
-        if not self.bm25:
+        if not self._bm25:
             return []
 
-        # Tokenize query
         tokenized_query = self._tokenize(query)
+        scores = self._bm25.get_scores(tokenized_query)
 
-        # Get scores
-        scores = self.bm25.get_scores(tokenized_query)
-
-        # Get top-k indices
         top_indices = sorted(
             range(len(scores)),
-            key=lambda i: scores[i],
+            key=lambda idx: scores[idx],
             reverse=True
         )[:top_k]
 
-        # Format results
         results = []
         for idx in top_indices:
-            if scores[idx] > 0:  # Only return positive scores
-                result = self.documents[idx].copy()
-                result['bm25_score'] = float(scores[idx])
-                result['rank'] = len(results) + 1
-                results.append(result)
+            if scores[idx] <= 0:
+                continue
+
+            result = self._documents[idx].copy()
+            result["bm25_score"] = float(scores[idx])
+            result["rank"] = len(results) + 1
+            results.append(result)
 
         return results
 
@@ -119,21 +112,24 @@ class BM25Search:
         Returns:
             Filtered results
         """
-        results = self.search(query, top_k=top_k * 2)  # Get more for filtering
+        results = self.search(query, top_k=top_k * 2)
 
         if doc_types:
             results = [
-                r for r in results
-                if r.get('doc_type') in doc_types
+                result for result in results
+                if result.get("doc_type") in doc_types
             ]
 
         return results[:top_k]
 
     def get_stats(self) -> Dict[str, Any]:
         """Get index statistics."""
+        total_tokens = sum(len(doc) for doc in self._tokenized_docs)
+        doc_count = len(self._tokenized_docs)
+
         return {
-            'total_documents': len(self.documents),
-            'avg_doc_length': sum(len(d) for d in self.tokenized_docs) / max(len(self.tokenized_docs), 1),
-            'k1': self.k1,
-            'b': self.b
+            "total_documents": doc_count,
+            "avg_doc_length": total_tokens / max(doc_count, 1),
+            "k1": self._k1,
+            "b": self._b
         }

@@ -1,7 +1,9 @@
 """API routes for document ingestion."""
+import hashlib
 from typing import List
-from pydantic import BaseModel, Field
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 import structlog
 
 from core.chunking.parent_child import ParentChildChunker
@@ -35,8 +37,44 @@ class IngestResponse(BaseModel):
     status: str
 
 
+def _generate_doc_id(content: str, doc_type: str) -> str:
+    """Generate a unique document ID."""
+    content_hash = hashlib.md5(
+        (content[:100] + doc_type).encode()
+    ).hexdigest()
+    return content_hash[:12]
+
+
+def _prepare_metadata(
+    base_metadata: dict,
+    doc_id: str,
+    doc_type: str
+) -> dict:
+    """Prepare metadata with doc_id and doc_type."""
+    return {
+        **base_metadata,
+        "doc_id": doc_id,
+        "doc_type": doc_type
+    }
+
+
+def _extract_child_chunks(chunks: List[dict]) -> List[dict]:
+    """Extract only child chunks for embedding."""
+    return [chunk for chunk in chunks if chunk["chunk_type"] == "child"]
+
+
+def _prepare_milvus_data(child_chunks: List[dict]) -> dict:
+    """Prepare data for Milvus insertion."""
+    return {
+        "documents": [chunk["content"] for chunk in child_chunks],
+        "metadatas": [chunk["metadata"] for chunk in child_chunks],
+        "doc_types": [chunk["doc_type"] for chunk in child_chunks],
+        "parent_ids": [chunk.get("parent_id", "") for chunk in child_chunks]
+    }
+
+
 @router.post("/ingest", response_model=IngestResponse)
-async def ingest_document(request: DocumentIngestRequest):
+async def ingest_document(request: DocumentIngestRequest) -> IngestResponse:
     """Ingest a single document.
 
     Chunks document, generates embeddings, and stores in Milvus.
@@ -47,84 +85,62 @@ async def ingest_document(request: DocumentIngestRequest):
     Returns:
         Ingestion status
     """
-    try:
-        logger.info(
-            "Ingesting document",
-            doc_type=request.doc_type,
-            content_length=len(request.content)
-        )
+    logger.info(
+        "Ingesting document",
+        doc_type=request.doc_type,
+        content_length=len(request.content)
+    )
 
-        # Generate doc_id
-        import hashlib
-        doc_id = hashlib.md5(
-            (request.content[:100] + request.doc_type).encode()
-        ).hexdigest()[:12]
+    doc_id = _generate_doc_id(request.content, request.doc_type)
+    metadata = _prepare_metadata(request.metadata, doc_id, request.doc_type)
 
-        # Add doc_id to metadata
-        metadata = {
-            **request.metadata,
-            "doc_id": doc_id,
-            "doc_type": request.doc_type
-        }
+    chunks = chunker.chunk_document(
+        document=request.content,
+        metadata=metadata,
+        doc_type=request.doc_type
+    )
 
-        # Chunk document
-        chunks = chunker.chunk_document(
-            document=request.content,
-            metadata=metadata,
-            doc_type=request.doc_type
-        )
+    child_chunks = _extract_child_chunks(chunks)
 
-        # Generate embeddings (only for child chunks)
-        child_chunks = [c for c in chunks if c['chunk_type'] == 'child']
-
-        if child_chunks:
-            embeddings = await embedder.generate_batch(
-                [c['content'] for c in child_chunks]
-            )
-
-            # Prepare for Milvus
-            documents = [c['content'] for c in child_chunks]
-            metadatas = [c['metadata'] for c in child_chunks]
-            doc_types = [c['doc_type'] for c in child_chunks]
-            parent_ids = [c.get('parent_id', '') for c in child_chunks]
-
-            # Insert to Milvus
-            milvus.connect()
-            ids = milvus.insert(
-                documents=documents,
-                embeddings=embeddings,
-                metadata=metadatas,
-                doc_types=doc_types,
-                parent_ids=parent_ids
-            )
-            milvus.disconnect()
-
-            logger.info(
-                "Document ingested",
-                doc_id=doc_id,
-                chunks=len(chunks),
-                inserted=len(ids)
-            )
-
-            return IngestResponse(
-                doc_id=doc_id,
-                chunks_created=len(chunks),
-                status="success"
-            )
-
+    if not child_chunks:
         return IngestResponse(
             doc_id=doc_id,
             chunks_created=0,
             status="no_chunks"
         )
 
-    except Exception as e:
-        logger.error("Ingestion error", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    embeddings = await embedder.generate_batch(
+        [chunk["content"] for chunk in child_chunks]
+    )
+
+    milvus_data = _prepare_milvus_data(child_chunks)
+
+    milvus.connect()
+    inserted_ids = milvus.insert(
+        documents=milvus_data["documents"],
+        embeddings=embeddings,
+        metadata=milvus_data["metadatas"],
+        doc_types=milvus_data["doc_types"],
+        parent_ids=milvus_data["parent_ids"]
+    )
+    milvus.disconnect()
+
+    logger.info(
+        "Document ingested",
+        doc_id=doc_id,
+        chunks=len(chunks),
+        inserted=len(inserted_ids)
+    )
+
+    return IngestResponse(
+        doc_id=doc_id,
+        chunks_created=len(chunks),
+        status="success"
+    )
 
 
 @router.post("/ingest/batch")
-async def ingest_batch(request: BatchIngestRequest):
+async def ingest_batch(request: BatchIngestRequest) -> dict:
     """Ingest multiple documents.
 
     Args:
@@ -135,29 +151,33 @@ async def ingest_batch(request: BatchIngestRequest):
     """
     results = []
 
-    for doc in request.documents:
+    for document in request.documents:
         try:
-            result = await ingest_document(doc)
+            result = await ingest_document(document)
             results.append({
                 "doc_id": result.doc_id,
                 "status": "success",
                 "chunks": result.chunks_created
             })
-        except Exception as e:
+        except Exception as error:
             results.append({
                 "status": "error",
-                "error": str(e)
+                "error": str(error)
             })
+
+    successful_count = sum(
+        1 for result in results if result.get("status") == "success"
+    )
 
     return {
         "total": len(request.documents),
-        "successful": sum(1 for r in results if r.get("status") == "success"),
+        "successful": successful_count,
         "results": results
     }
 
 
 @router.get("/ingest/stats")
-async def get_ingestion_stats():
+async def get_ingestion_stats() -> dict:
     """Get ingestion statistics."""
     milvus.connect()
     stats = milvus.get_stats()

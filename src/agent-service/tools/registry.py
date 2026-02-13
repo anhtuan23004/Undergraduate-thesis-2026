@@ -1,12 +1,12 @@
 """Tool registry for managing available tools."""
-from typing import Dict, List, Type
+from typing import Dict, List
 
 from tools.base import BaseTool
-from tools.icd_lookup import ICDLookupTool
-from tools.policy_check import PolicyCheckTool
 from tools.coverage_calc import CoverageCalcTool
 from tools.document_query import DocumentQueryTool
+from tools.icd_lookup import ICDLookupTool
 from tools.langflow_tool import FraudDetectionTool
+from tools.policy_check import PolicyCheckTool
 
 
 class ToolRegistry:

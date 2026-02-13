@@ -1,7 +1,9 @@
 """API routes for search operations."""
+import time
 from typing import List, Optional
-from pydantic import BaseModel, Field
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 import structlog
 
 from core.search.hybrid_search import HybridSearch
@@ -39,8 +41,23 @@ class SearchResponse(BaseModel):
     search_time_ms: int
 
 
+def _format_search_results(results: List[dict]) -> List[SearchResult]:
+    """Format raw search results into response model."""
+    return [
+        SearchResult(
+            id=result["id"],
+            content=result["content"][:500],
+            score=result.get("rrf_score", 0),
+            doc_type=result["doc_type"],
+            metadata=result.get("metadata", {}),
+            sources=result.get("fusion_sources", [])
+        )
+        for result in results
+    ]
+
+
 @router.post("/search", response_model=SearchResponse)
-async def search(request: SearchRequest):
+async def search(request: SearchRequest) -> SearchResponse:
     """Perform hybrid search (BM25 + Vector + RRF).
 
     Args:
@@ -49,57 +66,39 @@ async def search(request: SearchRequest):
     Returns:
         Ranked search results
     """
-    import time
     start_time = time.time()
 
-    try:
-        logger.info(
-            "Performing search",
-            query=request.query,
-            doc_types=request.doc_types
-        )
+    logger.info(
+        "Performing search",
+        query=request.query,
+        doc_types=request.doc_types
+    )
 
-        results = await searcher.search(
-            query=request.query,
-            top_k=request.top_k,
-            doc_types=request.doc_types
-        )
+    results = await searcher.search(
+        query=request.query,
+        top_k=request.top_k,
+        doc_types=request.doc_types
+    )
 
-        search_time = int((time.time() - start_time) * 1000)
+    search_time_ms = int((time.time() - start_time) * 1000)
+    formatted_results = _format_search_results(results)
 
-        # Format results
-        formatted_results = [
-            SearchResult(
-                id=r['id'],
-                content=r['content'][:500],  # Truncate for response
-                score=r.get('rrf_score', 0),
-                doc_type=r['doc_type'],
-                metadata=r.get('metadata', {}),
-                sources=r.get('fusion_sources', [])
-            )
-            for r in results
-        ]
+    logger.info(
+        "Search completed",
+        query=request.query,
+        results=len(formatted_results),
+        time_ms=search_time_ms
+    )
 
-        logger.info(
-            "Search completed",
-            query=request.query,
-            results=len(formatted_results),
-            time_ms=search_time
-        )
-
-        return SearchResponse(
-            query=request.query,
-            results=formatted_results,
-            total_results=len(formatted_results),
-            search_time_ms=search_time
-        )
-
-    except Exception as e:
-        logger.error("Search error", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    return SearchResponse(
+        query=request.query,
+        results=formatted_results,
+        total_results=len(formatted_results),
+        search_time_ms=search_time_ms
+    )
 
 
 @router.get("/search/stats")
-async def get_stats():
+async def get_stats() -> dict:
     """Get search statistics."""
     return searcher.get_stats()
