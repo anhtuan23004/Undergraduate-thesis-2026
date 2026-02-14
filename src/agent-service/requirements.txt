@@ -23,6 +23,7 @@ langfuse>=2.9.0
 # Utilities
 python-dotenv>=1.0.0
 structlog>=24.1.0
+pyyaml>=6.0.1
 
 # Testing
 pytest>=7.4.4
