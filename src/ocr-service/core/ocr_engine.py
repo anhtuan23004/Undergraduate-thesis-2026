@@ -2,7 +2,7 @@
 
 import os
 import tempfile
-from typing import Any, Dict, Final, Optional, Tuple
+from typing import Any, Dict, Final, Optional, Tuple, Union
 
 import google.genai as genai
 from google.genai import types
