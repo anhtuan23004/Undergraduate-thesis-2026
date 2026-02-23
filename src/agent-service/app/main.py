@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import agent, skills
 from app.config import settings
+from multi_agent.api.routes import router as multi_agent_router
 
 logger = structlog.get_logger()
 
@@ -42,6 +43,7 @@ app.add_middleware(
 # Include routers
 app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
 app.include_router(skills.router, prefix="/api/v1", tags=["skills"])
+app.include_router(multi_agent_router, prefix="/api/v1", tags=["multi-agent"])
 
 
 @app.get("/")
@@ -64,6 +66,10 @@ async def root() -> dict:
                 "process": "/api/v1/skills/process (POST)",
                 "execute": "/api/v1/skills/execute (POST)",
                 "reload": "/api/v1/skills/reload (POST)"
+            },
+            "multi-agent": {
+                "health": "/api/v1/multi-agent/health",
+                "process": "/api/v1/multi-agent/process (POST)"
             }
         }
     }
