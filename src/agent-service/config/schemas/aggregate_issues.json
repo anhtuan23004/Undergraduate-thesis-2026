@@ -1,22 +1,26 @@
 {
   "name": "aggregate_issues",
-  "description": "Aggregate all issues from previous agents for final decision",
+  "description": "Aggregate validation issues from all agents and generate a severity-weighted recommendation",
   "parameters": {
     "type": "object",
     "properties": {
       "agent_1_result": {
         "type": "object",
-        "description": "Result from Agent 1 (completeness check)"
+        "description": "Result from Agent 1 (completeness check), must contain 'issues' list and 'valid' boolean"
       },
       "agent_2_result": {
         "type": "object",
-        "description": "Result from Agent 2 (quality check) - optional"
+        "description": "Result from Agent 2 (quality check), must contain 'issues' list and 'valid' boolean"
       },
       "human_review_result": {
         "type": "object",
-        "description": "Result from human review - optional"
+        "description": "Result from human review, must contain 'issues' list and 'valid' boolean"
       }
     },
-    "required": ["agent_1_result"]
+    "required": [
+      "agent_1_result",
+      "agent_2_result",
+      "human_review_result"
+    ]
   }
 }

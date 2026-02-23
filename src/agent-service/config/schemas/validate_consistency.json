@@ -1,22 +1,71 @@
 {
   "name": "validate_consistency",
-  "description": "Validate consistency between extracted documents",
+  "description": "Validate consistency across claim data fields from multiple documents",
   "parameters": {
     "type": "object",
     "properties": {
-      "documents": {
-        "type": "object",
-        "description": "Object containing all extracted documents"
+      "patient_name": {
+        "type": "string",
+        "description": "Patient name from primary document"
       },
-      "checks": {
+      "policy_number": {
+        "type": "string",
+        "description": "Insurance policy number"
+      },
+      "patient_id": {
+        "type": "string",
+        "description": "Patient ID or insurance number (optional)"
+      },
+      "claim_amount": {
+        "type": "number",
+        "description": "Total claim amount (optional)"
+      },
+      "service_date": {
+        "type": "string",
+        "description": "Date of service in ISO format YYYY-MM-DD (optional)"
+      },
+      "provider_name": {
+        "type": "string",
+        "description": "Healthcare provider name (optional)"
+      },
+      "documents": {
         "type": "array",
+        "description": "List of extracted documents to cross-validate (optional)",
         "items": {
-          "type": "string",
-          "enum": ["patient_name", "date", "amount", "policy_number", "provider"]
-        },
-        "description": "Specific consistency checks to perform (optional, defaults to all)"
+          "type": "object",
+          "properties": {
+            "doc_type": {
+              "type": "string",
+              "enum": [
+                "invoice",
+                "medical_record",
+                "prescription",
+                "receipt"
+              ],
+              "description": "Type of document"
+            },
+            "patient_name": {
+              "type": "string"
+            },
+            "patient_id": {
+              "type": "string"
+            },
+            "amount": {
+              "type": "number"
+            },
+            "date": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            }
+          }
+        }
       }
     },
-    "required": ["documents"]
+    "required": [
+      "patient_name",
+      "policy_number"
+    ]
   }
 }

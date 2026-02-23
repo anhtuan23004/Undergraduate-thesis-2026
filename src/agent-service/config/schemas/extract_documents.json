@@ -1,22 +1,52 @@
 {
   "name": "extract_documents",
-  "description": "Extract structured information from claim documents",
+  "description": "Extract text and structured data from claim documents via OCR service",
   "parameters": {
     "type": "object",
     "properties": {
-      "document_types": {
+      "extraction_type": {
+        "type": "string",
+        "enum": [
+          "raw",
+          "fields",
+          "document"
+        ],
+        "description": "Type of extraction: 'raw' for plain text, 'fields' for key-value pairs, 'document' for full structure"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Local path to the document file (required if file_url not provided)"
+      },
+      "file_url": {
+        "type": "string",
+        "description": "URL to download the document from (required if file_path not provided)"
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Optional custom prompt to guide the extraction"
+      },
+      "fields": {
         "type": "array",
         "items": {
-          "type": "string",
-          "enum": ["claim_form", "medical_record", "invoice", "policy"]
+          "type": "string"
         },
-        "description": "Types of documents to extract"
-      },
-      "input_file": {
-        "type": "string",
-        "description": "Path to the input file"
+        "description": "Specific fields to extract (optional, used with 'fields' extraction type)"
       }
     },
-    "required": ["input_file", "document_types"]
+    "required": [
+      "extraction_type"
+    ],
+    "oneOf": [
+      {
+        "required": [
+          "file_path"
+        ]
+      },
+      {
+        "required": [
+          "file_url"
+        ]
+      }
+    ]
   }
 }

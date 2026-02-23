@@ -1,7 +1,7 @@
 """Pydantic models for multi-agent API."""
 from typing import List, Dict, Any, Optional, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Issue(BaseModel):
@@ -57,12 +57,37 @@ class MultiAgentRequest(BaseModel):
     )
     input_file: str = Field(
         ...,
-        description="Path to the input file"
+        description="Filename of the uploaded claim file (relative, inside uploads directory)"
     )
     policy_number: str = Field(
         ...,
         description="Policy number for the claim"
     )
+
+    @field_validator("input_file")
+    @classmethod
+    def validate_input_file(cls, v: str) -> str:
+        """Reject absolute paths and path traversal; resolve to safe uploads dir."""
+        import os
+        from pathlib import Path
+
+        # Reject any absolute path or traversal sequences before resolution
+        if os.path.isabs(v):
+            raise ValueError("input_file must be a relative filename, not an absolute path")
+        if ".." in Path(v).parts:
+            raise ValueError("input_file must not contain path traversal segments (..)")
+
+        # Resolve against the configured uploads directory
+        uploads_dir = Path(os.getenv("UPLOADS_DIR", "/tmp/agent-service/uploads")).resolve()
+        resolved = (uploads_dir / v).resolve()
+
+        # Ensure the resolved path is still inside uploads_dir
+        try:
+            resolved.relative_to(uploads_dir)
+        except ValueError:
+            raise ValueError("input_file must resolve to a path within the uploads directory")
+
+        return str(resolved)
 
 
 class MultiAgentResponse(BaseModel):
