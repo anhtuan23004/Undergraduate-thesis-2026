@@ -1,58 +1,83 @@
 # Agent Service
 
-ReAct-based AI agent for insurance claim decision-making using LangGraph and OpenAI.
+Multi-agent AI workflow for automated health insurance claims processing using LangGraph and OpenAI.
 
 ## Overview
 
-The Agent Service implements a ReAct (Reasoning + Acting) AI agent that processes insurance claims and makes approval decisions. It uses the LangGraph framework to orchestrate a loop of observation, thinking, action, and reflection to arrive at well-reasoned claim decisions.
-
-This service is the decision-making core of the claims processing system, leveraging the RAG service for policy context and persisting state to MongoDB for reliability.
-
-## Features
-
-- ReAct (Reasoning + Acting) loop architecture
-- Extensible tool system for claim validation
-- MongoDB checkpointing for state persistence
-- Structured JSON output for decisions
-- LangGraph-based agent framework
-- Confidence scoring for decisions
+The Agent Service orchestrates a **multi-agent workflow** that evaluates insurance claims through sequential validation stages. Each claim passes through a completeness check, a quality/medical validation check, an optional human review loop, and a final decision node — all managed as a compiled LangGraph `StateGraph`.
 
 ## Architecture
 
 ```
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Observe │───▶│  Think  │───▶│   Act   │───▶│ Reflect │───▶│ Decide  │
-│         │    │         │    │ (Tool)  │    │         │    │         │
-└─────────┘    └─────────┘    └─────────┘    └────┬────┘    └─────────┘
-       ▲                                           │
-       │                                           │
-       └───────────────────────────────────────────┘
-                    (loop if needed)
+Input (claim_id, input_file, policy_number)
+          │
+          ▼
+┌─────────────────┐
+│ Completeness    │──── reject ──────────────────┐
+│ Check (Agent 1) │                              │
+└────────┬────────┘                              │
+         │ accept            accept_with_edit    │
+         ▼                        ▼              │
+┌─────────────────┐     ┌──────────────────┐    │
+│ Quality Check   │     │ Human Review     │    │
+│ (Agent 2)       │     │                  │    │
+└────────┬────────┘     └────────┬─────────┘    │
+         │                       │              │
+    accept/reject           approve/reject      │
+         │                  edit (loop back)    │
+         └──────────────────────┘              │
+                        │                      │
+                        ▼                      ▼
+               ┌─────────────────────────────────┐
+               │       Final Decision             │
+               └─────────────────┬───────────────┘
+                                 │
+                                END
 ```
 
-### State Flow
+### Nodes
 
-```
-Input (claim_id, extracted_data, policy_number)
-    ↓
-Observe → Gather context from RAG service
-    ↓
-Think → Analyze and plan next action
-    ↓
-Act → Execute tool (icd_lookup, policy_check, etc.)
-    ↓
-Reflect → Evaluate results and decide to continue or decide
-    ↓
-Output (decision, confidence_score, reasoning)
-```
+| Node | Description |
+|------|-------------|
+| `completeness_check` | Agent 1 — Validates that all required documents are present and the claim is complete |
+| `quality_check` | Agent 2 — Validates medical consistency, diagnosis codes, medications, and benefit eligibility |
+| `human_review` | Human-in-the-loop node for edge cases requiring manual review |
+| `final_decision` | Aggregates all agent results and emits the final APPROVE/REJECT/PENDING decision |
+
+### Routing Logic
+
+| From | Decision | Next Node |
+|------|----------|-----------|
+| `completeness_check` | `accept` | `quality_check` |
+| `completeness_check` | `reject` | `final_decision` |
+| `completeness_check` | `accept_with_edit` | `human_review` |
+| `quality_check` | `accept` or `reject` | `final_decision` |
+| `quality_check` | `accept_with_edit` | `human_review` |
+| `human_review` | `approve` or `reject` | `final_decision` |
+| `human_review` | `edit` | `quality_check` *(loop back)* |
+
+## Tools
+
+Each agent uses a set of structured tools that follow the OpenAI function-calling schema via `BaseTool`.
+
+| Tool | Description |
+|------|-------------|
+| `ExtractDocumentsTool` | Extracts structured data from input files via OCR service |
+| `CheckRequiredDocumentsTool` | Confirms all mandatory claim documents are present |
+| `ClassifyBenefitTool` | Classifies the benefit type (inpatient, outpatient, etc.) |
+| `ValidateConsistencyTool` | Cross-checks fields for logical consistency |
+| `ValidateDiagnosisTool` | Validates ICD-10 diagnosis codes |
+| `CheckExclusionTool` | Flags conditions excluded by the policy |
+| `ValidateMedicationTool` | Verifies prescribed medications against diagnosis |
+| `AggregateIssuesTool` | Collects and prioritizes all issues for the final decision |
 
 ## Quick Start
 
 ### Prerequisites
 
-- MongoDB running (port 27017)
+- Python 3.11+
+- OpenAI API key
 - RAG Service running (port 8002)
-- OpenAI API Key
 
 ### Setup
 
@@ -65,10 +90,15 @@ pip install -r requirements.txt
 
 Create a `.env` file:
 
-```bash
-OPENAI_API_KEY=your_openai_key_here
-MONGODB_URL=mongodb://claims_app:claims_password@localhost:27017/claims
-RAG_SERVICE_URL=http://localhost:8002
+```env
+# Required
+OPENAI_API_KEY=sk-your_openai_key_here
+
+# Optional (defaults shown)
+RAG_SERVICE_URL=http://rag-service:8000
+HOST=0.0.0.0
+PORT=8000
+DEBUG=false
 ```
 
 ### Run Service
@@ -77,161 +107,153 @@ RAG_SERVICE_URL=http://localhost:8002
 uvicorn app.main:app --reload --port 8003
 ```
 
-## Configuration
+## API Reference
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `OPENAI_MODEL` | Model name | `gpt-4` |
-| `MONGODB_URL` | MongoDB connection string | Required |
-| `RAG_SERVICE_URL` | RAG service endpoint | `http://localhost:8002` |
-| `MAX_ITERATIONS` | Max ReAct iterations | `10` |
-| `CONFIDENCE_THRESHOLD` | Decision threshold | `0.7` |
+### `POST /api/v1/multi-agent/process`
 
-## Usage
+Process a claim through the full multi-agent workflow.
 
-### Health Check
+**Request body:**
 
-```bash
-curl http://localhost:8003/health
-```
-
-### Process Claim
-
-**Endpoint:** `POST /api/v1/agent/decide`
-
-Process a claim and return a decision with reasoning.
-
-**Example:**
-```bash
-curl -X POST http://localhost:8003/api/v1/agent/decide \
-  -H "Content-Type: application/json" \
-  -d '{
-    "claim_id": "CLM-001",
-    "extracted_data": {
-      "patient": "Nguyễn Văn A",
-      "diagnosis_codes": ["J18.9"],
-      "total_amount": 15500000,
-      "hospital": "Bệnh viện Chợ Rẫy"
-    },
-    "policy_number": "POL-001"
-  }'
-```
-
-**Response:**
 ```json
 {
   "claim_id": "CLM-001",
-  "decision": "APPROVE",
-  "confidence_score": 0.92,
-  "amount_recommended": 14500000,
-  "reasoning": "Based on policy review...",
-  "evidence": [...],
-  "risks": [...],
-  "iterations": 3
+  "input_file": "/path/to/claim_file.pdf",
+  "policy_number": "POL-001"
 }
 ```
 
-### Get Graph Structure
+**Response:**
 
-**Endpoint:** `GET /api/v1/agent/graph`
+```json
+{
+  "claim_id": "CLM-001",
+  "final_decision": "APPROVE",
+  "agent_1_result": {
+    "decision": "accept",
+    "confidence": 0.95,
+    "reasoning": "All required documents are present.",
+    "missing_documents": [],
+    "issues": []
+  },
+  "agent_2_result": {
+    "decision": "accept",
+    "confidence": 0.88,
+    "reasoning": "Diagnosis and medications are consistent.",
+    "issues": []
+  },
+  "human_review_result": null,
+  "processing_steps": [...]
+}
+```
 
-Returns the LangGraph structure for visualization.
+**Possible `final_decision` values:** `APPROVE` · `REJECT` · `PENDING`
 
-## Development
+**Possible `agent_1_result.decision` / `agent_2_result.decision` values:** `accept` · `reject` · `accept_with_edit`
 
-### Project Structure
+---
+
+### `GET /health`
+
+```bash
+curl http://localhost:8003/health
+# {"status": "healthy"}
+```
+
+### `GET /api/v1/multi-agent/health`
+
+```bash
+curl http://localhost:8003/api/v1/multi-agent/health
+# {"status": "healthy", "service": "multi-agent"}
+```
+
+### `GET /`
+
+Returns service metadata and available endpoints.
+
+---
+
+Interactive API docs available at:
+- **Swagger UI**: `http://localhost:8003/docs`
+- **ReDoc**: `http://localhost:8003/redoc`
+
+## Project Structure
 
 ```
 src/agent-service/
 ├── api/
-│   └── routes/
-│       └── agent.py           # Agent endpoints
+│   ├── models.py          # Pydantic request/response models
+│   └── routes.py          # API endpoints
 ├── app/
-│   └── config.py              # Configuration
+│   ├── config.py          # Settings (pydantic-settings)
+│   └── main.py            # FastAPI application & lifespan
 ├── core/
-│   ├── graph/
-│   │   ├── state.py           # AgentState definition
-│   │   ├── nodes.py           # ReAct nodes (observe, think, act, reflect)
-│   │   ├── edges.py           # Conditional edges
-│   │   └── builder.py         # Graph builder
-│   ├── memory/
-│   │   └── mongodb_checkpointer.py  # State persistence
-│   └── llm/
-│       └── client.py          # LLM client
-├── tools/
-│   ├── registry.py            # Tool registry
-│   ├── icd_lookup.py          # ICD-10 tool
-│   ├── policy_check.py        # Policy tool
-│   ├── coverage_calc.py       # Calculator tool
-│   └── document_query.py      # Document tool
-├── requirements.txt           # Python dependencies
-└── README.md                 # This file
+│   ├── graph.py           # LangGraph StateGraph builder
+│   ├── router.py          # Conditional routing functions
+│   └── state.py           # GraphState TypedDict
+├── agents/                # Agent node implementations
+│   ├── completeness_agent.py
+│   ├── quality_agent.py
+│   ├── human_review.py
+│   └── final_agent.py
+├── tools/                 # BaseTool + 8 concrete tool implementations
+│   ├── base.py
+│   ├── extract_documents.py
+│   ├── check_required_documents.py
+│   ├── classify_benefit.py
+│   ├── validate_consistency.py
+│   ├── validate_diagnosis.py
+│   ├── check_exclusion.py
+│   ├── validate_medication.py
+│   └── aggregate_issues.py
+└── requirements.txt
 ```
 
-### Available Tools
+## State Schema
 
-| Tool | Description |
-|------|-------------|
-| `icd_lookup` | Validate ICD-10 diagnosis codes |
-| `policy_check` | Check policy terms and coverage |
-| `coverage_calc` | Calculate eligible claim amounts |
-| `document_query` | Query extracted document fields |
-
-### ReAct State
+`GraphState` (TypedDict) is passed between all nodes:
 
 ```python
 {
   # Input
-  "claim_id": str,
-  "extracted_data": dict,
-  "policy_number": str,
+  "input_file": str,              # Path to the claim file
+  "extracted_documents": dict,    # OCR-extracted document data
 
-  # ReAct Loop
-  "observations": List[str],
-  "thoughts": List[str],
-  "actions": List[dict],
-  "reflections": List[str],
-
-  # Context
-  "retrieved_context": List[dict],
-  "tool_results": List[dict],
+  # Agent results
+  "agent_1_result": dict | None,  # Completeness check result
+  "agent_2_result": dict | None,  # Quality check result
+  "human_review_result": dict | None,
 
   # Output
-  "decision": "APPROVE|REJECT|PENDING",
-  "confidence_score": float,
-  "reasoning": str
+  "final_result": dict | None,    # Aggregated final decision
+
+  # Control
+  "history": list,                # Full workflow audit trail (append-only)
+  "current_step": str,            # Current node name
+  "should_continue": bool,        # Halt flag
+  "error": str | None             # Error message on failure
 }
 ```
 
+## Configuration Reference
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | OpenAI API key | **Required** |
+| `RAG_SERVICE_URL` | RAG service base URL | `http://rag-service:8000` |
+| `HOST` | Bind host | `0.0.0.0` |
+| `PORT` | Bind port | `8000` |
+| `DEBUG` | Enable hot-reload | `false` |
+
 ## Troubleshooting
 
-### MongoDB connection errors
+**`OPENAI_API_KEY` not set**
+- Ensure `.env` exists and is loaded. The service will fail to start without this key.
 
-- Verify MongoDB is running on port 27017
-- Check `MONGODB_URL` in `.env` file
-- Ensure credentials are correct
+**RAG service unavailable**
+- Verify RAG service is running at the configured `RAG_SERVICE_URL`.
+- Check Docker network if running inside containers.
 
-### RAG service unavailable
-
-- Verify RAG service is running on port 8002
-- Check `RAG_SERVICE_URL` in `.env` file
-- Review RAG service logs
-
-### OpenAI API errors
-
-- Verify `OPENAI_API_KEY` is set correctly
-- Check that the API key has not expired
-- Review rate limits on your OpenAI account
-
-### Decision timeout
-
-- Increase `MAX_ITERATIONS` if complex claims need more processing
-- Check that all tools are responding correctly
-- Review logs for specific error messages
-
-## API Documentation
-
-Interactive API documentation is available at:
-- **Swagger UI**: `http://localhost:8003/docs`
-- **ReDoc**: `http://localhost:8003/redoc`
+**500 error on `/multi-agent/process`**
+- Check the `error` field in the response body.
+- Review structured logs output by `structlog` for the full trace.

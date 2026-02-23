@@ -1,0 +1,22 @@
+{
+  "name": "extract_documents",
+  "description": "Extract structured information from claim documents",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "document_types": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["claim_form", "medical_record", "invoice", "policy"]
+        },
+        "description": "Types of documents to extract"
+      },
+      "input_file": {
+        "type": "string",
+        "description": "Path to the input file"
+      }
+    },
+    "required": ["input_file", "document_types"]
+  }
+}

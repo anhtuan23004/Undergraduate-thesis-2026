@@ -1,0 +1,22 @@
+{
+  "name": "validate_consistency",
+  "description": "Validate consistency between extracted documents",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "documents": {
+        "type": "object",
+        "description": "Object containing all extracted documents"
+      },
+      "checks": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["patient_name", "date", "amount", "policy_number", "provider"]
+        },
+        "description": "Specific consistency checks to perform (optional, defaults to all)"
+      }
+    },
+    "required": ["documents"]
+  }
+}

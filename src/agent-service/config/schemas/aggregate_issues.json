@@ -1,0 +1,22 @@
+{
+  "name": "aggregate_issues",
+  "description": "Aggregate all issues from previous agents for final decision",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "agent_1_result": {
+        "type": "object",
+        "description": "Result from Agent 1 (completeness check)"
+      },
+      "agent_2_result": {
+        "type": "object",
+        "description": "Result from Agent 2 (quality check) - optional"
+      },
+      "human_review_result": {
+        "type": "object",
+        "description": "Result from human review - optional"
+      }
+    },
+    "required": ["agent_1_result"]
+  }
+}

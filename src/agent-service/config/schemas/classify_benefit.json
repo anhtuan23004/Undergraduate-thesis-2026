@@ -1,0 +1,24 @@
+{
+  "name": "classify_benefit",
+  "description": "Classify the benefit type based on diagnosis and procedure codes",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of ICD-10 diagnosis codes"
+      },
+      "procedure_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of procedure codes (optional)"
+      }
+    },
+    "required": ["diagnosis_codes"]
+  }
+}

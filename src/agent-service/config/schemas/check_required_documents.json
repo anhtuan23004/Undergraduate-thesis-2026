@@ -1,0 +1,19 @@
+{
+  "name": "check_required_documents",
+  "description": "Check if all required documents are present for the claim",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "extracted_documents": {
+        "type": "object",
+        "description": "Object containing extracted document data by document type"
+      },
+      "claim_type": {
+        "type": "string",
+        "enum": ["inpatient", "outpatient", "emergency", "pharmacy"],
+        "description": "Type of insurance claim"
+      }
+    },
+    "required": ["extracted_documents", "claim_type"]
+  }
+}

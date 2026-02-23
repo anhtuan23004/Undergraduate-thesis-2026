@@ -1,0 +1,24 @@
+{
+  "name": "validate_diagnosis",
+  "description": "Validate diagnosis codes against ICD-10 standard",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of ICD-10 diagnosis codes to validate"
+      },
+      "symptoms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Reported symptoms for cross-validation (optional)"
+      }
+    },
+    "required": ["diagnosis_codes"]
+  }
+}

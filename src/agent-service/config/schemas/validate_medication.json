@@ -1,0 +1,36 @@
+{
+  "name": "validate_medication",
+  "description": "Validate medication appropriateness for the diagnosis",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "medications": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "dosage": {
+              "type": "string"
+            },
+            "frequency": {
+              "type": "string"
+            }
+          },
+          "required": ["name"]
+        },
+        "description": "List of prescribed medications"
+      },
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of ICD-10 diagnosis codes"
+      }
+    },
+    "required": ["medications", "diagnosis_codes"]
+  }
+}
