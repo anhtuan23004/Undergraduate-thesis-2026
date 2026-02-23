@@ -5,9 +5,8 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import agent, skills
 from app.config import settings
-from multi_agent.api.routes import router as multi_agent_router
+from api.routes import router as multi_agent_router
 
 logger = structlog.get_logger()
 
@@ -18,7 +17,6 @@ async def lifespan(app: FastAPI):
     logger.info(
         "Starting Agent Service",
         version=settings.APP_VERSION,
-        model=settings.OPENAI_MODEL
     )
     yield
     logger.info("Shutting down Agent Service")
@@ -27,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="ReAct Agent for Insurance Claims Processing",
+    description="Multi-Agent Insurance Claims Processing",
     lifespan=lifespan
 )
 
@@ -41,8 +39,6 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
-app.include_router(skills.router, prefix="/api/v1", tags=["skills"])
 app.include_router(multi_agent_router, prefix="/api/v1", tags=["multi-agent"])
 
 
@@ -52,21 +48,9 @@ async def root() -> dict:
     return {
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "architecture": "ReAct Agent + Skill-Based Orchestrator with LangGraph",
+        "architecture": "Multi-Agent LangGraph Workflow",
         "endpoints": {
             "health": "/health",
-            "agent": {
-                "health": "/api/v1/agent/health",
-                "decide": "/api/v1/agent/decide (POST)",
-                "graph": "/api/v1/agent/graph"
-            },
-            "skills": {
-                "list": "/api/v1/skills/",
-                "get": "/api/v1/skills/{skill_name}",
-                "process": "/api/v1/skills/process (POST)",
-                "execute": "/api/v1/skills/execute (POST)",
-                "reload": "/api/v1/skills/reload (POST)"
-            },
             "multi-agent": {
                 "health": "/api/v1/multi-agent/health",
                 "process": "/api/v1/multi-agent/process (POST)"

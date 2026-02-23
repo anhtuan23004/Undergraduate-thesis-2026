@@ -2,6 +2,6 @@
 .env
 .omc
 CLAUDE.md
-des-detailed.md
-des-hybrid.md
 __pycache__
+.serena
+.CLAUDE

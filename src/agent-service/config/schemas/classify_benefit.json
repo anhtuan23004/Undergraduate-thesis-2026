@@ -1,0 +1,47 @@
+{
+  "name": "classify_benefit",
+  "description": "Classify the medical benefit type based on diagnosis, procedures, medications, and other claim details",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "diagnosis": {
+        "type": "string",
+        "description": "Primary diagnosis or medical condition description"
+      },
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of ICD-10 diagnosis codes"
+      },
+      "procedures": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of medical procedures performed"
+      },
+      "medications": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of medications prescribed or administered"
+      },
+      "hospital_stay_days": {
+        "type": "number",
+        "description": "Number of days the patient stayed in hospital"
+      },
+      "treatment_location": {
+        "type": "string",
+        "description": "Where treatment was provided (e.g. hospital, clinic, ER)"
+      },
+      "document_text": {
+        "type": "string",
+        "description": "Raw text from claim documents for keyword-based classification"
+      }
+    },
+    "required": []
+  }
+}

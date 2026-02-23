@@ -1,0 +1,52 @@
+{
+  "name": "extract_documents",
+  "description": "Extract text and structured data from claim documents via OCR service",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "extraction_type": {
+        "type": "string",
+        "enum": [
+          "raw",
+          "fields",
+          "document"
+        ],
+        "description": "Type of extraction: 'raw' for plain text, 'fields' for key-value pairs, 'document' for full structure"
+      },
+      "file_path": {
+        "type": "string",
+        "description": "Local path to the document file (required if file_url not provided)"
+      },
+      "file_url": {
+        "type": "string",
+        "description": "URL to download the document from (required if file_path not provided)"
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Optional custom prompt to guide the extraction"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Specific fields to extract (optional, used with 'fields' extraction type)"
+      }
+    },
+    "required": [
+      "extraction_type"
+    ],
+    "oneOf": [
+      {
+        "required": [
+          "file_path"
+        ]
+      },
+      {
+        "required": [
+          "file_url"
+        ]
+      }
+    ]
+  }
+}

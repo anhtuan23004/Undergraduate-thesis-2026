@@ -1,0 +1,21 @@
+name: quality_check_agent
+description: Validates document quality and consistency
+role: quality_validator
+tools:
+  - validate_consistency
+  - validate_diagnosis
+  - check_exclusion
+  - validate_medication
+output_schema:
+  decision:
+    type: string
+    enum: [accept, reject, accept_with_edit]
+  issues:
+    type: array
+    items:
+      type: object
+      properties:
+        severity: string
+        description: string
+  confidence:
+    type: number

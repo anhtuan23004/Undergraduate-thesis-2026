@@ -1,0 +1,23 @@
+{
+  "name": "validate_diagnosis",
+  "description": "Validate ICD-10 diagnosis codes for format correctness and insurance coverage",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "diagnosis_codes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of ICD-10 diagnosis codes to validate (e.g. 'J18', 'E11', 'I10')"
+      },
+      "policy_number": {
+        "type": "string",
+        "description": "Insurance policy number for coverage checking (optional)"
+      }
+    },
+    "required": [
+      "diagnosis_codes"
+    ]
+  }
+}
