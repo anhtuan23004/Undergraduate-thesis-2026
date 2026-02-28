@@ -4,4 +4,8 @@
 CLAUDE.md
 __pycache__
 .serena
+.vscode
 .CLAUDE
+*.log
+GEMINI.md
+AGENTS.md
