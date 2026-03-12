@@ -42,8 +42,21 @@ class Settings(BaseSettings):
     CLAIM_AMOUNT_THRESHOLD: float = 1_000_000_000  # 1 billion VND
     CLAIM_AMOUNT_TOLERANCE: float = 0.01  # For floating point comparison
 
+    # Decision Agent Thresholds (used for issue severity scoring)
+    CRITICAL_THRESHOLD: int = 1   # Any critical issue triggers rejection
+    HIGH_THRESHOLD: int = 3        # 3+ high severity issues trigger rejection
+    MEDIUM_THRESHOLD: int = 5     # 5+ medium severity issues trigger review
+    SCORE_THRESHOLD: int = 8       # Weighted score threshold for rejection
+
     # Prior Authorization Medications (comma-separated list)
     PRIOR_AUTH_MEDICATIONS: str = "morphine,warfarin,biologics,specialty_drugs"
+
+    # CORS Configuration
+    ALLOWED_ORIGINS: str = ""  # Comma-separated list of allowed origins (empty = allow all)
+
+    # External Data Sources (file paths for mock data - replace with real DB in production)
+    ICD10_DATA_PATH: str = ""  # Path to ICD-10 JSON file (optional)
+    POLICY_EXCLUSIONS_PATH: str = ""  # Path to policy exclusions JSON file (optional)
 
     @property
     def prior_auth_medications_list(self) -> list[str]:

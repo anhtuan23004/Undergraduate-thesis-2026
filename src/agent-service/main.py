@@ -31,11 +31,11 @@ app = FastAPI(
 )
 
 # CORS middleware
-# For production, replace allow_origins=["*"] with your frontend domain:
-# Example: allow_origins=["https://your-domain.com"]
+# For production, set ALLOWED_ORIGINS env var to your frontend domain(s):
+# Example: ALLOWED_ORIGINS=https://your-domain.com,https://app.your-domain.com
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict to production domain before deployment
+    allow_origins=settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

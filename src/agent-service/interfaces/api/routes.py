@@ -22,14 +22,14 @@ from core.storage.redis_storage import get_storage
 router = APIRouter()
 logger = structlog.get_logger()
 
-# Shared MemorySaver for state persistence across all requests
+# Shared MemorySaver for in-memory state persistence across requests within same process
 _memory = MemorySaver()
 
 # Global graph instance compiled with checkpointer
 _graph = build_multi_agent_graph(checkpointer=_memory)
 
-# Redis storage for persistence across service restarts
-_storage = get_storage()
+# Redis storage for claim metadata (mapping, errors, pending reviews)
+# Note: Graph state is NOT persisted across restarts - uses in-memory MemorySaver
 
 # Claim-thread mapping is now persisted in Redis
 # Key: claim_id -> Value: thread_id
@@ -44,6 +44,7 @@ async def _run_graph(claim_id: str, initial_state: GraphState, config: dict) -> 
         config: Configuration with thread_id for state isolation
     """
     thread_id: str = config["configurable"]["thread_id"]
+    storage = get_storage()
     try:
         logger.info(
             "Starting graph execution",
@@ -70,7 +71,7 @@ async def _run_graph(claim_id: str, initial_state: GraphState, config: dict) -> 
                 "agent_2_result": state.values.get("agent_2_result"),
                 "submitted_at": datetime.utcnow().isoformat()
             }
-            await _storage.set_pending_review(claim_id, pending_data)
+            await storage.set_pending_review(claim_id, pending_data)
 
     except Exception as exc:
         logger.error(
@@ -80,10 +81,8 @@ async def _run_graph(claim_id: str, initial_state: GraphState, config: dict) -> 
             error=str(exc)
         )
         # Store error in Redis for persistence
-        await _storage.set_error(thread_id, str(exc))
-    finally:
-        # Clean up claim-thread mapping after completion or error
-        await _storage.delete_claim_thread_mapping(claim_id)
+        await storage.set_error(thread_id, str(exc))
+    # Note: claim-thread mapping expires via Redis TTL, allowing status lookups after completion
 
 
 async def _resume_graph(claim_id: str, config: dict) -> None:
@@ -94,6 +93,7 @@ async def _resume_graph(claim_id: str, config: dict) -> None:
         config: Configuration with thread_id for state isolation
     """
     thread_id: str = config["configurable"]["thread_id"]
+    storage = get_storage()
     try:
         logger.info(
             "Resuming graph after human review",
@@ -104,7 +104,7 @@ async def _resume_graph(claim_id: str, config: dict) -> None:
             pass  # Runs until next interrupt or END
 
         # Remove from pending reviews if completed
-        await _storage.delete_pending_review(claim_id)
+        await storage.delete_pending_review(claim_id)
 
         logger.info(
             "Graph resumed and completed",
@@ -119,10 +119,8 @@ async def _resume_graph(claim_id: str, config: dict) -> None:
             thread_id=thread_id,
             error=str(exc)
         )
-        await _storage.set_error(thread_id, str(exc))
-    finally:
-        # Clean up claim-thread mapping after completion or error
-        await _storage.delete_claim_thread_mapping(claim_id)
+        await storage.set_error(thread_id, str(exc))
+    # Note: claim-thread mapping expires via Redis TTL, allowing status lookups after completion
 
 
 @router.post("/multi-agent/process", response_model=MultiAgentResponse)
@@ -158,9 +156,10 @@ async def process_claim(request: MultiAgentRequest, background_tasks: Background
         # Use claim_id as thread_id for state isolation
         thread_id = request.claim_id
         config = {"configurable": {"thread_id": thread_id}}
-        
+
         # Store claim-thread mapping in Redis for persistence across restarts
-        await _storage.set_claim_thread_mapping(request.claim_id, thread_id)
+        storage = get_storage()
+        await storage.set_claim_thread_mapping(request.claim_id, thread_id)
 
         # Initialize state — only fields declared in GraphState TypedDict
         initial_state: GraphState = {
@@ -181,9 +180,8 @@ async def process_claim(request: MultiAgentRequest, background_tasks: Background
             "edited_agent_2_result": None,
         }
 
-        # WHY: background_tasks.add_task is used instead of asyncio.create_task
-        # because asyncio.create_task returns a Task that can be GC'd if no
-        # reference is kept. FastAPI's BackgroundTasks manages the lifecycle safely.
+        # WHY: FastAPI's BackgroundTasks ensures the task completes even if the
+        # request is cancelled, and provides proper lifecycle management.
         background_tasks.add_task(_run_graph, request.claim_id, initial_state, config)
 
         logger.info(
@@ -231,11 +229,12 @@ async def get_claim_status(claim_id: str) -> ClaimStatusResponse:
         HTTPException: If claim not found or error retrieving state
     """
     # Try to get thread_id from Redis (persisted across restarts)
-    thread_id = await _storage.get_thread_by_claim(claim_id)
-    
+    storage = get_storage()
+    thread_id = await storage.get_thread_by_claim(claim_id)
+
     # Fallback: check pending reviews in Redis
     if not thread_id:
-        pending_review = await _storage.get_pending_review(claim_id)
+        pending_review = await storage.get_pending_review(claim_id)
         thread_id = pending_review.get("thread_id") if pending_review else None
     
     if not thread_id:
@@ -244,7 +243,8 @@ async def get_claim_status(claim_id: str) -> ClaimStatusResponse:
     config = {"configurable": {"thread_id": thread_id}}
 
     # Surface any background-task exception immediately
-    error = await _storage.get_error(thread_id)
+    storage = get_storage()
+    error = await storage.get_error(thread_id)
     if error:
         return ClaimStatusResponse(
             claim_id=claim_id,
@@ -296,7 +296,8 @@ async def get_pending_reviews() -> PendingReviewsResponse:
         PendingReviewsResponse with list of claims requiring human attention
     """
     reviews = []
-    all_pending = await _storage.get_all_pending_reviews()
+    storage = get_storage()
+    all_pending = await storage.get_all_pending_reviews()
     for claim_id, review_info in all_pending.items():
         reviews.append(PendingReviewItem(
             claim_id=review_info["claim_id"],
@@ -334,7 +335,8 @@ async def submit_review(
     Raises:
         HTTPException: If claim not found, not waiting for review, or invalid decision
     """
-    pending_review = await _storage.get_pending_review(claim_id)
+    storage = get_storage()
+    pending_review = await storage.get_pending_review(claim_id)
     if not pending_review:
         raise HTTPException(
             status_code=404,
@@ -380,8 +382,8 @@ async def submit_review(
         # Update state with human decision
         await _graph.aupdate_state(config, state_update)
 
-        # WHY: background_tasks.add_task keeps a managed reference; asyncio.create_task
-        # would allow the coroutine to be GC'd before completion.
+        # WHY: FastAPI's BackgroundTasks ensures proper lifecycle management
+        # and task completion even if the request is cancelled.
         background_tasks.add_task(_resume_graph, claim_id, config)
 
         if request.decision == "approve":

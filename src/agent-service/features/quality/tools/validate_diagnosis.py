@@ -2,15 +2,39 @@
 
 This module provides a tool for validating ICD-10 diagnosis codes,
 checking coverage status and retrieving code descriptions.
+
+Note: In production, ICD10_DATA_PATH should point to a real ICD-10 database.
+For now, uses mock data as fallback when external file is not available.
 """
 
+import json
+import os
 from typing import Any, Dict, List, Optional
 
 from core.base.tool import BaseTool
+from config import settings
 
 
-# Mock ICD-10 data for common diagnoses
-ICD10_DATABASE = {
+def _load_icd10_database() -> Dict[str, Any]:
+    """Load ICD-10 database from external file or use mock data.
+    
+    Returns:
+        Dictionary mapping ICD-10 codes to their metadata
+    """
+    # Try to load from external file
+    if settings.ICD10_DATA_PATH and os.path.exists(settings.ICD10_DATA_PATH):
+        try:
+            with open(settings.ICD10_DATA_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass  # Fall back to mock data
+    
+    # Return mock data as fallback
+    return _MOCK_ICD10_DATABASE
+
+
+# Mock ICD-10 data for common diagnoses (used when external DB not available)
+_MOCK_ICD10_DATABASE = {
     "A00": {"description": "Cholera", "category": "Infectious diseases", "covered": True},
     "A01": {"description": "Typhoid and paratyphoid fevers", "category": "Infectious diseases", "covered": True},
     "B01": {"description": "Varicella [chickenpox]", "category": "Infectious diseases", "covered": True},
@@ -37,6 +61,10 @@ ICD10_DATABASE = {
     "S72": {"description": "Fracture of femur", "category": "Injuries", "covered": True},
     "Z51": {"description": "Encounter for other aftercare", "category": "Factors influencing health", "covered": True},
 }
+
+
+# Load ICD-10 database (from external file or mock data)
+ICD10_DATABASE = _load_icd10_database()
 
 # Category mappings for broader code lookups
 ICD_CATEGORIES = {
