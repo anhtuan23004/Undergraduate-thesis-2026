@@ -13,6 +13,7 @@ from core.base.tool import BaseTool
 
 
 OCR_SERVICE_URL = os.getenv("OCR_SERVICE_URL", "http://localhost:8001")
+UPLOADS_DIR = os.getenv("UPLOADS_DIR", "/tmp/agent-service/uploads")
 
 
 class ExtractDocumentsTool(BaseTool):
@@ -90,6 +91,30 @@ class ExtractDocumentsTool(BaseTool):
                 "success": False,
                 "error": "Either file_path or file_url must be provided"
             }
+
+        # Validate file_path is within allowed directory
+        if file_path:
+            try:
+                # Resolve to absolute path and check it's within allowed directory
+                allowed_dir = os.path.abspath(os.path.expanduser(UPLOADS_DIR))
+                requested_path = os.path.abspath(os.path.expanduser(file_path))
+
+                # Ensure the allowed directory exists
+                os.makedirs(allowed_dir, exist_ok=True)
+
+                # Check if requested path is within allowed directory
+                if not requested_path.startswith(allowed_dir):
+                    return {
+                        "success": False,
+                        "error": f"File path outside allowed directory. Allowed: {allowed_dir}",
+                        "source": file_path
+                    }
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Path validation failed: {str(e)}",
+                    "source": file_path
+                }
 
         endpoint = f"{OCR_SERVICE_URL}/api/v1/ocr/{extraction_type}"
 

@@ -127,7 +127,11 @@ class RedisStorage:
         redis_key = self._make_key("pending", claim_id)
         json_data = await client.get(redis_key)
         if json_data:
-            return json.loads(json_data)
+            try:
+                return json.loads(json_data)
+            except json.JSONDecodeError as e:
+                logger.error("Failed to parse pending review JSON", claim_id=claim_id, error=str(e))
+                return None
         return None
 
     async def delete_pending_review(self, claim_id: str) -> bool:

@@ -2,15 +2,39 @@
 
 This module provides a tool for checking if a claim or diagnosis
 is excluded from coverage based on policy terms and conditions.
+
+Note: In production, POLICY_EXCLUSIONS_PATH should point to a real policy database.
+For now, uses mock data as fallback when external file is not available.
 """
 
+import json
+import os
 from typing import Any, Dict, List, Optional
 
 from core.base.tool import BaseTool
+from config import settings
+
+
+def _load_policy_exclusions() -> Dict[str, Any]:
+    """Load policy exclusions from external file or use mock data.
+    
+    Returns:
+        Dictionary mapping policy numbers to their exclusions
+    """
+    # Try to load from external file
+    if settings.POLICY_EXCLUSIONS_PATH and os.path.exists(settings.POLICY_EXCLUSIONS_PATH):
+        try:
+            with open(settings.POLICY_EXCLUSIONS_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass  # Fall back to mock data
+    
+    # Return mock data as fallback
+    return _MOCK_POLICY_EXCLUSIONS
 
 
 # Mock policy exclusions database
-POLICY_EXCLUSIONS = {
+_MOCK_POLICY_EXCLUSIONS = {
     "POL-001": {
         "exclusions": [
             {"type": "condition", "value": "cosmetic surgery", "severity": "permanent"},
@@ -51,6 +75,10 @@ POLICY_EXCLUSIONS = {
         }
     }
 }
+
+
+# Load policy exclusions (from external file or mock data)
+POLICY_EXCLUSIONS = _load_policy_exclusions()
 
 # Common exclusion keywords by category
 EXCLUSION_KEYWORDS = {

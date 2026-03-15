@@ -8,6 +8,7 @@ severity-weighted analysis.
 from typing import Any, Dict, List, Optional
 
 from core.base.tool import BaseTool
+from config import settings
 
 
 class AggregateIssuesTool(BaseTool):
@@ -144,11 +145,12 @@ class AggregateIssuesTool(BaseTool):
         "low": 1
     }
 
-    # Thresholds for recommendations
-    CRITICAL_THRESHOLD = 1  # Any critical issue triggers rejection
-    HIGH_THRESHOLD = 3      # 3+ high severity issues trigger rejection
-    MEDIUM_THRESHOLD = 5    # 5+ medium severity issues trigger review
-    SCORE_THRESHOLD = 8     # Weighted score threshold for rejection
+    # Thresholds for recommendations - loaded from settings
+    # Note: These can be overridden via environment variables or .env file
+    CRITICAL_THRESHOLD = settings.CRITICAL_THRESHOLD   # Any critical issue triggers rejection
+    HIGH_THRESHOLD = settings.HIGH_THRESHOLD          # 3+ high severity issues trigger rejection
+    MEDIUM_THRESHOLD = settings.MEDIUM_THRESHOLD     # 5+ medium severity issues trigger review
+    SCORE_THRESHOLD = settings.SCORE_THRESHOLD       # Weighted score threshold for rejection
 
     async def execute(
         self,
@@ -229,7 +231,7 @@ class AggregateIssuesTool(BaseTool):
             weighted_score = self._calculate_weighted_score(aggregated_issues)
 
             # Generate recommendation
-            recommendation, reason = self._generate_recommendation(
+            recommendation, reason = await self._generate_recommendation(
                 aggregated_issues,
                 severity_counts,
                 weighted_score,
@@ -278,7 +280,7 @@ class AggregateIssuesTool(BaseTool):
             total_score += weight
         return total_score
 
-    def _generate_recommendation(
+    async def _generate_recommendation(
         self,
         issues: List[Dict[str, Any]],
         severity_counts: Dict[str, int],
@@ -308,67 +310,39 @@ class AggregateIssuesTool(BaseTool):
         """
         reasons = []
 
-        # Check for critical issues (automatic rejection)
-        if severity_counts["critical"] > 0:
-            reasons.append(
-                f"Found {severity_counts['critical']} critical issue(s)"
-            )
+        # Check for critical issues
+        if severity_counts.get("critical", 0) >= self.CRITICAL_THRESHOLD:
+            reasons.append(f"Found {severity_counts['critical']} critical issue(s)")
 
         # Check for high severity issues
-        if severity_counts["high"] >= self.HIGH_THRESHOLD:
-            reasons.append(
-                f"Found {severity_counts['high']} high severity issues "
-                f"(threshold: {self.HIGH_THRESHOLD})"
-            )
+        if severity_counts.get("high", 0) >= self.HIGH_THRESHOLD:
+            reasons.append(f"Found {severity_counts['high']} high severity issues (threshold: {self.HIGH_THRESHOLD})")
 
-        # Check weighted score threshold for rejection
+        # Check for medium severity issues
+        if severity_counts.get("medium", 0) >= self.MEDIUM_THRESHOLD:
+            reasons.append(f"Found {severity_counts['medium']} medium severity issues (threshold: {self.MEDIUM_THRESHOLD})")
+
+        # Check weighted score
         if weighted_score >= self.SCORE_THRESHOLD:
-            reasons.append(
-                f"Weighted score {weighted_score} exceeds rejection threshold "
-                f"({self.SCORE_THRESHOLD})"
-            )
+            reasons.append(f"Weighted score {weighted_score} exceeds threshold {self.SCORE_THRESHOLD}")
 
-        # If any rejection conditions met, return reject
-        if reasons:
-            return "reject", "; ".join(reasons)
-
-        # Check for review conditions
-        review_reasons = []
-
-        # Medium issues threshold
-        if severity_counts["medium"] >= self.MEDIUM_THRESHOLD:
-            review_reasons.append(
-                f"Found {severity_counts['medium']} medium severity issues "
-                f"(threshold: {self.MEDIUM_THRESHOLD})"
-            )
-
-        # Weighted score review threshold
-        if weighted_score >= 5:
-            review_reasons.append(
-                f"Weighted score {weighted_score} suggests manual review"
-            )
-
-        # Any individual agent flagged as invalid
+        # Check agent validation results
         if not agent_1_valid:
-            review_reasons.append("Agent 1 validation failed")
+            reasons.append("Agent 1 validation failed")
         if not agent_2_valid:
-            review_reasons.append("Agent 2 validation failed")
+            reasons.append("Agent 2 validation failed")
         if not human_valid:
-            review_reasons.append("Human review flagged issues")
+            reasons.append("Human review flagged issues")
 
-        # If any review conditions met, return review
-        if review_reasons:
-            return "review", "; ".join(review_reasons)
+        # Determine recommendation
+        if severity_counts.get("critical", 0) > 0 or severity_counts.get("high", 0) >= self.HIGH_THRESHOLD or weighted_score >= self.SCORE_THRESHOLD:
+            recommendation = "reject"
+            reason = "; ".join(reasons) if reasons else "Critical issues or high severity threshold exceeded"
+        elif severity_counts.get("medium", 0) >= self.MEDIUM_THRESHOLD or weighted_score >= 5 or not agent_1_valid or not agent_2_valid:
+            recommendation = "review"
+            reason = "; ".join(reasons) if reasons else "Medium severity issues or validation failed"
+        else:
+            recommendation = "approve"
+            reason = "No significant issues found"
 
-        # If no issues, approve
-        if not issues:
-            return "approve", "No validation issues found"
-
-        # Low severity issues only - still approve but note them
-        if severity_counts["low"] > 0:
-            return (
-                "approve",
-                f"Only {severity_counts['low']} low severity issue(s) found"
-            )
-
-        return "approve", "All validations passed"
+        return recommendation, reason

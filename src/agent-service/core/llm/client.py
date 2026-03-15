@@ -1,7 +1,6 @@
 """LLM client for generating responses."""
 import json
 import inspect
-import asyncio
 import random
 import structlog
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
@@ -296,11 +295,12 @@ Response (JSON only, no markdown):
                     enum_vals = field_def.get("enum")
                     if enum_vals:
                         # Use Literal for enum fields so Gemini sees the constraints
-                        literal = Literal[tuple(enum_vals)]  # type: ignore[misc]
+                        # Unpack enum values: Literal['a', 'b', 'c'] instead of Literal[('a', 'b', 'c')]
+                        literal = Literal[*enum_vals]  # type: ignore[misc]
                         if field_name in required:
                             fields[field_name] = (literal, Field(description=desc))
                         else:
-                            fields[field_name] = (Opt[literal], Field(default=None, description=desc))  # type: ignore[valid-type]
+                            fields[field_name] = (Opt[literal], Field(default=None, description=desc))
                     elif ftype == "integer":
                         ann = int if field_name in required else Opt[int]
                         fields[field_name] = (ann, Field(default=None if field_name not in required else ..., description=desc))
