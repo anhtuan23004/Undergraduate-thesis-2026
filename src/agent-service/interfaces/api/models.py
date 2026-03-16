@@ -1,248 +1,126 @@
-"""Pydantic models for multi-agent API."""
-from typing import List, Dict, Any, Optional, Literal
+"""Pydantic models for v2 run-based API."""
+
+from typing import Any, Dict, List, Optional, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class Issue(BaseModel):
-    """Issue found during claim processing."""
+class RunCreateRequest(BaseModel):
+    """Request for creating a new claim-processing run."""
 
-    severity: Literal["low", "medium", "high", "critical"] = Field(
-        ...,
-        description="Issue severity level"
-    )
-    description: str = Field(
-        ...,
-        description="Description of the issue"
-    )
-    field: Optional[str] = Field(
-        None,
-        description="Field affected by the issue"
-    )
-
-
-class AgentResult(BaseModel):
-    """Result from an agent's processing."""
-
-    decision: Literal["accept", "reject", "accept_with_edit"] = Field(
-        ...,
-        description="Agent decision"
-    )
-    confidence: float = Field(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="Confidence score"
-    )
-    reasoning: str = Field(
-        ...,
-        description="Reasoning for the decision"
-    )
-    missing_documents: Optional[List[str]] = Field(
-        None,
-        description="Missing documents if any"
-    )
-    issues: Optional[List[Issue]] = Field(
-        None,
-        description="Issues found"
-    )
-
-
-class MultiAgentRequest(BaseModel):
-    """Request for multi-agent claim processing."""
-
-    claim_id: str = Field(
-        ...,
-        description="Unique claim identifier"
-    )
+    claim_id: str = Field(..., description="Business claim identifier")
+    policy_number: str = Field(..., description="Policy number for the claim")
     input_file: str = Field(
         ...,
-        description="Filename of the uploaded claim file (relative, inside uploads directory)"
+        description="Filename of the uploaded claim file (relative, inside uploads directory)",
     )
-    policy_number: str = Field(
-        ...,
-        description="Policy number for the claim"
+    metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Optional business metadata attached to the run",
     )
 
     @field_validator("input_file")
     @classmethod
-    def validate_input_file(cls, v: str) -> str:
+    def validate_input_file(cls, value: str) -> str:
         """Reject absolute paths and path traversal; resolve to safe uploads dir."""
         import os
         from pathlib import Path
 
-        # Reject any absolute path or traversal sequences before resolution
-        if os.path.isabs(v):
+        if os.path.isabs(value):
             raise ValueError("input_file must be a relative filename, not an absolute path")
-        if ".." in Path(v).parts:
+        if ".." in Path(value).parts:
             raise ValueError("input_file must not contain path traversal segments (..)")
 
-        # Resolve against the configured uploads directory
         uploads_dir = Path(os.getenv("UPLOADS_DIR", "/tmp/agent-service/uploads")).resolve()
 
-        # Ensure the uploads directory exists
         if not uploads_dir.exists():
             try:
                 uploads_dir.mkdir(parents=True, exist_ok=True)
-            except OSError as e:
-                raise ValueError(f"Cannot create uploads directory: {e}")
+            except OSError as exc:
+                raise ValueError(f"Cannot create uploads directory: {exc}")
 
-        resolved = (uploads_dir / v).resolve()
+        resolved = (uploads_dir / value).resolve()
 
-        # Ensure the resolved path is still inside uploads_dir
         try:
             resolved.relative_to(uploads_dir)
         except ValueError:
             raise ValueError("input_file must resolve to a path within the uploads directory")
 
-        # Check if file exists
         if not resolved.exists():
-            raise ValueError(f"input_file does not exist: {v}")
+            raise ValueError(f"input_file does not exist: {value}")
 
         return str(resolved)
 
 
-class MultiAgentResponse(BaseModel):
-    """Response from multi-agent claim processing."""
+class RunCreateResponse(BaseModel):
+    """Response after creating a run."""
 
-    claim_id: str = Field(
-        ...,
-        description="Claim identifier"
-    )
-    final_decision: str = Field(
-        ...,
-        description="Final decision: APPROVE/REJECT/PENDING"
-    )
-    agent_1_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Completeness check result"
-    )
-    agent_2_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Quality check result"
-    )
-    human_review_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Human review result"
-    )
-    processing_steps: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        description="Workflow history"
-    )
+    run_id: str = Field(..., description="Technical run identifier")
+    claim_id: str = Field(..., description="Business claim identifier")
+    status: Literal["created", "running"] = Field(..., description="Initial run status")
+    created_at: str = Field(..., description="Run creation timestamp in ISO format")
 
 
-class ClaimStatusResponse(BaseModel):
-    """Response for claim status check."""
+class InterruptItem(BaseModel):
+    """Granular HITL interrupt information."""
 
-    claim_id: str = Field(
-        ...,
-        description="Claim identifier"
+    interrupt_id: str = Field(..., description="Unique interrupt identifier")
+    run_id: str = Field(..., description="Run identifier")
+    stage: str = Field(..., description="Workflow stage where interrupt occurred")
+    action: str = Field(..., description="Action requiring human decision")
+    payload: Dict[str, Any] = Field(default_factory=dict, description="Context payload for review")
+    allowed_decisions: List[Literal["approve", "reject", "edit"]] = Field(
+        default_factory=lambda: ["approve", "reject", "edit"],
+        description="Allowed decisions for this interrupt",
     )
-    status: Literal["starting", "running", "interrupted", "finished", "error"] = Field(
-        ...,
-        description="Current status of the claim processing"
-    )
-    agent_1_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Completeness check result"
-    )
-    agent_2_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Quality check result"
-    )
-    human_review_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Human review result"
-    )
-    final_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Final decision result"
-    )
-    pending_human_review: bool = Field(
-        False,
-        description="Whether the claim is waiting for human review"
-    )
-    error: Optional[str] = Field(
-        None,
-        description="Error message if any"
-    )
+    created_at: str = Field(..., description="Interrupt creation timestamp in ISO format")
 
 
-class PendingReviewItem(BaseModel):
-    """Item in pending reviews list."""
+class RunStatusResponse(BaseModel):
+    """Current status of a run."""
 
-    claim_id: str = Field(
-        ...,
-        description="Claim identifier"
+    run_id: str = Field(..., description="Run identifier")
+    claim_id: Optional[str] = Field(default=None, description="Business claim identifier")
+    status: Literal["created", "running", "interrupted", "completed", "failed"] = Field(
+        ..., description="Current lifecycle status of the run"
     )
-    policy_number: str = Field(
-        ...,
-        description="Policy number for the claim"
-    )
-    agent_1_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Completeness check result"
-    )
-    agent_2_result: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Quality check result"
-    )
-    submitted_at: Optional[str] = Field(
-        None,
-        description="When the claim was submitted for review"
-    )
-
-
-class PendingReviewsResponse(BaseModel):
-    """Response for pending reviews endpoint."""
-
-    reviews: List[PendingReviewItem] = Field(
-        default_factory=list,
-        description="List of claims waiting for human review"
-    )
-    count: int = Field(
-        ...,
-        description="Number of pending reviews"
-    )
-
-
-class SubmitReviewRequest(BaseModel):
-    """Request for submitting human review."""
-
-    decision: Literal["approve", "reject", "edit"] = Field(
-        ...,
-        description="Human decision: approve, reject, or edit"
-    )
-    feedback: str = Field(
-        ...,
-        description="Human feedback and reasoning"
-    )
-    reviewed_by: str = Field(
-        default="human_reviewer",
-        description="Identifier of the reviewer"
-    )
-    edited_agent_1_result: Optional[Dict[str, Any]] = Field(
+    current_stage: Optional[str] = Field(default=None, description="Current workflow stage")
+    interrupts: List[InterruptItem] = Field(default_factory=list, description="Pending HITL interrupts")
+    agent_1_result: Optional[Dict[str, Any]] = Field(default=None, description="Completeness result")
+    agent_2_result: Optional[Dict[str, Any]] = Field(default=None, description="Quality result")
+    final_output: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="Human-edited version of Agent 1 result"
+        description="Canonical final output payload for v2 clients",
     )
-    edited_agent_2_result: Optional[Dict[str, Any]] = Field(
+    final_result: Optional[Dict[str, Any]] = Field(default=None, description="Final decision payload")
+    error: Optional[str] = Field(default=None, description="Failure message when status=failed")
+    updated_at: str = Field(..., description="Last update timestamp in ISO format")
+
+
+class ResumeDecision(BaseModel):
+    """A single human decision for an interrupt."""
+
+    interrupt_id: str = Field(..., description="Interrupt identifier")
+    decision: Literal["approve", "reject", "edit"] = Field(..., description="Human decision")
+    comment: Optional[str] = Field(default="", description="Optional reviewer note")
+    edited_payload: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="Human-edited version of Agent 2 result"
+        description="Optional edited payload for decision='edit'",
     )
 
 
-class SubmitReviewResponse(BaseModel):
-    """Response for submitting human review."""
+class ResumeRunRequest(BaseModel):
+    """Request to resume a run with HITL decisions."""
 
-    claim_id: str = Field(
-        ...,
-        description="Claim identifier"
+    decisions: List[ResumeDecision] = Field(..., min_length=1, description="List of decisions")
+    reviewed_by: str = Field(default="human_reviewer", description="Reviewer identifier")
+
+
+class ResumeRunResponse(BaseModel):
+    """Response after resuming a run."""
+
+    run_id: str = Field(..., description="Run identifier")
+    status: Literal["running", "interrupted", "completed", "failed"] = Field(
+        ..., description="Current status after applying decisions"
     )
-    status: str = Field(
-        ...,
-        description="Status after submission"
-    )
-    message: str = Field(
-        ...,
-        description="Human-readable status message"
-    )
+    message: str = Field(..., description="Human-readable status message")
