@@ -12,7 +12,7 @@ Streamlit-based UI for claim submission, workflow monitoring, human review, and 
 | File | Description |
 |------|-------------|
 | `app.py` | App entrypoint and top-level screen flow (`main`) |
-| `api_client.py` | HTTP helpers for multi-agent API endpoints |
+| `api_client.py` | HTTP helpers for v2 run-based API endpoints |
 | `constants.py` | Runtime constants (`AGENT_SERVICE_URL`, endpoint URLs, `UPLOADS_DIR`) |
 | `processing.py` | Claim submit/poll orchestration that mutates `st.session_state` |
 | `state.py` | Session-state initialization/reset/update helpers |
@@ -40,18 +40,19 @@ None.
 
 - Manual UI smoke test: `streamlit run interfaces/web/app.py`
 - Backend integration checks:
-  - `POST /api/v1/multi-agent/process`
-  - `GET /api/v1/multi-agent/status/{claim_id}`
-  - `POST /api/v1/multi-agent/submit-review/{claim_id}`
+  - `POST /api/v2/runs`
+  - `GET /api/v2/runs/{run_id}`
+  - `POST /api/v2/runs/{run_id}/resume`
 - For code-level sanity: `python -m compileall interfaces/web`
 
 ### Common Patterns
 
 - **Session State**: initialize via `init_session_state()`, clear with `reset_state()` and `clear_review_edit_state()`.
-- **Polling Loop**: `poll_claim_status()` updates current step/status and drives reruns.
+- **Polling Loop**: `poll_claim_status()` updates run status (`running/interrupted/completed/failed`) and drives reruns.
 - **Renderer Split**: heavy UI sections live in dedicated renderer modules (`render_*`).
 - **Error Handling**: catch `requests.exceptions.RequestException` close to UI actions and surface via `st.session_state.error`.
-- **File Upload Contract**: send filename only to backend after saving upload under `UPLOADS_DIR`.
+- **File Upload Contract**: save upload under `UPLOADS_DIR`, then send filename to `POST /api/v2/runs`.
+- **HITL Contract**: render dynamic `interrupts[]` from status payload and resume with `decisions[]`.
 
 ## Dependencies
 
