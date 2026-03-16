@@ -4,7 +4,12 @@ from typing import Any, Dict
 
 import streamlit as st
 
-from result_utils import get_decision_color, get_decision_emoji, normalize_agent_result
+from result_utils import (
+    get_decision_color,
+    get_decision_emoji,
+    normalize_agent_result,
+    normalize_run_output,
+)
 from state import reset_state
 
 
@@ -115,7 +120,7 @@ def render_results_dashboard() -> None:
 
     st.header("📊 Processing Results")
 
-    result = st.session_state.result
+    result = normalize_run_output(st.session_state.result)
     claim_id = result.get("claim_id", st.session_state.claim_id or "Unknown")
 
     final_result_raw = result.get("final_result") or {}

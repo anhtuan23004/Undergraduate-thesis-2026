@@ -61,6 +61,18 @@ def normalize_agent_result(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def normalize_run_output(run_payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Normalize v2 run payload for UI rendering compatibility."""
+    if not run_payload:
+        return {}
+
+    normalized = dict(run_payload)
+    final_output = run_payload.get("final_output") or run_payload.get("final_result") or {}
+    normalized["final_output"] = final_output
+    normalized["final_result"] = final_output
+    return normalized
+
+
 def get_decision_color(decision: str) -> str:
     """Get color hex for a final decision."""
     decision_upper = decision.upper()
