@@ -73,6 +73,36 @@ def _prepare_milvus_data(child_chunks: List[dict]) -> dict:
     }
 
 
+def _prepare_bm25_documents(child_chunks: List[dict]) -> List[dict]:
+    """Prepare documents for in-memory BM25 indexing."""
+    return [
+        {
+            "id": chunk.get("id"),
+            "content": chunk.get("content", ""),
+            "doc_type": chunk.get("doc_type", ""),
+            "metadata": chunk.get("metadata", {}),
+        }
+        for chunk in child_chunks
+        if chunk.get("content")
+    ]
+
+
+def _update_bm25_indexes(documents: List[dict]) -> None:
+    """Update shared HybridSearch instances used by query/search routes."""
+    if not documents:
+        return
+
+    try:
+        from api.routes.search import searcher as search_route_searcher
+        from api.routes.query import searcher as query_route_searcher
+
+        search_route_searcher.index_documents(documents)
+        if query_route_searcher is not search_route_searcher:
+            query_route_searcher.index_documents(documents)
+    except Exception as exc:
+        logger.warning("Failed to update in-memory BM25 index", error=str(exc))
+
+
 @router.post("/ingest", response_model=IngestResponse)
 async def ingest_document(request: DocumentIngestRequest) -> IngestResponse:
     """Ingest a single document.
@@ -114,6 +144,7 @@ async def ingest_document(request: DocumentIngestRequest) -> IngestResponse:
     )
 
     milvus_data = _prepare_milvus_data(child_chunks)
+    bm25_docs = _prepare_bm25_documents(child_chunks)
 
     milvus.connect()
     inserted_ids = milvus.insert(
@@ -124,6 +155,7 @@ async def ingest_document(request: DocumentIngestRequest) -> IngestResponse:
         parent_ids=milvus_data["parent_ids"]
     )
     milvus.disconnect()
+    _update_bm25_indexes(bm25_docs)
 
     logger.info(
         "Document ingested",

@@ -1,5 +1,7 @@
 """Configuration for agent service."""
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
+from pydantic_settings import SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -28,7 +30,10 @@ class Settings(BaseSettings):
     MONGODB_DB: str = "claims"
 
     # Langfuse
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_SECRET_KEY: str = ""
     LANGFUSE_HOST: str = "http://localhost:3000"
+    LANGFUSE_PROJECT_NAME: str = "agent-service"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -58,15 +63,32 @@ class Settings(BaseSettings):
     ICD10_DATA_PATH: str = ""  # Path to ICD-10 JSON file (optional)
     POLICY_EXCLUSIONS_PATH: str = ""  # Path to policy exclusions JSON file (optional)
 
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def validate_debug(cls, value: object) -> bool:
+        """Coerce non-standard DEBUG values used in local/dev shells."""
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+
+        normalized = str(value).strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off", "release", "prod", "production"}:
+            return False
+        return False
+
     @property
     def prior_auth_medications_list(self) -> list[str]:
         """Return prior auth medications as a list."""
         return [med.strip().lower() for med in self.PRIOR_AUTH_MEDICATIONS.split(",") if med.strip()]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()
-

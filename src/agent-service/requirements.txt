@@ -4,12 +4,19 @@ uvicorn[standard]>=0.27.0
 pydantic>=2.5.3
 pydantic-settings>=2.1.0
 
-# LangGraph
+# LangGraph & LangChain v1
 langgraph>=0.0.50
-langchain>=0.1.0
+langchain>=0.3.0
+langchain-core>=0.3.0
 langchain-openai>=0.0.5
 langchain-google-genai>=1.0.0
 langchain-community>=0.0.13
+
+# LangChain Agent Middleware (v1)
+langchain-anthropic>=0.3.0  # For create_agent and middleware patterns
+
+# Langfuse - Observability and tracing
+langfuse>=2.51.0
 
 # LLM
 openai>=1.10.0

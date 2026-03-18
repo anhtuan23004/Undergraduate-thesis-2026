@@ -136,6 +136,21 @@ services:
     networks:
       - backend
 
+  # --- Redis (for Agent Service state metadata) ---
+  redis:
+    image: redis:7-alpine
+    container_name: claims-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ============================================
   # APPLICATION SERVICES
   # ============================================
@@ -205,9 +220,12 @@ services:
       - "8003:8000"
     environment:
       - MONGODB_URL=mongodb://claims_app:claims_password@mongodb:27017/claims
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
       - RAG_SERVICE_URL=http://rag-service:8000
+      - OCR_SERVICE_URL=http://ocr-service:8000
+      - REDIS_URL=redis://redis:6379/0
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-http://localhost:3000}
@@ -216,6 +234,8 @@ services:
       mongodb:
         condition: service_healthy
       rag-service:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - backend
