@@ -140,6 +140,52 @@ def route_after_quality_review(state: GraphState) -> str:
     return routing_map.get(decision, "final_decision")
 
 
+def route_after_human_review(state: GraphState) -> str:
+    """Unified routing from human review stage depending on where it came from.
+    
+    Checks the current_step or stage to determine correct next routing node.
+    """
+    decision = _get_human_decision(state)
+    
+    # Try to determine which stage we came from based on agent results or step
+    human_result = state.get("human_review_result", {}) or {}
+    
+    # Default to assuming completeness stage if not explicitly set
+    review_stage = human_result.get("stage", "")
+    
+    if not review_stage:
+        # Fallback heuristic: If we have an agent 2 result, we are at quality review
+        if state.get("agent_2_result"):
+            review_stage = "quality"
+        else:
+            review_stage = "completeness"
+            
+    if review_stage == "completeness":
+        routing_map = {
+            "approve": "quality_check",
+            "reject": "final_decision",
+            "edit": "completeness_check",
+        }
+        return routing_map.get(decision, "final_decision")
+        
+    elif review_stage == "quality":
+        routing_map = {
+            "approve": "final_decision",
+            "reject": "final_decision",
+            "edit": "quality_check",
+        }
+        return routing_map.get(decision, "final_decision")
+        
+    else:
+        # final review
+        routing_map = {
+            "approve": "end",
+            "reject": "end",
+            "edit": "quality_check",
+        }
+        return routing_map.get(decision, "end")
+
+
 def route_after_final_review(state: GraphState) -> str:
     """Route from final review stage.
 

@@ -1,134 +1,135 @@
-"""Agent Factory for creating LangChain v1 agents.
+"""Agent Factory for creating skill-based LangGraph agents."""
 
-Handles tool management and agent node creation for LangGraph workflows.
-"""
-
-import json
 import structlog
-from typing import Any, Dict, List, Optional, Callable
-
-from langchain_core.runnables import Runnable
-from langchain_core.tools import BaseTool as LangChainBaseTool
-
-from tools import extract_document, load_skill, lookup_icd, search_medicine
+from typing import Any, Callable
 
 logger = structlog.get_logger()
 
 
 class AgentFactory:
-    """Factory for creating agents with middleware.
+    """Factory for creating agents with skill-based tool loading."""
 
-    Attributes:
-        config_loader: Component for loading agent/tool configs.
-        llm_client: Client for LLM interactions.
-        middleware_config: Shared middleware configuration.
-    """
-
-    def __init__(
-        self,
-        config_loader: Any,
-        llm_client: Any,
-        middleware_config: Optional[Any] = None,
-    ):
-        self.config_loader = config_loader
+    def __init__(self, llm_client: Any):
         self.llm_client = llm_client
-        self.middleware_config = middleware_config
 
-    def create_base_tools(self, tool_names: List[str]) -> List[LangChainBaseTool]:
-        """Get LangChain tool instances by name."""
-        tool_map = {
-            "extract_documents": extract_document,
-            "load_skill": load_skill,
-            "lookup_icd": lookup_icd,
-            "search_medicine": search_medicine,
-        }
-        tools = []
-        for name in tool_names:
-            tool = tool_map.get(name)
-            if tool:
-                tools.append(tool)
-            else:
-                logger.warning(f"Tool {name} not found in tool map")
-        return tools
-
-    def create_agent_with_state(
+    def create_agent_with_skills(
         self,
-        agent_config_name: str,
+        agent_skill_name: str,
         instructions_name: str,
+        output_state_key: str,
         agent_name: str = "Agent",
     ) -> Callable:
-        """Create a stateful agent node for LangGraph.
+        """Create a stateful agent node using skill-based tool loading."""
+        from tools.skill_loader import load_agent_skills
+        from agents.helpers import (
+            load_system_prompt,
+            extract_agent_content,
+            parse_json_response,
+        )
 
-        Args:
-            agent_config_name: Name of the agent YAML config file.
-            instructions_name: Name of the instruction Markdown file.
-            agent_name: Display name for logging/tracing.
+        tools, skill_contexts = load_agent_skills(agent_skill_name)
+        system_prompt = load_system_prompt(instructions_name, skill_contexts)
 
-        Returns:
-            An async function (node) compatible with LangGraph.
-        """
-        # Load configurations
-        config = self.config_loader.load_agent(agent_config_name)
-        tool_names = config.get("tools", [])
-        system_prompt = self.config_loader.load_instructions(instructions_name)
-
-        # Get LangChain tools directly
-        tools = self.create_base_tools(tool_names)
-
-        async def agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
-            """The actual node function executed by LangGraph."""
+        async def agent_node(state: dict) -> dict:
             logger.info(f"Executing agent node: {agent_name}")
 
-            # Prepare prompt from state
             prompt = self._build_prompt_from_state(state, agent_name)
 
-            # Execute with LLM client using tools
-            result = await self.llm_client.generate_with_tools(
+            raw_result = await self.llm_client.invoke_agent(
                 prompt=prompt,
                 tools=tools,
                 system_prompt=system_prompt,
-                output_schema=config.get("output_schema", {}),
             )
 
-            # Format history entry
+            content_str = extract_agent_content(raw_result)
+            parsed_result = parse_json_response(content_str)
+
             history_entry = {
                 "agent": agent_name,
                 "prompt": prompt[:200] + "...",
-                "result": result,
+                "result": parsed_result,
                 "step": state.get("current_step", "unknown"),
             }
 
             return {
-                "agent_result": result,
+                output_state_key: parsed_result,
                 "history": state.get("history", []) + [history_entry],
-                "current_step": f"completed_{agent_config_name}",
+                "current_step": f"completed_{agent_skill_name}",
             }
 
         return agent_node
 
-    def _build_prompt_from_state(
-        self, state: Dict[str, Any], agent_name: str
-    ) -> str:
-        """Build prompt using state data.
-
-        This should be overridden or extended by specific agent definitions.
-        """
+    def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
+        """Build prompt using state data. Override in subclasses."""
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
-        input_file = state.get("input_file", "N/A")
+        return f"Process claim {claim_id} for policy {policy_number}"
 
-        return f"""Process insurance claim {claim_id} for policy {policy_number}.
-Document source: {input_file}
 
-Recent history:
-{json.dumps(state.get('history', [])[-2:], indent=2)}
+class CompletenessAgentFactory(AgentFactory):
+    """Factory for creating the Completeness Check Agent."""
+
+    def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
+        import json
+
+        return f"""Audit the completeness of insurance claim {state.get("claim_id", "N/A")}.
+Policy: {state.get("policy_number", "N/A")}
+Input document: {state.get("input_file", "N/A")}
+
+Current history:
+{json.dumps(state.get("history", [])[-2:], indent=2)}
 """
 
+    def create_completeness_agent(self) -> Callable:
+        return self.create_agent_with_skills(
+            agent_skill_name="completeness_agent",
+            instructions_name="completeness_agent",
+            output_state_key="agent_1_result",
+            agent_name="CompletenessAgent",
+        )
 
-def get_agent_factory(
-    config_loader: Any,
-    llm_client: Any,
-    middleware_config: Optional[Any] = None,
-) -> AgentFactory:
-    """Singleton-like getter for AgentFactory."""
-    return AgentFactory(config_loader, llm_client, middleware_config)
+
+class QualityAgentFactory(AgentFactory):
+    """Factory for creating the Medical Quality Agent."""
+
+    def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
+        import json
+
+        return f"""Verify the medical quality for claim {state.get("claim_id", "N/A")}.
+Policy: {state.get("policy_number", "N/A")}
+Extracted data: {json.dumps(state.get("extracted_documents", {}), indent=2)}
+
+Current history:
+{json.dumps(state.get("history", [])[-2:], indent=2)}
+"""
+
+    def create_quality_agent(self) -> Callable:
+        return self.create_agent_with_skills(
+            agent_skill_name="quality_agent",
+            instructions_name="quality_agent",
+            output_state_key="agent_2_result",
+            agent_name="QualityAgent",
+        )
+
+
+class DecisionAgentFactory(AgentFactory):
+    """Factory for creating the Final Decision Agent."""
+
+    def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
+        import json
+
+        return f"""Make a final decision for claim {state.get("claim_id", "N/A")}.
+Policy: {state.get("policy_number", "N/A")}
+
+Completeness: {json.dumps(state.get("agent_1_result", {}), indent=2)}
+Quality: {json.dumps(state.get("agent_2_result", {}), indent=2)}
+Human Review: {json.dumps(state.get("human_review_result", {}), indent=2)}
+"""
+
+    def create_decision_agent(self) -> Callable:
+        return self.create_agent_with_skills(
+            agent_skill_name="decision_agent",
+            instructions_name="final_agent",
+            output_state_key="final_result",
+            agent_name="FinalAgent",
+        )

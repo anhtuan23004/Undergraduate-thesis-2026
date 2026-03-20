@@ -1,9 +1,15 @@
-"""Agent factory and definitions.
+"""Agent factory and definitions."""
 
-Contains agent creation logic using AgentFactory and agent-specific
-definitions for completeness, quality, and decision agents.
-"""
+from agents.factory import (
+    AgentFactory,
+    CompletenessAgentFactory,
+    QualityAgentFactory,
+    DecisionAgentFactory,
+)
 
-from f.agents.factory import AgentFactory, ToolAdapter
-
-__all__ = ["AgentFactory", "ToolAdapter"]
+__all__ = [
+    "AgentFactory",
+    "CompletenessAgentFactory",
+    "QualityAgentFactory",
+    "DecisionAgentFactory",
+]

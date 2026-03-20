@@ -9,3 +9,5 @@ __pycache__
 *.log
 GEMINI.md
 AGENTS.md
+pytest.ini
+skill-based-design.md

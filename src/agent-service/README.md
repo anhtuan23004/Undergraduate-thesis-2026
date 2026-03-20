@@ -1,130 +1,339 @@
 # Agent Service
 
-Run-centric orchestration service for insurance claim processing, built with `LangGraph + LangChain` and refactored to a DeepAgent-style skill package layout.
+Multi-agent AI system for insurance claim processing using LangGraph and Google Gemini.
 
-## Runtime Summary
+## Overview
 
-- Framework: FastAPI (`uvicorn main:app`)
-- Default container port: `8000` (host mapped to `8003` in `docker-compose`)
-- Workflow engine: LangGraph state machine (`workflow/graph.py`)
-- Model/tool orchestration: LangChain-based client (`core/llm/client.py`)
-- Metadata + interrupt persistence: Redis (`core/storage/redis_storage.py`)
+The Agent Service orchestrates three specialized AI agents to process insurance claims through a multi-stage verification pipeline:
 
-## API v2 Contract (Breaking)
-
-All orchestration endpoints are mounted under `/api/v2`.
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `POST` | `/api/v2/runs` | Create run |
-| `GET` | `/api/v2/runs/{run_id}` | Poll run status + interrupts + output |
-| `POST` | `/api/v2/runs/{run_id}/resume` | Submit HITL decisions and resume |
-| `GET` | `/api/v2/health` | API runtime health |
-| `GET` | `/health` | Service health + Redis connectivity |
-
-### Run Identity
-
-- `run_id`: technical identity (primary key for all orchestration calls)
-- `claim_id`: business metadata only
-
-### Run Lifecycle
-
-`created -> running -> interrupted -> running -> completed`  
-or `created -> running -> failed`
-
-### HITL Interrupt Contract
-
-Each interrupt item includes:
-
-- `interrupt_id`
-- `run_id`
-- `stage`
-- `action`
-- `payload`
-- `allowed_decisions`
-
-Resume payload accepts `decisions[]` with:
-
-- `interrupt_id`
-- `decision` (`approve | edit | reject`)
-- optional `comment`
-- optional `edited_payload` (required when decision is `edit`)
+1. **Completeness Agent** - Verifies document completeness
+2. **Quality Agent** - Validates medical quality and compliance
+3. **Decision Agent** - Makes final claim decisions
 
 ## Architecture
 
-### Core Layers
-
-1. Skill Catalog: DeepAgent-style packages in `skills/*` with `SKILL.md` + `skill.yaml`.
-2. Execution Engine: LangGraph compiled graph + Redis-backed run metadata.
-3. HITL Decision Engine: interrupt generation, decision validation, state update mapping.
-
-### Skill Packaging
-
-- Skill metadata is loaded from `skills/*/skill.yaml` first.
-- `ConfigLoader` falls back to legacy `features/*/config` for compatibility.
-- Current boundaries:
-  - `completeness`
-  - `quality`
-  - `decision`
-  - `policy_retrieval`
-  - `document_extraction`
-
-## Project Structure
-
-```text
-src/agent-service/
-├── main.py
-├── config.py
-├── interfaces/
-│   ├── api/
-│   │   ├── models.py              # v2 run-based request/response types
-│   │   └── routes.py              # /api/v2/runs orchestration API
-│   └── web/
-│       ├── app.py                 # Streamlit app entry
-│       ├── api_client.py          # v2 run API client
-│       ├── processing.py          # submit/poll helpers
-│       ├── render_human_review.py # interrupt-driven HITL UI
-│       ├── render_results.py      # final output dashboard
-│       └── result_utils.py        # output normalization adapters
-├── workflow/
-│   ├── graph.py
-│   ├── router.py
-│   └── state.py
-├── core/
-│   ├── config/loader.py
-│   ├── llm/client.py
-│   └── storage/redis_storage.py
-├── features/
-│   ├── completeness/
-│   ├── quality/
-│   ├── decision/
-│   └── orchestration/
-└── skills/
-    ├── completeness/
-    ├── quality/
-    ├── decision/
-    ├── policy_retrieval/
-    └── document_extraction/
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     LangGraph Workflow                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐                   │
+│  │ completeness_    │───▶│ quality_check   │                   │
+│  │ check           │    │                 │                   │
+│  └────────┬────────┘    └────────┬────────┘                   │
+│           │                       │                              │
+│           ▼                       ▼                              │
+│  ┌─────────────────────────────────────────┐                   │
+│  │           human_review (interrupt)        │                   │
+│  └────────┬────────────────────────────────┘                   │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────┐                                            │
+│  │ final_decision  │──────────▶ END                             │
+│  └─────────────────┘                                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Local Development
+### Routing Logic
+
+| After Completeness | → | quality_check (accept) / human_review (soft issues) / final_decision (hard reject) |
+| After Quality | → | final_decision (accept/reject) / human_review (soft issues) |
+| After Human Review | → | quality_check (edit) / end (approve/reject) |
+
+## Skill-Based Tool System
+
+All tools are organized in `skills/` directories with the following structure:
+
+```
+skills/
+├── shared/                          # Shared across agents
+│   └── classify-benefit/
+│       ├── scripts/tool.py          # LangChain @tool
+│       └── SKILL.md                # Tool instructions
+├── completeness-agent/              # Completeness verification
+│   ├── extract-documents/
+│   ├── check-required-docs/
+│   └── validate-consistency/
+├── quality-agent/                   # Medical quality checks
+│   ├── validate-diagnosis/
+│   ├── validate-medication/
+│   ├── check-icd/
+│   ├── check-exclusion/
+│   └── search-medicine/
+└── decision-agent/                  # Decision aggregation
+    └── aggregate-issues/
+```
+
+### Tool Loading
+
+Tools are dynamically loaded at runtime via `skill_loader.py`:
+
+```python
+from tools.skill_loader import load_agent_skills
+
+tools, contexts = load_agent_skills("quality_agent")
+# tools: List[StructuredTool]
+# contexts: str (combined SKILL.md content)
+```
+
+## Features
+
+- **Dynamic Tool Loading**: Tools loaded from `skills/` directories
+- **Skill Contexts**: Each tool has `SKILL.md` for LLM instructions
+- **Human-in-the-Loop**: Workflow interrupts for human review
+- **State Persistence**: MongoDB checkpointer for long-running workflows
+- **Conditional Routing**: Agent results determine next steps
+
+## Prerequisites
+
+- Python 3.11+
+- MongoDB (for medicine database)
+- Google Gemini API key
+
+## Installation
 
 ```bash
 cd src/agent-service
 pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8003
 ```
 
-Run Streamlit UI:
+### Environment Variables
 
-```bash
-cd src/agent-service
-streamlit run interfaces/web/app.py
+Create `.env` file:
+
+```env
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_TEMPERATURE=0.3
+GEMINI_MAX_TOKENS=8192
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DB=claims
+STRICT_SKILL_LOADING=false
 ```
 
-## Tests
+## Running
+
+### Development
+```bash
+uvicorn main:app --reload --port 8003
+```
+
+### Production
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8003
+```
+
+### Docker
+```bash
+docker-compose up agent-service
+```
+
+## API Endpoints
+
+### POST /api/v2/workflows/run
+
+Start a new claim processing workflow.
+
+**Request:**
+```json
+{
+  "claim_id": "CLM-001",
+  "policy_number": "POL-123",
+  "input_file": "/path/to/document.pdf",
+  "extracted_documents": {
+    "diagnosis": "Pneumonia",
+    "medications": ["Amoxicillin"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "run_id": "uuid-xxx",
+  "claim_id": "CLM-001",
+  "final_result": {"decision": "accept"},
+  "current_step": "final_decision",
+  "pending_human_review": false,
+  "history": [...]
+}
+```
+
+### POST /api/v2/workflows/resume/{run_id}
+
+Resume a workflow after human review decision.
+
+**Request:**
+```json
+{
+  "decision": "approve",
+  "notes": "Reviewed and approved"
+}
+```
+
+For edit decisions:
+```json
+{
+  "decision": "edit",
+  "notes": "Please verify diagnosis",
+  "edited_result": {"source": "agent_2", "valid": true, "issues": []}
+}
+```
+
+### GET /api/v2/workflows/status/{run_id}
+
+Get current workflow status from MongoDB.
+
+**Response:**
+```json
+{
+  "run_id": "uuid-xxx",
+  "claim_id": "CLM-001",
+  "current_step": "human_review",
+  "pending_human_review": true,
+  "agent_1_result": {...},
+  "agent_2_result": {...},
+  "history": [...]
+}
+```
+
+### GET /api/v2/health
+
+Health check endpoint.
+
+## Testing
 
 ```bash
-cd src/agent-service
+# All tests
 pytest tests/
+
+# Single test file
+pytest tests/test_validate_diagnosis.py
+
+# Single test function
+pytest tests/test_validate_diagnosis.py::TestValidateDiagnosisTool::test_tool_name
+
+# With strict skill loading
+STRICT_SKILL_LOADING=true pytest tests/
 ```
+
+### Test Structure
+
+| File | Tests |
+|------|-------|
+| `test_registry.py` | Skill loader discovery, caching, context injection |
+| `test_routing.py` | Routing functions, decision logic |
+| `test_validate_diagnosis.py` | Tool invocation, integration |
+
+## Project Structure
+
+```
+src/agent-service/
+├── agents/                    # Agent factories
+│   ├── __init__.py
+│   └── factory.py            # All AgentFactory classes
+├── api/                       # REST API
+│   └── routes.py             # FastAPI routes
+├── graphs/                    # LangGraph workflow
+│   ├── claim_workflow.py     # Graph builder
+│   ├── routing.py            # Conditional routing
+│   ├── state.py              # GraphState schema
+│   └── human_review.py       # Human review node
+├── skills/                    # Tool implementations
+│   ├── completeness-agent/
+│   ├── quality-agent/
+│   ├── decision-agent/
+│   └── shared/
+├── tools/                     # Tool infrastructure
+│   └── skill_loader.py       # Dynamic loader
+├── tests/                     # Test suite
+├── prompts/                    # System prompts
+├── config.py                  # Settings
+├── main.py                    # FastAPI app
+└── llm_client.py             # Gemini client
+```
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `factory.py` | Creates agent nodes with tools and prompts |
+| `skill_loader.py` | Dynamically loads tools + SKILL.md |
+| `claim_workflow.py` | Builds LangGraph with routing |
+| `routing.py` | Conditional edge logic |
+| `state.py` | GraphState TypedDict definition |
+
+## Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| langgraph | ≥0.0.50 | Agent orchestration |
+| langgraph-checkpointing[mongodb] | ≥2.0.0 | MongoDB state persistence |
+| langchain-core | ≥0.3.0 | Tool definitions |
+| langchain-google-genai | ≥1.0.0 | Gemini LLM |
+| fastapi | ≥0.109.0 | REST API |
+| motor | ≥3.3.2 | Async MongoDB |
+| structlog | ≥24.1.0 | Structured logging |
+| pydantic | ≥2.5.3 | Data validation |
+
+## Development
+
+### Code Style
+
+- Python 3.11+
+- Type hints required
+- Use `structlog` for logging
+- Docstrings for all public functions
+
+### Adding New Tools
+
+1. Create directory in appropriate agent's skills folder:
+   ```
+   skills/quality-agent/my-new-tool/
+   ├── scripts/
+   │   ├── __init__.py
+   │   └── tool.py
+   └── SKILL.md
+   ```
+
+2. Implement tool using `@tool` decorator:
+   ```python
+   from langchain_core.tools import tool
+
+   @tool
+   def my_new_tool(input: str) -> str:
+       """Description for LLM."""
+       return json.dumps({"result": "value"})
+   ```
+
+3. Add `SKILL.md` with role/workflow instructions
+
+Tool is auto-discovered on next restart.
+
+## Workflow States
+
+```python
+GraphState = {
+    "run_id": str,                    # Unique run identifier
+    "claim_id": str,                  # Claim number
+    "policy_number": str,             # Policy number
+    "input_file": str,                # Document path
+    "extracted_documents": dict,     # OCR data
+    "agent_1_result": dict,           # Completeness result
+    "agent_2_result": dict,           # Quality result
+    "human_review_result": dict,      # Human decision
+    "edited_agent_1_result": dict,    # Edited completeness
+    "edited_agent_2_result": dict,     # Edited quality
+    "final_result": dict,             # Final decision
+    "history": list,                  # All agent invocations
+    "current_step": str,              # Current node
+    "should_continue": bool,           # Continue flag
+    "error": str,                     # Error message
+    "pending_human_review": bool,     # Waiting for human
+}
+```
+
+## License
+
+MIT

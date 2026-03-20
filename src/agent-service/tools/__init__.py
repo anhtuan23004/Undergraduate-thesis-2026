@@ -1,13 +1,7 @@
-"""Tools registry for the src2-integrated runtime."""
+"""Tools registry for skill-based agent runtime."""
 
-from tools.extract_documents import extract_document
-from tools.lookup_icd import lookup_icd
-from tools.medicine_search import search_medicine
-from tools.skill_loading import load_skill
+from tools.skill_loader import load_agent_skills
 
 __all__ = [
-    "extract_document",
-    "load_skill",
-    "search_medicine",
-    "lookup_icd",
+    "load_agent_skills",
 ]

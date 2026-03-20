@@ -1,4 +1,5 @@
 """Main FastAPI application for agent service."""
+
 from contextlib import asynccontextmanager
 
 import structlog
@@ -25,13 +26,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Agent Service (src2-integrated runtime)",
+    description="Agent Service - Multi-agent LangGraph workflow",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS else ["*"],
+    allow_origins=settings.ALLOWED_ORIGINS.split(",")
+    if settings.ALLOWED_ORIGINS
+    else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

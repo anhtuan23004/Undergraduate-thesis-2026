@@ -1,182 +1,195 @@
-"""Workflow API routes (src2-integrated runtime)."""
+"""Workflow API routes using LangGraph workflow with MongoDB persistence."""
 
 import asyncio
-import json
 import uuid
-from enum import Enum
-from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from agent import run_agent
+from graphs import build_claim_workflow
+from graphs.state import GraphState
+from config import settings
 
 router = APIRouter(prefix="/api/v2", tags=["workflows"])
 
 PROCESS_TIMEOUT = 300
 
-
-class TaskType(str, Enum):
-    """Task types for document processing."""
-
-    FULL_FLOW = "full-flow"
-    MEDICAL_VERIFICATION = "med-verification"
-    DOCUMENT_EXTRACTION = "document-extraction"
-    DIAGNOSIS_VERIFICATION = "verify-diagnosis"
+_compiled_graph = None
+_mongo_checkpointer = None
 
 
-TASK_MAPPING = {
-    "verify-diagnosis": TaskType.DIAGNOSIS_VERIFICATION,
-    "full-flow": TaskType.FULL_FLOW,
-    "document-extraction": TaskType.DOCUMENT_EXTRACTION,
-    "med-verification": TaskType.MEDICAL_VERIFICATION,
-}
+async def _get_mongo_checkpointer():
+    """Get or create MongoDB checkpointer."""
+    global _mongo_checkpointer
+    if _mongo_checkpointer is None:
+        from langgraph.checkpoint.mongodb import AsyncMongoDBSaver
+        from motor.motor_asyncio import AsyncIOMotorClient
+
+        client = AsyncIOMotorClient(settings.MONGODB_URL)
+        _mongo_checkpointer = AsyncMongoDBSaver(client[settings.MONGODB_DB])
+        await _mongo_checkpointer.setup()
+    return _mongo_checkpointer
 
 
-class WorkflowInputs(BaseModel):
-    """Inputs for workflow endpoint."""
+async def _get_graph() -> any:
+    """Get or create the compiled workflow graph with MongoDB checkpointer."""
+    global _compiled_graph
+    if _compiled_graph is None:
+        from llm_client import get_llm_client
 
-    ocr_res: str = Field(default="{}", description="JSON string containing OCR extracted data")
-    task: str = Field(..., description="Task to perform")
-
-
-class WorkflowRequest(BaseModel):
-    """Request model for workflow endpoint."""
-
-    inputs: WorkflowInputs
-
-
-class DocumentRequest(BaseModel):
-    """Request model for direct process endpoint."""
-
-    file_path: str = Field(..., description="Path to PDF document")
-    task: TaskType = Field(..., description="Task to perform")
-    benefit: str = Field(default="health insurance")
-    treatment: str = Field(default="")
+        checkpointer = await _get_mongo_checkpointer()
+        _compiled_graph = build_claim_workflow(
+            llm_client=get_llm_client(),
+            checkpointer=checkpointer,
+        )
+    return _compiled_graph
 
 
-# Cache prompt files at module level to avoid repeated file I/O
-_PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
-_PROMPT_TEMPLATES = {
-    TaskType.FULL_FLOW: (_PROMPTS_DIR / "full_flow.md").read_text(encoding="utf-8"),
-    TaskType.MEDICAL_VERIFICATION: (_PROMPTS_DIR / "medical_verification.md").read_text(encoding="utf-8"),
-    TaskType.DIAGNOSIS_VERIFICATION: (_PROMPTS_DIR / "diagnosis_verification.md").read_text(encoding="utf-8"),
-}
+class ClaimRequest(BaseModel):
+    """Request model for claim processing."""
+
+    claim_id: str = Field(..., description="Claim identifier")
+    policy_number: str = Field(..., description="Policy number")
+    input_file: str = Field(..., description="Path to input document")
+    extracted_documents: dict = Field(default={}, description="Pre-extracted OCR data")
 
 
-def _extract_result_text(result: dict) -> str:
-    """Extract textual content from agent response message list."""
-    messages = result.get("messages", [])
-    if not messages:
-        return ""
+class HumanReviewRequest(BaseModel):
+    """Request model for human review decision."""
 
-    last_message = messages[-1]
-    if hasattr(last_message, "content"):
-        content = last_message.content
-        if isinstance(content, list):
-            parts = []
-            for block in content:
-                if isinstance(block, dict):
-                    parts.append(block.get("text", ""))
-                elif isinstance(block, str):
-                    parts.append(block)
-            return "".join(parts).strip()
-        if isinstance(content, str):
-            return content.strip()
-
-    return str(last_message).strip()
-
-
-def _try_parse_json(text: str):
-    """Best-effort JSON parsing for model outputs."""
-    if not text:
-        return {"result": ""}
-
-    cleaned = text
-    if "```json" in cleaned:
-        cleaned = cleaned.split("```json")[-1].split("```")[0].strip()
-    elif cleaned.startswith("```"):
-        cleaned = cleaned.strip("`").strip()
-
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        return {"result": text}
-
-
-def load_prompt(task_type: TaskType, ocr_data: dict, benefit: str = "", treatment: str = "") -> str:
-    """Load and format prompt for given task type."""
-    template = _PROMPT_TEMPLATES.get(task_type)
-    if not template:
-        raise ValueError(f"No prompt configured for task type: {task_type}")
-
-    if task_type == TaskType.FULL_FLOW:
-        file_path = ocr_data.get("file_path", "N/A")
-        benefit = benefit or ocr_data.get("benefit", "health insurance")
-        treatment = treatment or ocr_data.get("treatment", "")
-        base_prompt = template.format(file_path=file_path, benefit=benefit, treatment=treatment)
-    else:
-        base_prompt = template
-
-    ocr_context = json.dumps(ocr_data, indent=2, ensure_ascii=False)
-    return (
-        "# CONTEXT - OCR Data\n"
-        "The following data has been pre-extracted from documents:\n\n"
-        f"```\n{ocr_context}\n```\n\n"
-        "---\n\n"
-        f"{base_prompt}"
+    decision: str = Field(..., description="Decision: approve, reject, or edit")
+    notes: Optional[str] = Field(default=None, description="Reviewer notes")
+    edited_result: Optional[dict] = Field(
+        default=None, description="Edited agent result if decision is edit"
     )
 
 
 @router.post("/workflows/run")
-async def run_workflow(request: WorkflowRequest):
-    """Run a workflow with OCR data and task type."""
-    try:
-        ocr_data = json.loads(request.inputs.ocr_res) if request.inputs.ocr_res else {}
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON in ocr_res: {exc}")
+async def run_workflow(request: ClaimRequest):
+    """Start a new claim processing workflow."""
+    graph = await _get_graph()
+    run_id = str(uuid.uuid4())
 
-    task_type = TASK_MAPPING.get(request.inputs.task)
-    if not task_type:
-        raise HTTPException(status_code=400, detail=f"Unknown task: {request.inputs.task}")
-
-    try:
-        prompt = load_prompt(task_type, ocr_data)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    try:
-        async with asyncio.timeout(PROCESS_TIMEOUT):
-            result = await asyncio.to_thread(run_agent, prompt, "default")
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail=f"Processing timed out after {PROCESS_TIMEOUT}s")
-
-    return _try_parse_json(_extract_result_text(result))
-
-
-@router.post("/process")
-async def process_document(request: DocumentRequest):
-    """Process a document with direct task/benefit/treatment inputs."""
-    session_id = str(uuid.uuid4())
-
-    # Use cached prompt templates and shared load_prompt function
-    prompt = load_prompt(
-        request.task,
-        ocr_data={"file_path": request.file_path, "benefit": request.benefit, "treatment": request.treatment},
-        benefit=request.benefit,
-        treatment=request.treatment,
-    )
+    initial_state: GraphState = {
+        "run_id": run_id,
+        "claim_id": request.claim_id,
+        "policy_number": request.policy_number,
+        "input_file": request.input_file,
+        "extracted_documents": request.extracted_documents,
+        "agent_1_result": None,
+        "agent_2_result": None,
+        "human_review_result": None,
+        "edited_agent_1_result": None,
+        "edited_agent_2_result": None,
+        "final_result": None,
+        "history": [],
+        "current_step": "start",
+        "should_continue": True,
+        "error": None,
+        "pending_human_review": False,
+    }
 
     try:
         async with asyncio.timeout(PROCESS_TIMEOUT):
-            result = await asyncio.to_thread(run_agent, prompt, session_id)
+            config = {"configurable": {"thread_id": run_id}}
+            result = await graph.ainvoke(initial_state, config=config)
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail=f"Processing timed out after {PROCESS_TIMEOUT}s")
+        raise HTTPException(
+            status_code=504, detail=f"Processing timed out after {PROCESS_TIMEOUT}s"
+        )
 
-    return {"session_id": session_id, "result": _extract_result_text(result)}
+    return {
+        "run_id": run_id,
+        "claim_id": result.get("claim_id"),
+        "final_result": result.get("final_result"),
+        "agent_1_result": result.get("agent_1_result"),
+        "agent_2_result": result.get("agent_2_result"),
+        "current_step": result.get("current_step"),
+        "pending_human_review": result.get("pending_human_review", False),
+        "history": result.get("history", []),
+        "error": result.get("error"),
+    }
+
+
+@router.post("/workflows/resume/{run_id}")
+async def resume_workflow(run_id: str, request: HumanReviewRequest):
+    """Resume a workflow after human review decision."""
+    graph = await _get_graph()
+    config = {"configurable": {"thread_id": run_id}}
+
+    async with asyncio.timeout(PROCESS_TIMEOUT):
+        current_state = await graph.aget_state(config)
+        if not current_state or not current_state.values:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        state_values = current_state.values
+        stage = _determine_review_stage(state_values)
+
+        human_review_result = {
+            "decision": request.decision,
+            "notes": request.notes,
+            "stage": stage,
+            "reviewed_at": str(uuid.uuid4()),
+        }
+
+        state_update = {"human_review_result": human_review_result}
+
+        if request.decision == "edit" and request.edited_result:
+            if stage == "completeness":
+                state_update["edited_agent_1_result"] = request.edited_result
+            else:
+                state_update["edited_agent_2_result"] = request.edited_result
+
+        await graph.aupdate_state(config, state_update, as_node="human_review")
+        result = await graph.ainvoke(None, config=config)
+
+    return {
+        "run_id": run_id,
+        "claim_id": result.get("claim_id"),
+        "final_result": result.get("final_result"),
+        "current_step": result.get("current_step"),
+        "pending_human_review": result.get("pending_human_review", False),
+        "history": result.get("history", []),
+        "error": result.get("error"),
+    }
+
+
+def _determine_review_stage(state: dict) -> str:
+    """Determine which stage the human review is for."""
+    if state.get("agent_2_result"):
+        return "quality"
+    return "completeness"
+
+
+@router.get("/workflows/status/{run_id}")
+async def get_workflow_status(run_id: str):
+    """Get the current status of a workflow run."""
+    graph = await _get_graph()
+    config = {"configurable": {"thread_id": run_id}}
+
+    state = await graph.aget_state(config)
+
+    if not state or not state.values:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+    values = state.values
+
+    return {
+        "run_id": run_id,
+        "claim_id": values.get("claim_id"),
+        "current_step": values.get("current_step"),
+        "pending_human_review": values.get("pending_human_review", False),
+        "agent_1_result": values.get("agent_1_result"),
+        "agent_2_result": values.get("agent_2_result"),
+        "human_review_result": values.get("human_review_result"),
+        "final_result": values.get("final_result"),
+        "history": values.get("history", []),
+        "error": values.get("error"),
+    }
 
 
 @router.get("/health")
 async def health_check():
     """Simple health check endpoint."""
-    return {"status": "healthy", "version": "src2-integrated"}
+    return {"status": "healthy", "version": "langgraph-mongodb"}
