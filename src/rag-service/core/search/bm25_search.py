@@ -58,6 +58,38 @@ class BM25Search:
                 b=self._b
             )
 
+    def append_documents(self, documents: List[Dict[str, Any]]) -> None:
+        """Append documents to the BM25 index and rebuild.
+
+        Keeps one copy per document ID when present. For documents without
+        explicit IDs, preserves existing entries and appends the new ones.
+
+        Args:
+            documents: List of document dicts with at least 'content'
+        """
+        if not documents:
+            return
+
+        existing_by_id: Dict[str, Dict[str, Any]] = {}
+        passthrough: List[Dict[str, Any]] = []
+
+        for doc in self._documents:
+            doc_id = doc.get("id")
+            if doc_id is None:
+                passthrough.append(doc)
+            else:
+                existing_by_id[str(doc_id)] = doc
+
+        for doc in documents:
+            doc_id = doc.get("id")
+            if doc_id is None:
+                passthrough.append(doc)
+            else:
+                existing_by_id[str(doc_id)] = doc
+
+        merged = list(existing_by_id.values()) + passthrough
+        self.add_documents(merged)
+
     def search(
         self,
         query: str,

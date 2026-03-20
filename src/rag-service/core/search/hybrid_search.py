@@ -174,3 +174,11 @@ class HybridSearch:
             "milvus_stats": self._milvus_client.get_stats(),
             "bm25_stats": self._bm25_searcher.get_stats()
         }
+
+    def index_documents(self, documents: List[Dict[str, Any]]) -> None:
+        """Index documents into BM25 for keyword retrieval.
+
+        Args:
+            documents: Documents with at least 'content' and optional 'id'
+        """
+        self._bm25_searcher.append_documents(documents)
