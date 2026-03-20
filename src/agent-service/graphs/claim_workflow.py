@@ -11,6 +11,7 @@ from graphs.routing import (
     route_after_completeness,
     route_after_quality,
     route_after_final_review,
+    route_after_human_review,
 )
 from agents import CompletenessAgentFactory, QualityAgentFactory, DecisionAgentFactory
 
@@ -71,6 +72,16 @@ def build_claim_workflow(
         route_after_final_review,
         {
             "end": END,
+        },
+    )
+
+    workflow.add_conditional_edges(
+        "human_review",
+        route_after_human_review,
+        {
+            "completeness_check": "completeness_check",
+            "quality_check": "quality_check",
+            "final_decision": "final_decision",
         },
     )
 

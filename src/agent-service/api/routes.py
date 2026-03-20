@@ -2,14 +2,14 @@
 
 import asyncio
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from config import settings
 from graphs import build_claim_workflow
 from graphs.state import GraphState
-from config import settings
 
 router = APIRouter(prefix="/api/v2", tags=["workflows"])
 
@@ -19,7 +19,7 @@ _compiled_graph = None
 _mongo_checkpointer = None
 
 
-async def _get_mongo_checkpointer():
+async def _get_mongo_checkpointer() -> Any:
     """Get or create MongoDB checkpointer."""
     global _mongo_checkpointer
     if _mongo_checkpointer is None:
@@ -32,8 +32,8 @@ async def _get_mongo_checkpointer():
     return _mongo_checkpointer
 
 
-async def _get_graph() -> any:
-    """Get or create the compiled workflow graph with MongoDB checkpointer."""
+async def _get_graph() -> Any:
+    """Get or create the compiled workflow graph."""
     global _compiled_graph
     if _compiled_graph is None:
         from llm_client import get_llm_client
@@ -66,7 +66,7 @@ class HumanReviewRequest(BaseModel):
 
 
 @router.post("/workflows/run")
-async def run_workflow(request: ClaimRequest):
+async def run_workflow(request: ClaimRequest) -> dict:
     """Start a new claim processing workflow."""
     graph = await _get_graph()
     run_id = str(uuid.uuid4())
@@ -94,9 +94,15 @@ async def run_workflow(request: ClaimRequest):
         async with asyncio.timeout(PROCESS_TIMEOUT):
             config = {"configurable": {"thread_id": run_id}}
             result = await graph.ainvoke(initial_state, config=config)
+            
+            # Check if workflow is interrupted and pending human review
+            snapshot = await graph.aget_state(config)
+            is_pending = bool(snapshot.next and "human_review" in snapshot.next)
+            
     except asyncio.TimeoutError:
         raise HTTPException(
-            status_code=504, detail=f"Processing timed out after {PROCESS_TIMEOUT}s"
+            status_code=504,
+            detail=f"Processing timed out after {PROCESS_TIMEOUT}s",
         )
 
     return {
@@ -106,14 +112,14 @@ async def run_workflow(request: ClaimRequest):
         "agent_1_result": result.get("agent_1_result"),
         "agent_2_result": result.get("agent_2_result"),
         "current_step": result.get("current_step"),
-        "pending_human_review": result.get("pending_human_review", False),
+        "pending_human_review": is_pending,
         "history": result.get("history", []),
         "error": result.get("error"),
     }
 
 
 @router.post("/workflows/resume/{run_id}")
-async def resume_workflow(run_id: str, request: HumanReviewRequest):
+async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
     """Resume a workflow after human review decision."""
     graph = await _get_graph()
     config = {"configurable": {"thread_id": run_id}}
@@ -133,7 +139,16 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest):
             "reviewed_at": str(uuid.uuid4()),
         }
 
-        state_update = {"human_review_result": human_review_result}
+        state_update = {
+            "human_review_result": human_review_result,
+            "current_step": "human_review_complete",
+            "history": [{
+                "step": "human_review",
+                "decision": request.decision,
+                "notes": request.notes,
+                "resumed": True
+            }]
+        }
 
         if request.decision == "edit" and request.edited_result:
             if stage == "completeness":
@@ -143,27 +158,32 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest):
 
         await graph.aupdate_state(config, state_update, as_node="human_review")
         result = await graph.ainvoke(None, config=config)
+        
+        # Check if it interrupted again (e.g. loops back into another review)
+        snapshot = await graph.aget_state(config)
+        is_pending = bool(snapshot.next and "human_review" in snapshot.next)
 
     return {
         "run_id": run_id,
         "claim_id": result.get("claim_id"),
         "final_result": result.get("final_result"),
         "current_step": result.get("current_step"),
-        "pending_human_review": result.get("pending_human_review", False),
+        "pending_human_review": is_pending,
         "history": result.get("history", []),
         "error": result.get("error"),
     }
 
 
 def _determine_review_stage(state: dict) -> str:
-    """Determine which stage the human review is for."""
-    if state.get("agent_2_result"):
+    """Determine which stage the human review is for based on the current step."""
+    current_step = state.get("current_step", "")
+    if "quality" in current_step:
         return "quality"
     return "completeness"
 
 
 @router.get("/workflows/status/{run_id}")
-async def get_workflow_status(run_id: str):
+async def get_workflow_status(run_id: str) -> dict:
     """Get the current status of a workflow run."""
     graph = await _get_graph()
     config = {"configurable": {"thread_id": run_id}}
@@ -174,12 +194,13 @@ async def get_workflow_status(run_id: str):
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
     values = state.values
+    is_pending = bool(state.next and "human_review" in state.next)
 
     return {
         "run_id": run_id,
         "claim_id": values.get("claim_id"),
         "current_step": values.get("current_step"),
-        "pending_human_review": values.get("pending_human_review", False),
+        "pending_human_review": is_pending,
         "agent_1_result": values.get("agent_1_result"),
         "agent_2_result": values.get("agent_2_result"),
         "human_review_result": values.get("human_review_result"),
@@ -190,6 +211,6 @@ async def get_workflow_status(run_id: str):
 
 
 @router.get("/health")
-async def health_check():
+async def health_check() -> dict:
     """Simple health check endpoint."""
     return {"status": "healthy", "version": "langgraph-mongodb"}

@@ -1,8 +1,7 @@
 """LLM client for LangGraph with async support."""
 
-import asyncio
 import structlog
-from langchain.agents import create_agent
+from langgraph.prebuilt import create_react_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool as LangChainBaseTool
 
@@ -30,10 +29,10 @@ class LangGraphLLMClient:
         system_prompt: str,
     ) -> dict:
         """Invoke agent asynchronously without blocking event loop."""
-        agent = create_agent(
+        agent = create_react_agent(
             self._llm,
             tools=tools,
-            system_prompt=system_prompt,
+            state_modifier=system_prompt,
         )
 
         try:
@@ -44,7 +43,7 @@ class LangGraphLLMClient:
         except Exception as e:
             logger.error("Agent invocation failed", error=str(e))
             return {
-                "messages": [{"role": "assistant", "content": f"Error: {str(e)}"}],
+                "messages": [{"role": "assistant", "content": f"Error: {e}"}],
                 "error": str(e),
             }
 

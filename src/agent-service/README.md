@@ -231,7 +231,6 @@ STRICT_SKILL_LOADING=true pytest tests/
 ```
 src/agent-service/
 ├── agents/                    # Agent factories
-│   ├── __init__.py
 │   └── factory.py            # All AgentFactory classes
 ├── api/                       # REST API
 │   └── routes.py             # FastAPI routes
@@ -240,6 +239,10 @@ src/agent-service/
 │   ├── routing.py            # Conditional routing
 │   ├── state.py              # GraphState schema
 │   └── human_review.py       # Human review node
+├── interfaces/
+│   └── web/
+│       ├── app.py            # Streamlit UI
+│       └── README.md         # UI documentation
 ├── skills/                    # Tool implementations
 │   ├── completeness-agent/
 │   ├── quality-agent/
@@ -276,6 +279,28 @@ src/agent-service/
 | motor | ≥3.3.2 | Async MongoDB |
 | structlog | ≥24.1.0 | Structured logging |
 | pydantic | ≥2.5.3 | Data validation |
+| streamlit | ≥1.28.0 | Web UI |
+| requests | ≥2.31.0 | HTTP client |
+
+## Web Interface
+
+Interactive UI for demo at `interfaces/web/app.py`.
+
+```bash
+# Start agent service
+uvicorn main:app --reload --port 8003
+
+# Start Streamlit UI (in another terminal)
+cd interfaces/web
+streamlit run app.py --server.port 8501
+```
+
+Features:
+- Session management with run history
+- Claim input form
+- Workflow status dashboard
+- Human-in-the-Loop review panel
+- Developer mode (raw GraphState viewer)
 
 ## Development
 
