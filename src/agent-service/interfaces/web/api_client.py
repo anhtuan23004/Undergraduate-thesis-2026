@@ -1,6 +1,5 @@
 """API client for the Insurance Claims Processing Agent Service."""
 
-import json
 from typing import Any, Optional
 
 import requests

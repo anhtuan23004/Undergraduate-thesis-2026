@@ -112,6 +112,7 @@ agent-service = [
     "langgraph-checkpoint-mongodb>=0.1.0",
     "langchain-core>=0.3.0",
     "langchain-google-genai>=1.0.0",
+    "langfuse>=0.12.0",
     "motor>=3.3.2",
     "pymongo>=4.6.1",
     "structlog>=24.1.0",

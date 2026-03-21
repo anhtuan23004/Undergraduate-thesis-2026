@@ -19,9 +19,9 @@ API client for communicating with the agent service backend.
 
 | Function | Description |
 |---------|-------------|
-| `start_workflow()` | POST to `/workflows/run` |
-| `get_workflow_status()` | GET from `/workflows/status/{run_id}` |
-| `resume_workflow()` | POST to `/workflows/resume/{run_id}` |
+| `start_workflow()` | POST to `/api/v2/workflows/run` |
+| `get_workflow_status()` | GET from `/api/v2/workflows/status/{run_id}` |
+| `resume_workflow()` | POST to `/api/v2/workflows/resume/{run_id}` |
 
 ### components.py
 Reusable Streamlit UI components.

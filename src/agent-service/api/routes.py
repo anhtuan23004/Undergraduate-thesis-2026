@@ -37,7 +37,7 @@ async def _get_graph() -> Any:
     """Get or create the compiled workflow graph."""
     global _compiled_graph
     if _compiled_graph is None:
-        from llm_client import get_llm_client
+        from agent import get_llm_client
 
         checkpointer = await _get_mongo_checkpointer()
         _compiled_graph = build_claim_workflow(

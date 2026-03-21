@@ -254,7 +254,7 @@ src/agent-service/
 ├── prompts/                    # System prompts
 ├── config.py                  # Settings
 ├── main.py                    # FastAPI app
-└── llm_client.py             # Gemini client
+└── agent.py               # Gemini client
 ```
 
 ## Key Files

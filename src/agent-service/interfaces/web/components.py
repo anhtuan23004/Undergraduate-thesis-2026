@@ -1,6 +1,7 @@
 """Streamlit UI components for Insurance Claims Processing."""
 
 import json
+from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Optional
 
@@ -84,28 +85,45 @@ def render_sidebar(
         if not run_history:
             st.caption("Chưa có phiên nào")
         else:
-            for run in reversed(run_history[-10:]):
-                col1, col2 = st.columns([4, 1])
+            # Show up to 10 most recent runs, most recent first
+            recent_runs = list(reversed(run_history[-10:]))
+            run_ids = [run["run_id"] for run in recent_runs if run.get("run_id")]
+
+            def _format_run_label(run_id: str) -> str:
+                run = next((r for r in recent_runs if r.get("run_id") == run_id), None)
+                if not run:
+                    return run_id
                 status = get_status(run.get("data"))
                 status_emoji = STATUS_EMOJIS.get(status, "⚪")
+                display_id = run_id[:8] if run_id else "N/A"
+                return f"{status_emoji} {display_id}..."
 
-                with col1:
-                    display_id = run["run_id"][:8] if run["run_id"] else "N/A"
-                    is_selected = current_run_id == run["run_id"]
-                    if is_selected:
-                        st.markdown(f"**{status_emoji} {display_id}...**")
-                    else:
-                        st.markdown(f"{status_emoji} {display_id}...")
-        task_type = st.selectbox(
-            "Loại Xử Lý",
-            [
-                "full-flow",
-                "med-verification",
-                "document-extraction",
-                "verify-diagnosis",
-            ],
-            key="task_type",
-        )
+            if run_ids:
+                # Default to the current run if it is in the history
+                try:
+                    default_index = run_ids.index(current_run_id) if current_run_id in run_ids else 0
+                except ValueError:
+                    default_index = 0
+
+                selected_run_id = st.radio(
+                    "Chọn phiên",
+                    options=run_ids,
+                    index=default_index if run_ids else 0,
+                    format_func=_format_run_label,
+                    key="run_history_selection",
+                )
+
+                if selected_run_id and selected_run_id != current_run_id:
+                    on_select_run(selected_run_id)
+
+def render_claim_input_form(on_start: Callable, default_ocr_data: dict = None) -> None:
+    """Render the form for submitting a new claim."""
+    st.subheader("📝 Thông Tin Hồ Sơ")
+    col1, col2 = st.columns(2)
+    with col1:
+        claim_id = st.text_input("Mã Hồ Sơ (Claim ID)", value=f"CLM-{int(datetime.now().timestamp())}")
+    with col2:
+        policy_number = st.text_input("Mã Hợp Đồng (Policy Number)", value="POL-2024")
 
     st.subheader("📄 Dữ Liệu OCR (JSON)")
     default_json = json.dumps(

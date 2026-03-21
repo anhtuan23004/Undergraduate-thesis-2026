@@ -23,6 +23,11 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: str = ""
 
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_SECRET_KEY: str = ""
+    LANGFUSE_HOST: str = "http://localhost:3000"
+    LANGFUSE_ENABLED: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
