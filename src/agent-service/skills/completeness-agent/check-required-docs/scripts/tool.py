@@ -10,11 +10,9 @@ from typing import Dict, List
 from langchain_core.tools import tool
 
 
-@tool
+@tool("check-required-docs")
 def check_required_documents(
-    benefit_type: str,
-    treatment_type: str,
-    submitted_documents: List[str]
+    benefit_type: str, treatment_type: str, submitted_documents: List[str]
 ) -> str:
     """Check if required documents are present for the given benefit and treatment types.
 
@@ -29,20 +27,21 @@ def check_required_documents(
         JSON string with completeness check result
     """
     if not benefit_type or not treatment_type:
-        return json.dumps({
-            "error": "benefit_type and treatment_type are required"
-        })
+        return json.dumps({"error": "benefit_type and treatment_type are required"})
 
     if not submitted_documents:
         submitted_documents = []
 
     # This tool provides input data for the LLM to process
     # The actual validation logic is performed by the LLM using the skill context
-    return json.dumps({
-        "benefit_type": benefit_type,
-        "treatment_type": treatment_type,
-        "submitted_documents": submitted_documents,
-    }, ensure_ascii=False)
+    return json.dumps(
+        {
+            "benefit_type": benefit_type,
+            "treatment_type": treatment_type,
+            "submitted_documents": submitted_documents,
+        },
+        ensure_ascii=False,
+    )
 
 
 __all__ = ["check_required_documents"]

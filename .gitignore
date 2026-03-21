@@ -11,3 +11,6 @@ GEMINI.md
 AGENTS.md
 pytest.ini
 skill-based-design.md
+.pytest_cache
+.conda
+data/my_database.gz

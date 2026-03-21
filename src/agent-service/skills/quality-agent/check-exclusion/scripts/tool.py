@@ -10,7 +10,7 @@ from typing import List
 from langchain_core.tools import tool
 
 
-@tool
+@tool("check-exclusion")
 def check_exclusion(diagnoses: List[str]) -> str:
     """Check if diagnoses are excluded from insurance coverage.
 

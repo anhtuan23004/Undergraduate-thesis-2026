@@ -1,5 +1,5 @@
 ---
-name: check_required_documents
+name: check-required-docs
 description: Checks completeness of insurance claim documents based on benefit and treatment types.
 ---
 

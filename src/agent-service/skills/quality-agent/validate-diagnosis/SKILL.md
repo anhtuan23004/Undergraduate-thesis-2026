@@ -1,5 +1,5 @@
 ---
-name: validate_diagnosis
+name: validate-diagnosis
 description: Checks if diagnosis information in insurance claim documents is appropriate with prescribed medications.
 ---
 
@@ -24,10 +24,10 @@ Each document may contain:
 - Keep others as secondary diagnoses.
 
 ## TASK 2 — Search for all medicine information in diagnosis list:
-- Use tool `search_medicine` to get all medicine information.
+- Use tool `search-medicine` to get all medicine information.
 
 ## TASK 3 — MEDICATION CHECK WITH DIAGNOSIS
-First, for each drug information retrieved from the `search_medicine` tool, verify the relevance between the name field and the query:
+First, for each drug information retrieved from the `search-medicine` tool, verify the relevance between the name field and the query:
 - Positive Match: The product name must contain the primary brand name and active strength/concentration specified in the query. Variations in word order or descriptive suffixes (e.g., "Infant," "package," "cốm") are acceptable.
 - Negative Match: If product names represent fundamentally different delivery forms (e.g., a "spray" vs. an "oral solution") or different brands, it is a mismatch.
 If the information is not a match, do not use it; instead, rely on your own knowledge for the next step. If it is a match, proceed with the retrieved information.

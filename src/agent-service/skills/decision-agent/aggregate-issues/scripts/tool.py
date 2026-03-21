@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.tools import tool
 
 
-@tool
+@tool("aggregate-issues")
 def aggregate_issues(
     completeness_result: Optional[Dict[str, Any]] = None,
     quality_result: Optional[Dict[str, Any]] = None,

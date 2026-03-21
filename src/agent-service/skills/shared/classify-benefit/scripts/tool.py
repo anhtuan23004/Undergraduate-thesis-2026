@@ -10,7 +10,7 @@ from typing import List, Optional
 from langchain_core.tools import tool
 
 
-@tool
+@tool("classify-benefit")
 def classify_benefit(
     diagnosis: Optional[str] = None,
     treatment: Optional[str] = None,

@@ -1,65 +1,30 @@
-"""Routing functions for the multi-agent workflow graph.
-
-This module contains all conditional routing logic that determines
-which node to execute next based on the current state of the workflow.
-"""
+"""Routing functions for the multi-agent workflow graph."""
 
 from graphs.state import GraphState
 
 
 def _get_decision_from_result(result: dict) -> str:
-    """Extract the routing decision from an agent result dict.
-
-    Agents (CompletenessAgent, QualityAgent) store their outcome as:
-      - ``valid`` (bool)  – primary field set by the agent
-      - ``decision`` (str) – optional, may be set by edited/human results
-
-    Maps:
-      valid=True  → "accept"
-      valid=False, only low/medium issues → "accept_with_edit" (send to human)
-      valid=False, any high/critical issues → "reject"
-
-    Args:
-        result: Raw agent result dict from GraphState.
-
-    Returns:
-        Decision string for use in routing maps.
-    """
+    """Extract the routing decision from an agent result dict."""
     if not result:
         return "reject"
 
-    # Prefer explicit decision field (set by human edits or final agent)
-    if "decision" in result and result["decision"] in ("accept", "reject", "accept_with_edit"):
-        return result["decision"]
+    if "decision" in result:
+        if result["decision"] in ("accept", "reject", "accept_with_edit"):
+            return result["decision"]
 
     valid = result.get("valid", False)
     if valid:
         return "accept"
 
-    # Distinguish hard reject vs. needs-human-review based on issue severity
     issues = result.get("issues", []) or []
     has_critical_or_high = any(
-        i.get("severity") in ("critical", "high") for i in issues
-        if isinstance(i, dict)
+        i.get("severity") in ("critical", "high") for i in issues if isinstance(i, dict)
     )
     return "reject" if has_critical_or_high else "accept_with_edit"
 
 
 def route_after_completeness(state: GraphState) -> str:
-    """Route after completeness check based on agent_1_result.
-
-    Uses edited_agent_1_result if available (human edits take precedence).
-
-    Args:
-        state: The current GraphState containing agent_1_result.
-
-    Returns:
-        String key indicating the next node to route to:
-        - ``"quality_check"``   – document complete, proceed
-        - ``"final_decision"``  – hard reject (critical/high issues)
-        - ``"human_review"``    – soft issues, needs human attention
-    """
-    # Use edited result if available, otherwise use original
+    """Route after completeness check based on agent_1_result."""
     edited_result = state.get("edited_agent_1_result")
     original_result = state.get("agent_1_result") or {}
     result = edited_result if edited_result is not None else original_result
@@ -68,25 +33,13 @@ def route_after_completeness(state: GraphState) -> str:
     routing_map = {
         "accept": "quality_check",
         "reject": "final_decision",
-        "accept_with_edit": "human_review"
+        "accept_with_edit": "human_review",
     }
     return routing_map.get(decision, "final_decision")
 
 
 def route_after_quality(state: GraphState) -> str:
-    """Route after quality check based on agent_2_result.
-
-    Uses edited_agent_2_result if available (human edits take precedence).
-
-    Args:
-        state: The current GraphState containing agent_2_result.
-
-    Returns:
-        String key indicating the next node to route to:
-        - ``"final_decision"``  – accept or hard reject
-        - ``"human_review"``    – soft issues, needs human attention
-    """
-    # Use edited result if available, otherwise use original
+    """Route after quality check based on agent_2_result."""
     edited_result = state.get("edited_agent_2_result")
     original_result = state.get("agent_2_result") or {}
     result = edited_result if edited_result is not None else original_result
@@ -95,11 +48,34 @@ def route_after_quality(state: GraphState) -> str:
     routing_map = {
         "accept": "final_decision",
         "reject": "final_decision",
-        "accept_with_edit": "human_review"
+        "accept_with_edit": "human_review",
     }
     return routing_map.get(decision, "final_decision")
 
 
+def route_after_final_review(state: GraphState) -> str:
+    """Route from final decision node.
+
+    final_result from DecisionAgent is authoritative.
+    human_review_result only used as fallback (e.g., first run before agent).
+    """
+    final_result = state.get("final_result")
+    human_result = state.get("human_review_result")
+
+    # DecisionAgent result (authoritative)
+    if final_result:
+        decision = final_result.get("decision", final_result.get("status"))
+        if decision in ("approve", "reject", "accept"):
+            return "end"
+        elif decision == "edit":
+            return "quality_check"
+
+    # Fallback: human review (only if DecisionAgent hasn't run yet)
+    if human_result and human_result.get("decision") in ("approve", "reject", "edit"):
+        decision = human_result["decision"]
+        return "end" if decision in ("approve", "reject") else "quality_check"
+
+    return "end"
 
 
 def _get_human_decision(state: GraphState) -> str:
@@ -109,12 +85,7 @@ def _get_human_decision(state: GraphState) -> str:
 
 
 def route_after_completeness_review(state: GraphState) -> str:
-    """Route from completeness review stage.
-
-    approve -> quality_check
-    reject  -> final_decision
-    edit    -> completeness_check
-    """
+    """Route from completeness review stage."""
     decision = _get_human_decision(state)
     routing_map = {
         "approve": "quality_check",
@@ -125,12 +96,7 @@ def route_after_completeness_review(state: GraphState) -> str:
 
 
 def route_after_quality_review(state: GraphState) -> str:
-    """Route from quality review stage.
-
-    approve -> final_decision
-    reject  -> final_decision
-    edit    -> quality_check
-    """
+    """Route from quality review stage."""
     decision = _get_human_decision(state)
     routing_map = {
         "approve": "final_decision",
@@ -141,61 +107,11 @@ def route_after_quality_review(state: GraphState) -> str:
 
 
 def route_after_human_review(state: GraphState) -> str:
-    """Unified routing from human review stage depending on where it came from.
-    
-    Checks the current_step or stage to determine correct next routing node.
-    """
-    decision = _get_human_decision(state)
-    
-    # Try to determine which stage we came from based on agent results or step
-    human_result = state.get("human_review_result", {}) or {}
-    
-    # Default to assuming completeness stage if not explicitly set
-    review_stage = human_result.get("stage", "")
-    
-    if not review_stage:
-        # Fallback heuristic: If we have an agent 2 result, we are at quality review
-        if state.get("agent_2_result"):
-            review_stage = "quality"
-        else:
-            review_stage = "completeness"
-            
-    if review_stage == "completeness":
-        routing_map = {
-            "approve": "quality_check",
-            "reject": "final_decision",
-            "edit": "completeness_check",
-        }
-        return routing_map.get(decision, "final_decision")
-        
-    elif review_stage == "quality":
-        routing_map = {
-            "approve": "final_decision",
-            "reject": "final_decision",
-            "edit": "quality_check",
-        }
-        return routing_map.get(decision, "final_decision")
-        
+    """Main router from human review node to the next appropriate node based on stage."""
+    result = state.get("human_review_result", {}) or {}
+    stage = result.get("stage")
+
+    if stage == "completeness":
+        return route_after_completeness_review(state)
     else:
-        # final review
-        routing_map = {
-            "approve": "end",
-            "reject": "end",
-            "edit": "quality_check",
-        }
-        return routing_map.get(decision, "end")
-
-
-def route_after_final_review(state: GraphState) -> str:
-    """Route from final review stage.
-
-    approve/reject -> end
-    edit           -> quality_check
-    """
-    decision = _get_human_decision(state)
-    routing_map = {
-        "approve": "end",
-        "reject": "end",
-        "edit": "quality_check",
-    }
-    return routing_map.get(decision, "end")
+        return route_after_quality_review(state)

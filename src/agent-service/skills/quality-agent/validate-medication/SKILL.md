@@ -17,7 +17,7 @@ Claim file documents containing:
 
 ## STEP 2 — Search Medication Information
 For each medication:
-1. Use `search_medicine` tool to retrieve drug information
+1. Use `search-medicine` tool to retrieve drug information
 2. Note: active ingredients, usage instructions, precautions
 
 ## STEP 3 — Clinical Appropriateness Check

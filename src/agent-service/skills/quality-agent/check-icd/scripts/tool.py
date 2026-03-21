@@ -13,7 +13,7 @@ from langchain_core.tools import tool
 ICD10_BASE_URL = os.getenv("ICD10_BASE_URL", "https://ccs.whiteneuron.com/api/ICD10/search")
 
 
-@tool
+@tool("check-icd")
 def check_icd(query: str) -> str:
     """Look up ICD entries by diagnosis text or ICD code and return JSON.
 

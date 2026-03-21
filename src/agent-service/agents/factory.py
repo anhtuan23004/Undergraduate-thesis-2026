@@ -20,42 +20,55 @@ class AgentFactory:
         agent_name: str = "Agent",
     ) -> Callable:
         """Create a stateful agent node using skill-based tool loading."""
-        from tools.skill_loader import load_agent_skills
         from agents.helpers import (
-            load_system_prompt,
+            create_agent_error_state,
+            create_history_entry,
             extract_agent_content,
+            load_system_prompt,
             parse_json_response,
         )
+        from tools.skill_loader import load_agent_skills
 
         tools, skill_contexts = load_agent_skills(agent_skill_name)
         system_prompt = load_system_prompt(instructions_name, skill_contexts)
 
         async def agent_node(state: dict) -> dict:
             logger.info(f"Executing agent node: {agent_name}")
-
             prompt = self._build_prompt_from_state(state, agent_name)
 
-            raw_result = await self.llm_client.invoke_agent(
-                prompt=prompt,
-                tools=tools,
-                system_prompt=system_prompt,
-            )
+            try:
+                raw_result = await self.llm_client.invoke_agent(
+                    prompt=prompt,
+                    tools=tools,
+                    system_prompt=system_prompt,
+                )
 
-            content_str = extract_agent_content(raw_result)
-            parsed_result = parse_json_response(content_str)
+                if "error" in raw_result:
+                    raise Exception(raw_result["error"])
 
-            history_entry = {
-                "agent": agent_name,
-                "prompt": prompt[:200] + "...",
-                "result": parsed_result,
-                "step": state.get("current_step", "unknown"),
-            }
+                content_str = extract_agent_content(raw_result)
+                parsed_result = parse_json_response(content_str)
 
-            return {
-                output_state_key: parsed_result,
-                "history": state.get("history", []) + [history_entry],
-                "current_step": f"completed_{agent_skill_name}",
-            }
+                history_entry = create_history_entry(
+                    agent_name=agent_name,
+                    prompt=prompt,
+                    result=parsed_result,
+                    step=state.get("current_step", "unknown"),
+                )
+
+                return {
+                    output_state_key: parsed_result,
+                    "history": [history_entry],
+                    "current_step": f"completed_{agent_skill_name}",
+                }
+            except Exception as e:
+                logger.error(f"Error in {agent_name}", error=str(e))
+                return create_agent_error_state(
+                    agent_result_key=output_state_key,
+                    error=e,
+                    state=state,
+                    error_step_name=agent_skill_name,
+                )
 
         return agent_node
 
@@ -72,13 +85,17 @@ class CompletenessAgentFactory(AgentFactory):
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
         import json
 
-        return f"""Audit the completeness of insurance claim {state.get("claim_id", "N/A")}.
-Policy: {state.get("policy_number", "N/A")}
-Input document: {state.get("input_file", "N/A")}
+        claim_id = state.get("claim_id", "N/A")
+        policy_number = state.get("policy_number", "N/A")
+        input_file = state.get("input_file", "N/A")
+        history = json.dumps(state.get("history", [])[-2:], indent=2)
 
-Current history:
-{json.dumps(state.get("history", [])[-2:], indent=2)}
-"""
+        return (
+            f"Audit the completeness of insurance claim {claim_id}.\n"
+            f"Policy: {policy_number}\n"
+            f"Input document: {input_file}\n\n"
+            f"Current history:\n{history}\n"
+        )
 
     def create_completeness_agent(self) -> Callable:
         return self.create_agent_with_skills(
@@ -95,13 +112,17 @@ class QualityAgentFactory(AgentFactory):
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
         import json
 
-        return f"""Verify the medical quality for claim {state.get("claim_id", "N/A")}.
-Policy: {state.get("policy_number", "N/A")}
-Extracted data: {json.dumps(state.get("extracted_documents", {}), indent=2)}
+        claim_id = state.get("claim_id", "N/A")
+        policy_number = state.get("policy_number", "N/A")
+        extracted = json.dumps(state.get("extracted_documents", {}), indent=2)
+        history = json.dumps(state.get("history", [])[-2:], indent=2)
 
-Current history:
-{json.dumps(state.get("history", [])[-2:], indent=2)}
-"""
+        return (
+            f"Verify the medical quality for claim {claim_id}.\n"
+            f"Policy: {policy_number}\n"
+            f"Extracted data: {extracted}\n\n"
+            f"Current history:\n{history}\n"
+        )
 
     def create_quality_agent(self) -> Callable:
         return self.create_agent_with_skills(
@@ -118,13 +139,19 @@ class DecisionAgentFactory(AgentFactory):
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
         import json
 
-        return f"""Make a final decision for claim {state.get("claim_id", "N/A")}.
-Policy: {state.get("policy_number", "N/A")}
+        claim_id = state.get("claim_id", "N/A")
+        policy_number = state.get("policy_number", "N/A")
+        completeness = json.dumps(state.get("agent_1_result", {}), indent=2)
+        quality = json.dumps(state.get("agent_2_result", {}), indent=2)
+        human_review = json.dumps(state.get("human_review_result", {}), indent=2)
 
-Completeness: {json.dumps(state.get("agent_1_result", {}), indent=2)}
-Quality: {json.dumps(state.get("agent_2_result", {}), indent=2)}
-Human Review: {json.dumps(state.get("human_review_result", {}), indent=2)}
-"""
+        return (
+            f"Make a final decision for claim {claim_id}.\n"
+            f"Policy: {policy_number}\n\n"
+            f"Completeness: {completeness}\n"
+            f"Quality: {quality}\n"
+            f"Human Review: {human_review}\n"
+        )
 
     def create_decision_agent(self) -> Callable:
         return self.create_agent_with_skills(

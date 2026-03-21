@@ -1,5 +1,5 @@
 ---
-name: search_medicine
+name: search-medicine
 description: Search for medications in the MongoDB medicine database to verify drug names, usage, and clinical information.
 ---
 
@@ -18,7 +18,7 @@ Your task is to retrieve accurate medication information from the database to su
 - Remove duplicates to avoid redundant calls.
 
 ## STEP 2 — Execute Search
-- Call `search_medicine` with the list of medication names.
+- Call `search-medicine` with the list of medication names.
 - The tool returns parallel search results for each medication.
 
 ## STEP 3 — Process Results

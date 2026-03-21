@@ -13,7 +13,7 @@ from tools.skill_loader import load_agent_skills
 def _get_validate_diagnosis_tool():
     """Get validate_diagnosis tool from loaded skills."""
     tools, _ = load_agent_skills("quality_agent")
-    return next((t for t in tools if t.name == "validate_diagnosis"), None)
+    return next((t for t in tools if t.name == "validate-diagnosis"), None)
 
 
 class TestValidateDiagnosisTool:
@@ -23,7 +23,7 @@ class TestValidateDiagnosisTool:
         """Tool should have the correct name."""
         tool = _get_validate_diagnosis_tool()
         assert tool is not None
-        assert tool.name == "validate_diagnosis"
+        assert tool.name == "validate-diagnosis"
 
     def test_tool_has_description(self):
         """Tool should have a description."""
@@ -47,9 +47,7 @@ class TestValidateDiagnosisInvoke:
         tool = _get_validate_diagnosis_tool()
         assert tool is not None
 
-        result_str = tool.invoke(
-            {"diagnoses": ["Pneumonia"], "medications": ["Amoxicillin"]}
-        )
+        result_str = tool.invoke({"diagnoses": ["Pneumonia"], "medications": ["Amoxicillin"]})
         result = json.loads(result_str)
         assert result["status_code"] == 0
         assert result["status_message"] == "success"
@@ -79,9 +77,7 @@ class TestValidateDiagnosisInvoke:
         tool = _get_validate_diagnosis_tool()
         assert tool is not None
 
-        result_str = tool.invoke(
-            {"diagnoses": ["Hypertension"], "medications": ["Amlodipine"]}
-        )
+        result_str = tool.invoke({"diagnoses": ["Hypertension"], "medications": ["Amlodipine"]})
         assert isinstance(result_str, str)
         result = json.loads(result_str)
         assert "status_code" in result
@@ -96,7 +92,7 @@ class TestValidateDiagnosisIntegration:
         """Quality agent should include validate_diagnosis tool."""
         tools, contexts = load_agent_skills("quality_agent")
         tool_names = [t.name for t in tools]
-        assert "validate_diagnosis" in tool_names
+        assert "validate-diagnosis" in tool_names
         assert len(contexts) > 0
 
     def test_skill_context_contains_diagnosis_role(self):

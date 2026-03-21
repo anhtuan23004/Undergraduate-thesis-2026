@@ -52,7 +52,8 @@ async def root() -> dict:
         "endpoints": {
             "health": "/health",
             "workflow_run": "/api/v2/workflows/run (POST)",
-            "process": "/api/v2/process (POST)",
+            "workflow_resume": "/api/v2/workflows/resume/{run_id} (POST)",
+            "workflow_status": "/api/v2/workflows/status/{run_id} (GET)",
         },
     }
 

@@ -10,7 +10,7 @@ from typing import List, Optional
 from langchain_core.tools import tool
 
 
-@tool
+@tool("validate-medication")
 def validate_medication(
     medications: List[str],
     diagnoses: Optional[List[str]] = None,
