@@ -1,0 +1,157 @@
+[project]
+name = "insurance-claims-system"
+version = "1.0.0"
+description = "Agentic AI Insurance Claims Processing System"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Undergraduate Thesis Project"}
+]
+keywords = ["insurance", "claims", "ai", "agentic", "langgraph", "rag", "ocr"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-repo/Undergraduate-thesis"
+Documentation = "https://github.com/your-repo/Undergraduate-thesis#readme"
+Repository = "https://github.com/your-repo/Undergraduate-thesis"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shared"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/", "tests/", "README.md", "AGENTS.md"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["src/agent-service/tests", "src/rag-service/tests", "src/ocr-service/tests"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pymilvus.*"
+ignore_missing = true
+
+[[tool.mypy.overrides]]
+module = "milvus_lite.*"
+ignore_missing = true
+
+[tool.coverage.run]
+source = ["src/"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+
+[dependency-groups]
+agent-service = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    "langgraph>=0.0.50",
+    "langgraph-checkpoint-mongodb>=0.1.0",
+    "langchain-core>=0.3.0",
+    "langchain-google-genai>=1.0.0",
+    "motor>=3.3.2",
+    "pymongo>=4.6.1",
+    "structlog>=24.1.0",
+    "requests>=2.31.0",
+    "streamlit>=1.28.0",
+]
+
+rag-service = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.1.0",
+    "pymilvus==2.5.6",
+    "marshmallow>=3.18.0",
+    "google-generativeai>=0.7.0",
+    "rank-bm25==0.2.2",
+    "jieba==0.42.1",
+    "nltk==3.8.1",
+    "scikit-learn==1.4.0",
+    "motor>=3.3.2",
+    "pymongo>=4.12,<4.16",
+    "structlog==24.1.0",
+    "numpy==1.26.3",
+    "httpx>=0.28.1",
+]
+
+ocr-service = [
+    "google-genai>=1.51.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.23.0",
+    "pydantic-settings>=2.0.0",
+]
+
+dev = [
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]

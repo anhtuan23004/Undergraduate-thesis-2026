@@ -11,26 +11,12 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Router definitions
 health_router = APIRouter()
 ocr_router = APIRouter(prefix=f"{settings.API_PREFIX}/ocr", tags=["ocr"])
 
-# Common OCR parameters type alias
-OCRParams = dict[str, Any]
-
 
 def get_ocr_service(api_key: Optional[str] = Form(None)) -> GeminiOCRService:
-    """Dependency to get OCR service instance.
-
-    Args:
-        api_key: Optional API key override.
-
-    Returns:
-        GeminiOCRService instance.
-
-    Raises:
-        HTTPException: If configuration is invalid.
-    """
+    """Get OCR service instance with optional API key override."""
     try:
         return GeminiOCRService(api_key=api_key)
     except GeminiConfigError as exc:
@@ -56,7 +42,8 @@ async def get_file_content(
         HTTPException: If neither file nor URL is provided, or validation fails.
     """
     if not file and not file_url:
-        logger.warning(f"{operation} request missing both file and file_url")
+        msg = f"{operation} request missing both file and file_url"
+        logger.warning(msg)
         raise HTTPException(
             status_code=400,
             detail="Either 'file' or 'file_url' must be provided.",
@@ -64,29 +51,22 @@ async def get_file_content(
 
     if file:
         if not file.content_type:
-            raise HTTPException(status_code=400, detail="File must have a content type")
-
+            raise HTTPException(
+                status_code=400,
+                detail="File must have a content type",
+            )
         file_bytes = await file.read()
         file_name = file.filename or "uploaded_file"
         mime_type = file.content_type
         logger.info(f"Processing upload file: {file_name} ({mime_type})")
         return file_bytes, file_name, mime_type
 
-    # Download from URL
     logger.info(f"Downloading file from URL: {file_url}")
     return await download_file_from_url(file_url)
 
 
 def handle_ocr_error(operation: str, exc: Exception) -> None:
-    """Handle OCR errors consistently.
-
-    Args:
-        operation: Name of the operation.
-        exc: The exception that occurred.
-
-    Raises:
-        HTTPException: With appropriate status code and detail.
-    """
+    """Handle OCR errors consistently."""
     if isinstance(exc, GeminiConfigError):
         logger.error(f"Configuration error: {exc}")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -97,11 +77,7 @@ def handle_ocr_error(operation: str, exc: Exception) -> None:
 
 @health_router.get("/health")
 async def health_check() -> dict[str, str]:
-    """Health check endpoint.
-
-    Returns:
-        Service status information.
-    """
+    """Health check endpoint."""
     return {
         "status": "healthy",
         "service": settings.PROJECT_NAME,
@@ -126,28 +102,11 @@ async def ocr_raw(
     """Extract raw text from images/PDFs.
 
     Provide either 'file' (upload) or 'file_url'.
-
-    Args:
-        file: Uploaded file.
-        file_url: URL to download file from.
-        prompt: Optional custom prompt.
-        model_name: Optional model override.
-        temperature: Controls randomness (0.0-2.0).
-        top_p: Nucleus sampling threshold.
-        top_k: Top-k sampling parameter.
-        max_output_tokens: Maximum tokens to generate.
-        thinking_budget: Token budget for Gemini 2.5.
-        thinking_level: Thinking level for Gemini 3.
-        service: OCR service instance (injected).
-
-    Returns:
-        Extracted raw text.
     """
     try:
         file_bytes, file_name, mime_type = await get_file_content(
             file, file_url, "ocr_raw"
         )
-
         return service.parse_raw(
             file_bytes=file_bytes,
             file_name=file_name,
@@ -179,31 +138,14 @@ async def ocr_fields(
     thinking_level: Optional[str] = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
 ) -> Any:
-    """Extract structured fields (JSON format) from images/PDFs.
+    """Extract structured fields (JSON) from images/PDFs.
 
     Provide either 'file' (upload) or 'file_url'.
-
-    Args:
-        file: Uploaded file.
-        file_url: URL to download file from.
-        prompt: Optional custom prompt.
-        model_name: Optional model override.
-        temperature: Controls randomness (0.0-2.0).
-        top_p: Nucleus sampling threshold.
-        top_k: Top-k sampling parameter.
-        max_output_tokens: Maximum tokens to generate.
-        thinking_budget: Token budget for Gemini 2.5.
-        thinking_level: Thinking level for Gemini 3.
-        service: OCR service instance (injected).
-
-    Returns:
-        Extracted fields as JSON.
     """
     try:
         file_bytes, file_name, mime_type = await get_file_content(
             file, file_url, "ocr_fields"
         )
-
         return service.parse_fields(
             file_bytes=file_bytes,
             file_name=file_name,
@@ -235,31 +177,14 @@ async def ocr_document(
     thinking_level: Optional[str] = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
 ) -> Any:
-    """Extract document structure (JSON format) from images/PDFs.
+    """Extract document structure (JSON) from images/PDFs.
 
     Provide either 'file' (upload) or 'file_url'.
-
-    Args:
-        file: Uploaded file.
-        file_url: URL to download file from.
-        prompt: Optional custom prompt.
-        model_name: Optional model override.
-        temperature: Controls randomness (0.0-2.0).
-        top_p: Nucleus sampling threshold.
-        top_k: Top-k sampling parameter.
-        max_output_tokens: Maximum tokens to generate.
-        thinking_budget: Token budget for Gemini 2.5.
-        thinking_level: Thinking level for Gemini 3.
-        service: OCR service instance (injected).
-
-    Returns:
-        Extracted document structure as JSON.
     """
     try:
         file_bytes, file_name, mime_type = await get_file_content(
             file, file_url, "ocr_document"
         )
-
         return service.parse_document(
             file_bytes=file_bytes,
             file_name=file_name,
