@@ -2,6 +2,7 @@
 
 import asyncio
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -94,11 +95,11 @@ async def run_workflow(request: ClaimRequest) -> dict:
         async with asyncio.timeout(PROCESS_TIMEOUT):
             config = {"configurable": {"thread_id": run_id}}
             result = await graph.ainvoke(initial_state, config=config)
-            
+
             # Check if workflow is interrupted and pending human review
             snapshot = await graph.aget_state(config)
             is_pending = bool(snapshot.next and "human_review" in snapshot.next)
-            
+
     except asyncio.TimeoutError:
         raise HTTPException(
             status_code=504,
@@ -136,18 +137,20 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
             "decision": request.decision,
             "notes": request.notes,
             "stage": stage,
-            "reviewed_at": str(uuid.uuid4()),
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
         }
 
         state_update = {
             "human_review_result": human_review_result,
             "current_step": "human_review_complete",
-            "history": [{
-                "step": "human_review",
-                "decision": request.decision,
-                "notes": request.notes,
-                "resumed": True
-            }]
+            "history": [
+                {
+                    "step": "human_review",
+                    "decision": request.decision,
+                    "notes": request.notes,
+                    "resumed": True,
+                }
+            ],
         }
 
         if request.decision == "edit" and request.edited_result:
@@ -158,7 +161,7 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
 
         await graph.aupdate_state(config, state_update, as_node="human_review")
         result = await graph.ainvoke(None, config=config)
-        
+
         # Check if it interrupted again (e.g. loops back into another review)
         snapshot = await graph.aget_state(config)
         is_pending = bool(snapshot.next and "human_review" in snapshot.next)

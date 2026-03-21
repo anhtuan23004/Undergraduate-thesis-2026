@@ -1,5 +1,5 @@
 ---
-name: check_exclusion
+name: check-exclusion
 description: Given a diagnosis name or ICD code, this tool checks if the diagnosis is excluded from insurance coverage based on policy rules and returns appropriate warnings with suggestions.
 ---
 

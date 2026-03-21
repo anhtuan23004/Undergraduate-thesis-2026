@@ -61,7 +61,7 @@ def search_single_medicine(medicine_name: str) -> dict:
     return {"query": medicine_name, "results": results}
 
 
-@tool
+@tool("search-medicine")
 def search_medicine(medicine_names: List[str]) -> str:
     """Search medicines in parallel and return JSON result.
 

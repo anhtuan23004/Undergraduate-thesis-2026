@@ -219,7 +219,7 @@ class TestRouteAfterFinalReview:
     def test_final_result_decision_takes_precedence(self):
         """Final result decision should override human review result."""
         state = {
-            "human_review_result": {"decision": "approve"},
-            "final_result": {"decision": "reject"},
+            "human_review_result": {"decision": "edit"},  # Would route to quality_check
+            "final_result": {"decision": "approve"},     # Should route to end
         }
         assert route_after_final_review(state) == "end"

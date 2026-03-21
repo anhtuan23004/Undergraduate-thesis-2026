@@ -71,6 +71,7 @@ def build_claim_workflow(
         "final_decision",
         route_after_final_review,
         {
+            "quality_check": "quality_check",
             "end": END,
         },
     )

@@ -1,5 +1,5 @@
 ---
-name: classify_benefit
+name: classify-benefit
 description: Classifies insurance claim benefit type based on document content and diagnosis information.
 ---
 

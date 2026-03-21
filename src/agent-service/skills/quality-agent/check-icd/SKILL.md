@@ -1,5 +1,5 @@
 ---
-name: check_icd
+name: check-icd
 description: Given a diagnosis name or ICD code, this tool returns correct ICD-10 code and its medical description, and can be used to verify whether an ICD code matches diagnosis.
 ---
 
@@ -28,7 +28,7 @@ Data points: primary/secondary diagnoses, ICD codes, and medication lists.
 
 ### Phase 1: Verify Provided ICD Codes
 1. Collect all ICD codes explicitly stated in documents.
-2. Call `check_icd` with all these codes in ONE call (e.g., `check_icd("E11.9, J18.9")`).
+   2. Call `check-icd` with all these codes in ONE call (e.g., `check-icd("E11.9, J18.9")`).
 3. For each code:
    - Compare the returned official description with the associated diagnosis text in records.
    - **SUCCESS (`icd_valid`):** Description matches diagnosis.
@@ -36,11 +36,11 @@ Data points: primary/secondary diagnoses, ICD codes, and medication lists.
 
 ### Phase 2: Resolve Diagnoses Missing ICD Codes
 1. Identify any diagnoses that **DO NOT** have an ICD code provided in documents.
-2. For these specific diagnoses, call `check_icd` using their text (e.g., `check_icd("Pneumonia, Hypertension")`).
+   2. For these specific diagnoses, call `check-icd` using their text (e.g., `check-icd("Pneumonia, Hypertension")`).
 3. Use the `best_match` result to provide a **WARNING (`icd_missing`)** along with `suggested_icd`.
 
 ### Efficiency Note
-You may combine Phase 1 and Phase 2 into a single `check_icd` call to save time, but you **MUST** process the logic separately: verify provided codes first, then handle missing ones.
+You may combine Phase 1 and Phase 2 into a single `check-icd` call to save time, but you **MUST** process the logic separately: verify provided codes first, then handle missing ones.
 
 ## STEP 4 — Final Output
 

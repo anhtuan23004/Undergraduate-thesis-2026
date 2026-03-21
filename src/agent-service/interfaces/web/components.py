@@ -1,7 +1,6 @@
 """Streamlit UI components for Insurance Claims Processing."""
 
 import json
-from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Optional
 
@@ -93,50 +92,10 @@ def render_sidebar(
                 with col1:
                     display_id = run["run_id"][:8] if run["run_id"] else "N/A"
                     is_selected = current_run_id == run["run_id"]
-                    prefix = "**" if is_selected else ""
-                    suffix = "**" if is_selected else ""
-                    st.code(
-                        f"{prefix}{status_emoji} {display_id}...{suffix}", language=None
-                    )
-
-                with col2:
-                    if st.button("Chọn", key=f"select_{run['run_id']}"):
-                        on_select_run(run["run_id"])
-
-        st.divider()
-
-        with st.expander("⚙️ Cài Đặt"):
-            new_url = st.text_input("API URL", value=api_url, key="api_url_input")
-            if st.button("Cập Nhật"):
-                on_url_change(new_url)
-                st.success("Đã cập nhật API URL")
-
-
-def render_claim_input_form(
-    on_start: Callable,
-    default_ocr_data: Optional[dict] = None,
-) -> None:
-    """Render the claim input form.
-
-    Args:
-        on_start: Callback when workflow should start.
-        default_ocr_data: Default OCR data to populate.
-    """
-    st.subheader("📝 Thông Tin Hồ Sơ")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        claim_id = st.text_input("Mã Hồ Sơ", value="CLM-001", key="claim_id")
-        policy_number = st.text_input(
-            "Số Hợp Đồng", value="POL-2024-001", key="policy_number"
-        )
-
-    with col2:
-        benefit_type = st.selectbox(
-            "Loại Bảo Hiểm",
-            ["health insurance", "dental", "vision", "life"],
-            key="benefit_type",
-        )
+                    if is_selected:
+                        st.markdown(f"**{status_emoji} {display_id}...**")
+                    else:
+                        st.markdown(f"{status_emoji} {display_id}...")
         task_type = st.selectbox(
             "Loại Xử Lý",
             [
@@ -258,19 +217,14 @@ def render_hitl_panel(
         state_data: Current workflow state.
         on_resume: Callback when decision is submitted.
     """
-    st.warning(
-        "⚠️ **Hệ thống phát hiện dữ liệu không nhất quán. "
-        "Cần chuyên viên y tế can thiệp!**"
-    )
+    st.warning("⚠️ **Hệ thống phát hiện dữ liệu không nhất quán. Cần chuyên viên y tế can thiệp!**")
 
     st.subheader("📋 Thông Tin Can Thiệp")
 
     col1, col2 = st.columns(2)
     with col1:
         waiting_at = (
-            "Completeness Check"
-            if not state_data.get("agent_2_result")
-            else "Quality Check"
+            "Completeness Check" if not state_data.get("agent_2_result") else "Quality Check"
         )
         st.info(f"**Đang chờ tại:** {waiting_at}")
 
@@ -303,9 +257,7 @@ def render_hitl_panel(
 
     notes = st.text_area("Ghi Chú (Tuỳ Chọn)", height=100, key="hitl_notes")
 
-    if st.button(
-        "⚡ Gửi Quyết Định & Tiếp Tục", type="primary", use_container_width=True
-    ):
+    if st.button("⚡ Gửi Quyết Định & Tiếp Tục", type="primary", use_container_width=True):
         on_resume(action, notes)
 
 

@@ -10,7 +10,7 @@ from typing import Dict, List
 from langchain_core.tools import tool
 
 
-@tool
+@tool("validate-diagnosis")
 def validate_diagnosis(diagnoses: List[str], medications: List[str]) -> str:
     """Validate that medications are appropriate for the given diagnoses.
 

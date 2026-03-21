@@ -1,5 +1,5 @@
 ---
-name: extract_documents
+name: extract-documents
 description: Extracts text and structured data from documents using OCR service.
 ---
 
@@ -20,7 +20,7 @@ Your task is to extract relevant information from insurance claim documents.
 - Optionally specify fields for targeted extraction
 
 ## STEP 2 — Call Tool
-- Use `extract_documents` with appropriate parameters
+- Use `extract-documents` with appropriate parameters
 - Wait for OCR service to process the document
 
 ## STEP 3 — Process Results

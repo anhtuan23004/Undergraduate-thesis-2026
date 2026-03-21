@@ -54,16 +54,28 @@ def route_after_quality(state: GraphState) -> str:
 
 
 def route_after_final_review(state: GraphState) -> str:
-    """Route from final decision node."""
-    human_result = state.get("human_review_result", {}) or {}
-    decision = human_result.get("decision", "end")
+    """Route from final decision node.
 
-    routing_map = {
-        "approve": "end",
-        "reject": "end",
-        "edit": "quality_check",
-    }
-    return routing_map.get(decision, "end")
+    final_result from DecisionAgent is authoritative.
+    human_review_result only used as fallback (e.g., first run before agent).
+    """
+    final_result = state.get("final_result")
+    human_result = state.get("human_review_result")
+
+    # DecisionAgent result (authoritative)
+    if final_result:
+        decision = final_result.get("decision", final_result.get("status"))
+        if decision in ("approve", "reject", "accept"):
+            return "end"
+        elif decision == "edit":
+            return "quality_check"
+
+    # Fallback: human review (only if DecisionAgent hasn't run yet)
+    if human_result and human_result.get("decision") in ("approve", "reject", "edit"):
+        decision = human_result["decision"]
+        return "end" if decision in ("approve", "reject") else "quality_check"
+
+    return "end"
 
 
 def _get_human_decision(state: GraphState) -> str:
@@ -98,9 +110,8 @@ def route_after_human_review(state: GraphState) -> str:
     """Main router from human review node to the next appropriate node based on stage."""
     result = state.get("human_review_result", {}) or {}
     stage = result.get("stage")
-    
+
     if stage == "completeness":
         return route_after_completeness_review(state)
     else:
         return route_after_quality_review(state)
-

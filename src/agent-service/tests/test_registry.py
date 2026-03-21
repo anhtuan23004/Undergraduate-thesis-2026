@@ -16,8 +16,8 @@ class TestSkillLoaderDiscovery:
         tools, contexts = load_agent_skills("quality_agent")
         assert len(tools) > 0
         tool_names = [t.name for t in tools]
-        assert "check_icd" in tool_names
-        assert "validate_diagnosis" in tool_names
+        assert "check-icd" in tool_names
+        assert "validate-diagnosis" in tool_names
         assert len(contexts) > 0
 
     def test_load_completeness_agent_skills(self):
@@ -25,8 +25,8 @@ class TestSkillLoaderDiscovery:
         tools, contexts = load_agent_skills("completeness_agent")
         assert len(tools) > 0
         tool_names = [t.name for t in tools]
-        assert "extract_documents" in tool_names
-        assert "check_required_documents" in tool_names
+        assert "extract-documents" in tool_names
+        assert "check-required-docs" in tool_names
         assert len(contexts) > 0
 
     def test_load_decision_agent_skills(self):
@@ -34,14 +34,14 @@ class TestSkillLoaderDiscovery:
         tools, contexts = load_agent_skills("decision_agent")
         assert len(tools) > 0
         tool_names = [t.name for t in tools]
-        assert "aggregate_issues" in tool_names
+        assert "aggregate-issues" in tool_names
         assert len(contexts) > 0
 
     def test_load_nonexistent_agent(self):
         """Should handle nonexistent agent gracefully but still load shared tools."""
         tools, contexts = load_agent_skills("nonexistent_agent")
         tool_names = [t.name for t in tools]
-        assert "classify_benefit" in tool_names
+        assert "classify-benefit" in tool_names
         assert "classify-benefit" in contexts
 
 
@@ -89,10 +89,10 @@ class TestSharedSkills:
         """Shared skills should be loaded with agent skills."""
         tools, contexts = load_agent_skills("quality_agent")
         tool_names = [t.name for t in tools]
-        assert "classify_benefit" in tool_names
+        assert "classify-benefit" in tool_names
 
     def test_completeness_agent_includes_shared(self):
         """Completeness agent should include shared skills."""
         tools, contexts = load_agent_skills("completeness_agent")
         tool_names = [t.name for t in tools]
-        assert "classify_benefit" in tool_names
+        assert "classify-benefit" in tool_names

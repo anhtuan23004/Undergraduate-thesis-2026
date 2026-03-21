@@ -1,5 +1,5 @@
 ---
-name: validate_consistency
+name: validate-consistency
 description: Validates consistency of key information across multiple documents in an insurance claim file.
 ---
 
