@@ -35,8 +35,9 @@ def get_collection(name: str) -> Collection:
 
 
 def get_medicine_collection() -> Collection:
-    """Get the medicine collection."""
-    return get_collection("medicine")
+    """Get the medicine collection from document_qa database."""
+    client = get_mongodb_client()
+    return client["document_qa"]["medicine"]
 
 
 def close_mongodb_client():

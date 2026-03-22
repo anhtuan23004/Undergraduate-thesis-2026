@@ -1,11 +1,15 @@
 """LLM client for LangGraph with async support and Langfuse tracing."""
 
 import structlog
+import os
 from typing import Optional
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_core.callbacks import BaseCallbackHandler
+
+from langfuse import Langfuse
+from langfuse.langchain import CallbackHandler
 
 from config import settings
 
@@ -22,21 +26,21 @@ class LangfuseCallbackHandler(BaseCallbackHandler):
     async def setup(self):
         """Setup Langfuse handler lazily."""
         if self._handler is None and settings.LANGFUSE_ENABLED:
-            try:
-                from langfuse import Langfuse
+            if settings.LANGFUSE_PUBLIC_KEY:
+                os.environ.setdefault("LANGFUSE_PUBLIC_KEY", settings.LANGFUSE_PUBLIC_KEY)
+            if settings.LANGFUSE_SECRET_KEY:
+                os.environ.setdefault("LANGFUSE_SECRET_KEY", settings.LANGFUSE_SECRET_KEY)
+            if settings.LANGFUSE_HOST:
+                os.environ.setdefault("LANGFUSE_HOST", settings.LANGFUSE_HOST)
 
-                langfuse = Langfuse(
-                    public_key=settings.LANGFUSE_PUBLIC_KEY,
-                    secret_key=settings.LANGFUSE_SECRET_KEY,
-                    host=settings.LANGFUSE_HOST,
-                )
-                self._handler = langfuse.new_callback(
-                    trace_name=self.trace_name,
-                    metadata={"service": "agent-service"},
-                )
-            except Exception as e:
-                logger.warning("Failed to initialize Langfuse", error=str(e))
-                self._handler = None
+            Langfuse(
+                public_key=settings.LANGFUSE_PUBLIC_KEY,
+                secret_key=settings.LANGFUSE_SECRET_KEY,
+                host=settings.LANGFUSE_HOST,
+            )
+
+            self._handler = CallbackHandler(public_key=settings.LANGFUSE_PUBLIC_KEY or None)
+            logger.info("Langfuse callback handler initialized", trace_name=self.trace_name)
 
     @property
     def handler(self) -> Optional[BaseCallbackHandler]:
@@ -84,15 +88,19 @@ class LangGraphLLMClient:
             callbacks.append(langfuse_callback.handler)
 
         agent = create_agent(
-            self._llm,
+            model=self._llm,
             tools=tools,
-            state_modifier=system_prompt,
+            system_prompt=system_prompt,
         )
 
         try:
+            config = {"run_name": trace_name}
+            if callbacks:
+                config["callbacks"] = callbacks
+
             result = await agent.ainvoke(
                 {"messages": [{"role": "user", "content": prompt}]},
-                config={"callbacks": callbacks} if callbacks else {},
+                config=config,
             )
             return result
         except Exception as e:

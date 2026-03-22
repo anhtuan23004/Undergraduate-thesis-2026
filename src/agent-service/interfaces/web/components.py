@@ -1,6 +1,5 @@
 """Streamlit UI components for Insurance Claims Processing."""
 
-import json
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Optional
@@ -13,6 +12,7 @@ class WorkflowStatus(str, Enum):
 
     COMPLETED = "completed"
     PENDING_REVIEW = "pending_review"
+    PAUSED = "paused"
     RUNNING = "running"
     ERROR = "error"
 
@@ -35,6 +35,7 @@ SEVERITY_COLORS = {
 STATUS_EMOJIS = {
     WorkflowStatus.COMPLETED: "🟢",
     WorkflowStatus.PENDING_REVIEW: "🟡",
+    WorkflowStatus.PAUSED: "🟠",
     WorkflowStatus.RUNNING: "🔵",
     WorkflowStatus.ERROR: "🔴",
 }
@@ -48,6 +49,8 @@ def get_status(state_data: Optional[dict]) -> WorkflowStatus:
         return WorkflowStatus.ERROR
     if state_data.get("pending_human_review"):
         return WorkflowStatus.PENDING_REVIEW
+    if state_data.get("paused"):
+        return WorkflowStatus.PAUSED
     if state_data.get("final_result"):
         return WorkflowStatus.COMPLETED
     if state_data.get("current_step", "").startswith("completed_"):
@@ -100,15 +103,15 @@ def render_sidebar(
 
             if run_ids:
                 # Default to the current run if it is in the history
-                try:
-                    default_index = run_ids.index(current_run_id) if current_run_id in run_ids else 0
-                except ValueError:
-                    default_index = 0
+                if current_run_id in run_ids:
+                    default_index = run_ids.index(current_run_id)
+                else:
+                    default_index = None
 
                 selected_run_id = st.radio(
                     "Chọn phiên",
                     options=run_ids,
-                    index=default_index if run_ids else 0,
+                    index=default_index,
                     format_func=_format_run_label,
                     key="run_history_selection",
                 )
@@ -116,7 +119,7 @@ def render_sidebar(
                 if selected_run_id and selected_run_id != current_run_id:
                     on_select_run(selected_run_id)
 
-def render_claim_input_form(on_start: Callable, default_ocr_data: dict = None) -> None:
+def render_claim_input_form(on_start: Callable) -> None:
     """Render the form for submitting a new claim."""
     st.subheader("📝 Thông Tin Hồ Sơ")
     col1, col2 = st.columns(2)
@@ -125,35 +128,28 @@ def render_claim_input_form(on_start: Callable, default_ocr_data: dict = None) -
     with col2:
         policy_number = st.text_input("Mã Hợp Đồng (Policy Number)", value="POL-2024")
 
-    st.subheader("📄 Dữ Liệu OCR (JSON)")
-    default_json = json.dumps(
-        default_ocr_data
-        or {
-            "patient_name": "Nguyễn Văn A",
-            "diagnosis": "Pneumonia (J12.9)",
-            "medications": ["Amoxicillin 500mg", "Paracetamol 500mg"],
-            "treatment_date": "2024-01-15",
-            "hospital": "Bệnh viện Đại học Y dược",
-            "total_amount": 15000000,
-        },
-        indent=2,
-        ensure_ascii=False,
+    st.subheader("📎 Tài Liệu Bồi Thường")
+    uploaded_file = st.file_uploader(
+        "Upload tài liệu (PDF/Ảnh/JSON/TXT)",
+        type=["pdf", "png", "jpg", "jpeg", "json", "txt"],
+        help="Có thể upload tài liệu gốc; nếu là JSON OCR thì hệ thống sẽ đọc tự động.",
     )
-    ocr_data_str = st.text_area(
-        "Dán dữ liệu OCR từ service OCR",
-        value=default_json,
-        height=200,
-        key="ocr_data",
-    )
+
+    if uploaded_file is not None:
+        st.caption(
+            f"File da chon: {uploaded_file.name} | "
+            f"{uploaded_file.type or 'application/octet-stream'} | "
+            f"{uploaded_file.size} bytes"
+        )
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         if st.button("🚀 Bắt Đầu Phân Tích", use_container_width=True, type="primary"):
-            try:
-                ocr_data = json.loads(ocr_data_str)
-                on_start(claim_id, policy_number, ocr_data)
-            except json.JSONDecodeError:
-                st.error("Dữ liệu OCR không hợp lệ. Vui lòng kiểm tra định dạng JSON.")
+            if uploaded_file is None:
+                st.error("Vui lòng upload tài liệu trước khi bắt đầu.")
+            else:
+                input_file = uploaded_file.name
+                on_start(claim_id, policy_number, input_file, uploaded_file)
 
 
 def render_workflow_status(state_data: dict) -> None:
@@ -215,6 +211,10 @@ def render_agent_result(entry: dict) -> None:
                 st.warning("⚠️ Cần Xem Xét")
 
         with col2:
+            agent_msg = result.get("message")
+            if agent_msg:
+                st.info(f"**Thông điệp:** {agent_msg}")
+
             issues = result.get("issues", [])
             if issues:
                 st.write("**Vấn Đề Phát Hiện:**")
@@ -277,6 +277,144 @@ def render_hitl_panel(
 
     if st.button("⚡ Gửi Quyết Định & Tiếp Tục", type="primary", use_container_width=True):
         on_resume(action, notes)
+
+
+def render_stage_pause_panel(
+    state_data: dict,
+    on_continue: Callable,
+) -> None:
+    """Render pause panel for stage-by-stage execution mode."""
+    pause_at = state_data.get("pause_at", "unknown")
+    stage_labels = {
+        "quality_check": "Quality Check",
+        "final_decision": "Final Decision",
+    }
+    next_stage = stage_labels.get(pause_at, pause_at)
+
+    st.info("⏸️ **Đã hoàn thành một chặng và tạm dừng theo luồng mới.**")
+    st.write(f"**Bước kế tiếp:** {next_stage}")
+    st.caption("Nhấn tiếp tục để chạy sang bước tiếp theo của workflow.")
+
+    if st.button("▶️ Tiếp Tục Workflow", type="primary", use_container_width=True):
+        on_continue()
+
+
+def _render_result_summary(result: Optional[dict]) -> None:
+    """Render compact summary for one step result."""
+    if not result:
+        st.caption("Chưa có kết quả ở bước này.")
+        return
+
+    decision = result.get("decision", result.get("status", result.get("valid")))
+    if decision in ("accept", "approve", True):
+        st.success(f"Kết luận: {decision}")
+    elif decision in ("reject", False):
+        st.error(f"Kết luận: {decision}")
+    else:
+        st.warning(f"Kết luận: {decision}")
+
+    agent_message = result.get("message")
+    if agent_message:
+        st.info(f"**Thông điệp:** {agent_message}")
+
+    issues = result.get("issues", []) or []
+    if issues:
+        st.write("Vấn đề phát hiện:")
+        for issue in issues[:5]:
+            severity = issue.get("severity", "unknown")
+            desc = issue.get("description", issue.get("message", ""))
+            emoji = SEVERITY_COLORS.get(severity, "⚪")
+            st.write(f"- {emoji} [{severity.upper()}] {desc}")
+
+
+def _infer_active_step(state_data: dict) -> int:
+    """Infer current active step for UI focus.
+
+    Returns:
+        1|2|3 for active processing step, 0 when completed.
+    """
+    if state_data.get("final_result"):
+        return 0
+
+    if state_data.get("pending_human_review"):
+        review = state_data.get("human_review_result") or {}
+        stage = review.get("stage")
+        if stage == "quality" or state_data.get("agent_2_result"):
+            return 2
+        return 1
+
+    if state_data.get("paused"):
+        pause_at = state_data.get("pause_at")
+        if pause_at == "quality_check":
+            return 2
+        if pause_at == "final_decision":
+            return 3
+
+    if not state_data.get("agent_1_result"):
+        return 1
+    if not state_data.get("agent_2_result"):
+        return 2
+    return 3
+
+
+def render_step_flow(
+    state_data: dict,
+    on_continue: Callable,
+    on_resume: Callable,
+) -> None:
+    """Render step-by-step workflow UI with action in active step."""
+    st.subheader("🧭 Luồng xử Lý Theo Từng Step")
+
+    active_step = _infer_active_step(state_data)
+    step_defs = [
+        (1, "Step 1: Completeness", state_data.get("agent_1_result")),
+        (2, "Step 2: Quality", state_data.get("agent_2_result")),
+        (3, "Step 3: Final Decision", state_data.get("final_result")),
+    ]
+
+    for idx, title, result in step_defs:
+        is_done = result is not None
+        is_active = active_step == idx
+        prefix = "✅" if is_done else ("🔵" if is_active else "⭕")
+
+        with st.expander(f"{prefix} {title}", expanded=is_active or is_done):
+            _render_result_summary(result)
+
+            if is_active and state_data.get("pending_human_review"):
+                st.divider()
+                render_hitl_panel(state_data, on_resume=on_resume)
+
+            if is_active and state_data.get("paused") and not state_data.get("pending_human_review"):
+                st.divider()
+                render_stage_pause_panel(state_data, on_continue=on_continue)
+
+    if state_data.get("final_result"):
+        st.divider()
+        st.subheader("📝 Kết Quả Phê Duyệt Cuối Cùng")
+        res = state_data["final_result"]
+        
+        decision = res.get("decision", "").upper()
+        if decision == "APPROVE" or decision == "ACCEPT":
+            st.success(f"✅ QUYẾT ĐỊNH: CHẤP NHẬN BỒI THƯỜNG")
+            amount = res.get("approved_amount")
+            if amount is not None:
+                st.write(f"**Số tiền duyệt chi:** {amount:,} VNĐ")
+        else:
+            st.error(f"❌ QUYẾT ĐỊNH: TỪ CHỐI BỒI THƯỜNG")
+            reason = res.get("rejection_reason")
+            if reason:
+                st.write(f"**Lý do từ chối:** {reason}")
+                
+        st.info(f"**Thông điệp từ hệ thống:** {res.get('message', '')}")
+        
+        issues = res.get("issues_summary", [])
+        if issues:
+            st.write("**Tổng hợp vấn đề:**")
+            for issue in issues:
+                cat = issue.get("category", "")
+                count = issue.get("count", 0)
+                sev = issue.get("severity", "")
+                st.write(f"- {cat.title()}: {count} lỗi (Mức độ: {sev.title()})")
 
 
 def render_raw_state(state_data: dict) -> None:

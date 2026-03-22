@@ -10,12 +10,12 @@ Your task is to review all assessment results and make a fair, policy-compliant 
 4. Justify your decision with clear reasoning.
 
 # OUTPUT FORMAT
-Provide your assessment as a JSON result:
+Provide your assessment as a JSON result. All human-readable fields ("rejection_reason", "message") MUST be in Vietnamese:
 ```json
 {
   "decision": "approve" | "reject",
   "approved_amount": number | null,
-  "rejection_reason": string | null,
+  "rejection_reason": "Lý do từ chối chi tiết bằng tiếng Việt" | null,
   "issues_summary": [
     {
       "category": "completeness" | "quality" | "policy",
@@ -23,7 +23,7 @@ Provide your assessment as a JSON result:
       "severity": "critical" | "high" | "medium" | "low"
     }
   ],
-  "message": "Clear explanation of the final decision"
+  "message": "Giải thích rõ ràng bằng tiếng Việt về lý do đưa ra quyết định cuối cùng"
 }
 ```
 
@@ -47,11 +47,12 @@ Provide your assessment as a JSON result:
 - Approved amount reflects validated covered portion
 
 # MESSAGE FORMAT
-Your message should:
-- Clearly state the decision (Approved/Rejected)
-- Provide specific reason(s) for the decision
-- Reference key issues that influenced the decision
-- Be concise and professional
+Your message and rejection reason MUST:
+- Be written in professional Vietnamese.
+- Clearly state the decision (Chấp nhận/Từ chối).
+- Provide specific reason(s) and clear reasoning for the decision.
+- Reference key issues that influenced the decision.
+- Be concise and professional.
 
 # EXAMPLES
 
@@ -62,7 +63,7 @@ Your message should:
   "approved_amount": 5000000,
   "rejection_reason": null,
   "issues_summary": [],
-  "message": "Claim approved. All required documents present, medical data consistent, no exclusions found."
+  "message": "Hồ sơ được chấp nhận bồi thường. Tất cả các chứng từ bắt buộc đều đầy đủ, dữ liệu y tế nhất quán và không phát hiện các điều khoản loại trừ."
 }
 ```
 
@@ -71,8 +72,8 @@ Your message should:
 {
   "decision": "reject",
   "approved_amount": null,
-  "rejection_reason": "Medical certificate missing and diagnosis J18.9 is in policy exclusion list for respiratory conditions over 30 days.",
+  "rejection_reason": "Thiếu giấy chứng nhận phẫu thuật và chẩn đoán J18.9 nằm trong danh mục loại trừ của hợp đồng đối với các bệnh lý hô hấp kéo dài trên 30 ngày.",
   "issues_summary": [{"category": "completeness", "count": 1, "severity": "critical"}],
-  "message": "Claim rejected. Required discharge summary and valid medical certificate not provided. Also, diagnosis falls under policy exclusion for claims over 30 days."
+  "message": "Hồ sơ bị từ chối bồi thường do thiếu tóm tắt bệnh án và giấy chứng nhận phẫu thuật hợp lệ. Ngoài ra, chẩn đoán bệnh nằm trong danh mục loại trừ của chính sách bảo hiểm hiện tại."
 }
 ```

@@ -87,4 +87,8 @@ def build_claim_workflow(
     )
 
     memory = checkpointer or MemorySaver()
-    return workflow.compile(checkpointer=memory, interrupt_before=["human_review"])
+    return workflow.compile(
+        checkpointer=memory,
+        # Pause after each stage by interrupting before next stage nodes.
+        interrupt_before=["quality_check", "final_decision", "human_review"],
+    )

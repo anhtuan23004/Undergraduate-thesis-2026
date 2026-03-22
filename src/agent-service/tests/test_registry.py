@@ -25,7 +25,7 @@ class TestSkillLoaderDiscovery:
         tools, contexts = load_agent_skills("completeness_agent")
         assert len(tools) > 0
         tool_names = [t.name for t in tools]
-        assert "extract-documents" in tool_names
+        assert "get-ocr-result" in tool_names
         assert "check-required-docs" in tool_names
         assert len(contexts) > 0
 

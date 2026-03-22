@@ -1,7 +1,20 @@
 """Agent Factory for creating skill-based LangGraph agents."""
 
 import structlog
+import json
 from typing import Any, Callable
+import asyncio
+from mongodb_client import get_collection
+from datetime import datetime, timezone
+
+from agents.helpers import (
+    create_agent_error_state,
+    create_history_entry,
+    extract_agent_content,
+    load_system_prompt,
+    parse_json_response,
+)
+from tools.skill_loader import load_agent_skills
 
 logger = structlog.get_logger()
 
@@ -20,15 +33,6 @@ class AgentFactory:
         agent_name: str = "Agent",
     ) -> Callable:
         """Create a stateful agent node using skill-based tool loading."""
-        from agents.helpers import (
-            create_agent_error_state,
-            create_history_entry,
-            extract_agent_content,
-            load_system_prompt,
-            parse_json_response,
-        )
-        from tools.skill_loader import load_agent_skills
-
         tools, skill_contexts = load_agent_skills(agent_skill_name)
         system_prompt = load_system_prompt(instructions_name, skill_contexts)
 
@@ -41,6 +45,7 @@ class AgentFactory:
                     prompt=prompt,
                     tools=tools,
                     system_prompt=system_prompt,
+                    trace_name=f"{agent_name}_{state.get('claim_id', 'unknown')}",
                 )
 
                 if "error" in raw_result:
@@ -55,6 +60,22 @@ class AgentFactory:
                     result=parsed_result,
                     step=state.get("current_step", "unknown"),
                 )
+
+                try:                   
+                    def _save_audit():
+                        audit_col = get_collection("audit_logs")
+                        audit_col.insert_one({
+                            "run_id": state.get("run_id"),
+                            "claim_id": state.get("claim_id"),
+                            "step_name": agent_skill_name,
+                            "agent_name": agent_name,
+                            "result_json": parsed_result,
+                            "timestamp": datetime.now(timezone.utc)
+                        })
+                    
+                    await asyncio.to_thread(_save_audit)
+                except Exception as db_e:
+                    logger.warning(f"Failed to save audit log: {db_e}")
 
                 return {
                     output_state_key: parsed_result,
@@ -83,18 +104,18 @@ class CompletenessAgentFactory(AgentFactory):
     """Factory for creating the Completeness Check Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        import json
-
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
         input_file = state.get("input_file", "N/A")
+        extracted = json.dumps(state.get("extracted_documents", {}), indent=2)
         history = json.dumps(state.get("history", [])[-2:], indent=2)
 
         return (
-            f"Audit the completeness of insurance claim {claim_id}.\n"
-            f"Policy: {policy_number}\n"
-            f"Input document: {input_file}\n\n"
-            f"Current history:\n{history}\n"
+            f"Kiểm toán tính đầy đủ của hồ sơ bảo hiểm {claim_id}.\n"
+            f"Số hợp đồng: {policy_number}\n"
+            f"Tài liệu đầu vào: {input_file}\n"
+            f"Dữ liệu đã trích xuất: {extracted}\n\n"
+            f"Lịch sử xử lý hiện tại:\n{history}\n"
         )
 
     def create_completeness_agent(self) -> Callable:
@@ -110,18 +131,16 @@ class QualityAgentFactory(AgentFactory):
     """Factory for creating the Medical Quality Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        import json
-
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
         extracted = json.dumps(state.get("extracted_documents", {}), indent=2)
         history = json.dumps(state.get("history", [])[-2:], indent=2)
 
         return (
-            f"Verify the medical quality for claim {claim_id}.\n"
-            f"Policy: {policy_number}\n"
-            f"Extracted data: {extracted}\n\n"
-            f"Current history:\n{history}\n"
+            f"Xác minh chất lượng y tế cho hồ sơ {claim_id}.\n"
+            f"Số hợp đồng: {policy_number}\n"
+            f"Dữ liệu đã trích xuất: {extracted}\n\n"
+            f"Lịch sử xử lý hiện tại:\n{history}\n"
         )
 
     def create_quality_agent(self) -> Callable:
@@ -137,8 +156,6 @@ class DecisionAgentFactory(AgentFactory):
     """Factory for creating the Final Decision Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        import json
-
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
         completeness = json.dumps(state.get("agent_1_result", {}), indent=2)
@@ -146,11 +163,11 @@ class DecisionAgentFactory(AgentFactory):
         human_review = json.dumps(state.get("human_review_result", {}), indent=2)
 
         return (
-            f"Make a final decision for claim {claim_id}.\n"
-            f"Policy: {policy_number}\n\n"
-            f"Completeness: {completeness}\n"
-            f"Quality: {quality}\n"
-            f"Human Review: {human_review}\n"
+            f"Đưa ra quyết định cuối cùng cho hồ sơ {claim_id}.\n"
+            f"Số hợp đồng: {policy_number}\n\n"
+            f"Kết quả kiểm tra tính đầy đủ: {completeness}\n"
+            f"Kết quả kiểm tra chất lượng y tế: {quality}\n"
+            f"Kết quả đánh giá từ con người: {human_review}\n"
         )
 
     def create_decision_agent(self) -> Callable:
