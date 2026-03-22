@@ -19,9 +19,9 @@ API client for communicating with the agent service backend.
 
 | Function | Description |
 |---------|-------------|
-| `start_workflow()` | POST to `/api/v2/workflows/run` |
-| `get_workflow_status()` | GET from `/api/v2/workflows/status/{run_id}` |
-| `resume_workflow()` | POST to `/api/v2/workflows/resume/{run_id}` |
+| `start_workflow()` | POST to `/api/v1/workflows/run` |
+| `get_workflow_status()` | GET from `/api/v1/workflows/status/{run_id}` |
+| `resume_workflow()` | POST to `/api/v1/workflows/resume/{run_id}` |
 
 ### components.py
 Reusable Streamlit UI components.
@@ -88,9 +88,9 @@ streamlit run app.py --server.port 8501
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v2/workflows/run` | POST | Start new workflow |
-| `/api/v2/workflows/resume/{run_id}` | POST | Resume after HITL |
-| `/api/v2/workflows/status/{run_id}` | GET | Get workflow status |
+| `/api/v1/workflows/run` | POST | Start new workflow |
+| `/api/v1/workflows/resume/{run_id}` | POST | Resume after HITL |
+| `/api/v1/workflows/status/{run_id}` | GET | Get workflow status |
 
 ## Session State
 

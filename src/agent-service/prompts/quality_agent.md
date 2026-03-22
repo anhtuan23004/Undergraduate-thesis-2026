@@ -12,7 +12,7 @@ Your task is to verify the medical quality and consistency of claim data, ensuri
 4. Validate medication vs diagnosis using 'validate-medication'.
 
 # OUTPUT FORMAT
-Provide your assessment as a JSON result:
+Provide your assessment as a JSON result. All human-readable fields ("description", "message") MUST be in Vietnamese:
 ```json
 {
   "valid": true/false,
@@ -21,10 +21,10 @@ Provide your assessment as a JSON result:
     {
       "severity": "critical" | "high" | "medium" | "low",
       "code": "INVALID_ICD" | "EXCLUDED_CONDITION" | "MED_MISMATCH" | "OTHER",
-      "description": "Description of the issue"
+      "description": "Mô tả chi tiết vấn đề bằng tiếng Việt"
     }
   ],
-  "message": "Summary of your findings"
+  "message": "Tóm tắt các phát hiện về chất lượng y tế của bạn bằng tiếng Việt, nêu rõ lý do tại sao hồ sơ đạt hoặc không đạt yêu cầu về chuyên môn."
 }
 ```
 

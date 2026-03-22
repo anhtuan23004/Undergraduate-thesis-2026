@@ -14,3 +14,4 @@ skill-based-design.md
 .pytest_cache
 .conda
 data/my_database.gz
+src/agent-service/uploads/*

@@ -1,35 +1,49 @@
 """Workflow API routes using LangGraph workflow with MongoDB persistence."""
 
 import asyncio
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
+from pathlib import Path
+import mimetypes
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
+import requests
 
 from config import settings
 from graphs import build_claim_workflow
 from graphs.state import GraphState
+from mongodb_client import get_collection
 
-router = APIRouter(prefix="/api/v2", tags=["workflows"])
+from langgraph.checkpoint.mongodb import MongoDBSaver
+from pymongo import MongoClient
 
-PROCESS_TIMEOUT = 300
+router = APIRouter(prefix="/api/v1", tags=["workflows"])
 
 _compiled_graph = None
 _mongo_checkpointer = None
 
 
 async def _get_mongo_checkpointer() -> Any:
-    """Get or create MongoDB checkpointer."""
+    """Get or create MongoDB checkpointer using async driver.
+
+    Returns:
+        Any: The async MongoDB checkpointer for LangGraph.
+    """
     global _mongo_checkpointer
     if _mongo_checkpointer is None:
-        from langgraph.checkpoint.mongodb import AsyncMongoDBSaver
+        from langgraph.checkpoint.mongodb.aio import AsyncMongoDBSaver
         from motor.motor_asyncio import AsyncIOMotorClient
 
-        client = AsyncIOMotorClient(settings.MONGODB_URL)
-        _mongo_checkpointer = AsyncMongoDBSaver(client[settings.MONGODB_DB])
-        await _mongo_checkpointer.setup()
+        mongo_url = settings.MONGODB_URL
+        if "directConnection" not in mongo_url:
+            separator = "&" if "?" in mongo_url else "?"
+            mongo_url += f"{separator}directConnection=true"
+
+        client = AsyncIOMotorClient(mongo_url)
+        _mongo_checkpointer = AsyncMongoDBSaver(client, db_name=settings.MONGODB_DB)
     return _mongo_checkpointer
 
 
@@ -53,7 +67,6 @@ class ClaimRequest(BaseModel):
     claim_id: str = Field(..., description="Claim identifier")
     policy_number: str = Field(..., description="Policy number")
     input_file: str = Field(..., description="Path to input document")
-    extracted_documents: dict = Field(default={}, description="Pre-extracted OCR data")
 
 
 class HumanReviewRequest(BaseModel):
@@ -66,18 +79,165 @@ class HumanReviewRequest(BaseModel):
     )
 
 
+class ContinueRequest(BaseModel):
+    """Request model for continuing a paused workflow stage."""
+
+    note: Optional[str] = Field(default=None, description="Optional note for audit trail")
+
+
+class UploadResponse(BaseModel):
+    """Response model for uploaded documents."""
+
+    filename: str
+    file_path: str
+    size_bytes: int
+
+
+def _extract_pause_state(snapshot: Any) -> tuple[bool, bool, Optional[str]]:
+    """Compute pause flags from graph snapshot.
+
+    Returns:
+        pending_human_review, paused, pause_at
+    """
+    next_nodes = list(snapshot.next or [])
+    if not next_nodes:
+        return False, False, None
+
+    if "human_review" in next_nodes:
+        return True, True, "human_review"
+
+    return False, True, next_nodes[0]
+
+
+def _run_ocr_document(file_path: str) -> dict:
+    """Run OCR service document extraction for a file path.
+
+    Args:
+        file_path: Absolute path to the document file.
+
+    Returns:
+        dict: The OCR extraction result.
+
+    Raises:
+        HTTPException: If file is not found or OCR service fails.
+    """
+    endpoint = f"{settings.OCR_SERVICE_URL}/api/v1/ocr/document"
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=400, detail=f"Input file not found: {file_path}")
+
+    mime_type, _ = mimetypes.guess_type(file_path)
+    mime_type = mime_type or "application/octet-stream"
+
+    with open(file_path, "rb") as f:
+        files = {"file": (os.path.basename(file_path), f, mime_type)}
+        response = requests.post(endpoint, files=files, timeout=settings.OCR_TIMEOUT)
+        response.raise_for_status()
+        result = response.json()
+
+    if isinstance(result, dict):
+        return result
+    return {"data": result}
+
+
+def _save_ocr_result(
+    run_id: str,
+    claim_id: str,
+    policy_number: str,
+    input_file: str,
+    ocr_result: dict,
+) -> None:
+    """Persist OCR result for reuse by tools and audits."""
+    collection = get_collection("documents")
+    collection.insert_one(
+        {
+            "run_id": run_id,
+            "claim_id": claim_id,
+            "policy_number": policy_number,
+            "input_file": input_file,
+            "ocr_result": ocr_result,
+            "created_at": datetime.now(timezone.utc),
+        }
+    )
+
+
+@router.post("/workflows/upload", response_model=UploadResponse)
+async def upload_workflow_document(file: UploadFile = File(...)) -> UploadResponse:
+    """Upload a claim document and return server-side path for workflow usage.
+
+    Args:
+        file: The uploaded file from the client.
+
+    Returns:
+        UploadResponse: Details of the uploaded file including its saved path.
+
+    Raises:
+        HTTPException: If the file fails to save.
+    """
+    try:
+        upload_dir = Path(settings.UPLOADS_DIR).expanduser().resolve()
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        safe_name = Path(file.filename or "claim_document").name
+        unique_name = f"{uuid.uuid4().hex}_{safe_name}"
+        output_path = upload_dir / unique_name
+
+        content = await file.read()
+        
+        # Enforce file size limit
+        max_size = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=413, 
+                detail=f"File too large. Max size is {settings.MAX_UPLOAD_SIZE_MB}MB"
+            )
+
+        output_path.write_bytes(content)
+
+        return UploadResponse(
+            filename=safe_name,
+            file_path=str(output_path),
+            size_bytes=len(content),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
+
+
 @router.post("/workflows/run")
 async def run_workflow(request: ClaimRequest) -> dict:
     """Start a new claim processing workflow."""
     graph = await _get_graph()
     run_id = str(uuid.uuid4())
 
+    try:
+        ocr_result = await asyncio.to_thread(_run_ocr_document, request.input_file)
+        
+        await asyncio.to_thread(
+            _save_ocr_result,
+            run_id,
+            request.claim_id,
+            request.policy_number,
+            request.input_file,
+            ocr_result,
+        )
+    except requests.HTTPError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"OCR service returned error: {e.response.status_code if e.response else str(e)}",
+        )
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Failed to connect OCR service: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to prepare OCR data: {str(e)}")
+
     initial_state: GraphState = {
         "run_id": run_id,
         "claim_id": request.claim_id,
         "policy_number": request.policy_number,
         "input_file": request.input_file,
-        "extracted_documents": request.extracted_documents,
+        "extracted_documents": ocr_result,
         "agent_1_result": None,
         "agent_2_result": None,
         "human_review_result": None,
@@ -92,18 +252,17 @@ async def run_workflow(request: ClaimRequest) -> dict:
     }
 
     try:
-        async with asyncio.timeout(PROCESS_TIMEOUT):
+        async with asyncio.timeout(settings.PROCESS_TIMEOUT):
             config = {"configurable": {"thread_id": run_id}}
             result = await graph.ainvoke(initial_state, config=config)
 
-            # Check if workflow is interrupted and pending human review
             snapshot = await graph.aget_state(config)
-            is_pending = bool(snapshot.next and "human_review" in snapshot.next)
+            is_pending, is_paused, pause_at = _extract_pause_state(snapshot)
 
     except asyncio.TimeoutError:
         raise HTTPException(
             status_code=504,
-            detail=f"Processing timed out after {PROCESS_TIMEOUT}s",
+            detail=f"Processing timed out after {settings.PROCESS_TIMEOUT}s",
         )
 
     return {
@@ -114,6 +273,8 @@ async def run_workflow(request: ClaimRequest) -> dict:
         "agent_2_result": result.get("agent_2_result"),
         "current_step": result.get("current_step"),
         "pending_human_review": is_pending,
+        "paused": is_paused,
+        "pause_at": pause_at,
         "history": result.get("history", []),
         "error": result.get("error"),
     }
@@ -121,11 +282,22 @@ async def run_workflow(request: ClaimRequest) -> dict:
 
 @router.post("/workflows/resume/{run_id}")
 async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
-    """Resume a workflow after human review decision."""
+    """Resume a workflow after human review decision.
+
+    Args:
+        run_id: The unique identifier of the workflow.
+        request: The human review decision payload.
+
+    Returns:
+        dict: The updated state of the workflow graph.
+
+    Raises:
+        HTTPException: If the workflow run is not found or times out.
+    """
     graph = await _get_graph()
     config = {"configurable": {"thread_id": run_id}}
 
-    async with asyncio.timeout(PROCESS_TIMEOUT):
+    async with asyncio.timeout(settings.PROCESS_TIMEOUT):
         current_state = await graph.aget_state(config)
         if not current_state or not current_state.values:
             raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
@@ -162,16 +334,80 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
         await graph.aupdate_state(config, state_update, as_node="human_review")
         result = await graph.ainvoke(None, config=config)
 
-        # Check if it interrupted again (e.g. loops back into another review)
         snapshot = await graph.aget_state(config)
-        is_pending = bool(snapshot.next and "human_review" in snapshot.next)
+        is_pending, is_paused, pause_at = _extract_pause_state(snapshot)
 
     return {
         "run_id": run_id,
         "claim_id": result.get("claim_id"),
         "final_result": result.get("final_result"),
+        "agent_1_result": result.get("agent_1_result"),
+        "agent_2_result": result.get("agent_2_result"),
         "current_step": result.get("current_step"),
         "pending_human_review": is_pending,
+        "paused": is_paused,
+        "pause_at": pause_at,
+        "history": result.get("history", []),
+        "error": result.get("error"),
+    }
+
+
+@router.post("/workflows/continue/{run_id}")
+async def continue_workflow(run_id: str, request: ContinueRequest | None = None) -> dict:
+    """Continue a workflow paused at a non-human stage.
+
+    Args:
+        run_id: The unique identifier of the workflow.
+        request: Optional continuation note.
+
+    Returns:
+        dict: The updated state of the workflow graph.
+
+    Raises:
+        HTTPException: If workflow run not found, timed out, or requires human review.
+    """
+    graph = await _get_graph()
+    config = {"configurable": {"thread_id": run_id}}
+
+    async with asyncio.timeout(settings.PROCESS_TIMEOUT):
+        current_state = await graph.aget_state(config)
+        if not current_state or not current_state.values:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        if current_state.next and "human_review" in current_state.next:
+            raise HTTPException(
+                status_code=400,
+                detail="Workflow is waiting for human review. Use /workflows/resume/{run_id}.",
+            )
+
+        # Optional audit marker for manual continuation in UI.
+        if request and request.note:
+            await graph.aupdate_state(
+                config,
+                {
+                    "history": [
+                        {
+                            "step": "manual_continue",
+                            "note": request.note,
+                        }
+                    ]
+                },
+            )
+
+        result = await graph.ainvoke(None, config=config)
+        snapshot = await graph.aget_state(config)
+        is_pending, is_paused, pause_at = _extract_pause_state(snapshot)
+
+    return {
+        "run_id": run_id,
+        "claim_id": result.get("claim_id"),
+        "final_result": result.get("final_result"),
+        "agent_1_result": result.get("agent_1_result"),
+        "agent_2_result": result.get("agent_2_result"),
+        "current_step": result.get("current_step"),
+        "pending_human_review": is_pending,
+        "paused": is_paused,
+        "pause_at": pause_at,
         "history": result.get("history", []),
         "error": result.get("error"),
     }
@@ -197,13 +433,15 @@ async def get_workflow_status(run_id: str) -> dict:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
     values = state.values
-    is_pending = bool(state.next and "human_review" in state.next)
+    is_pending, is_paused, pause_at = _extract_pause_state(state)
 
     return {
         "run_id": run_id,
         "claim_id": values.get("claim_id"),
         "current_step": values.get("current_step"),
         "pending_human_review": is_pending,
+        "paused": is_paused,
+        "pause_at": pause_at,
         "agent_1_result": values.get("agent_1_result"),
         "agent_2_result": values.get("agent_2_result"),
         "human_review_result": values.get("human_review_result"),
@@ -215,5 +453,9 @@ async def get_workflow_status(run_id: str) -> dict:
 
 @router.get("/health")
 async def health_check() -> dict:
-    """Simple health check endpoint."""
-    return {"status": "healthy", "version": "langgraph-mongodb"}
+    """Simple health check endpoint.
+
+    Returns:
+        dict: API health status and application version.
+    """
+    return {"status": "healthy", "version": settings.APP_VERSION}
