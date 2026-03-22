@@ -89,7 +89,7 @@ def _find_tool_in_module(module: types.ModuleType) -> Optional[LangChainBaseTool
     return None
 
 
-def _import_tool_from_module(skill_dir: Path, tool_name: str) -> Optional[LangChainBaseTool]:
+def _import_tool_from_module(skill_dir: Path) -> Optional[LangChainBaseTool]:
     """Import a tool function from a skill's scripts/tool.py."""
     tool_file = skill_dir / "scripts" / "tool.py"
     if not tool_file.exists():
@@ -135,7 +135,7 @@ def _load_skills_recursive(
         if not skill_dir.is_dir():
             continue
 
-        tool = _import_tool_from_module(skill_dir, skill_dir.name)
+        tool = _import_tool_from_module(skill_dir)
         if tool:
             tools.append(tool)
             content = _read_skill_content(skill_dir)

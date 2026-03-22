@@ -20,24 +20,30 @@ from mongodb_client import get_collection
 from langgraph.checkpoint.mongodb import MongoDBSaver
 from pymongo import MongoClient
 
-router = APIRouter(prefix="/api/v2", tags=["workflows"])
+router = APIRouter(prefix="/api/v1", tags=["workflows"])
 
 _compiled_graph = None
 _mongo_checkpointer = None
 
 
 async def _get_mongo_checkpointer() -> Any:
-    """Get or create MongoDB checkpointer."""
+    """Get or create MongoDB checkpointer using async driver.
+
+    Returns:
+        Any: The async MongoDB checkpointer for LangGraph.
+    """
     global _mongo_checkpointer
     if _mongo_checkpointer is None:
+        from langgraph.checkpoint.mongodb.aio import AsyncMongoDBSaver
+        from motor.motor_asyncio import AsyncIOMotorClient
+
         mongo_url = settings.MONGODB_URL
         if "directConnection" not in mongo_url:
-            if "?" in mongo_url:
-                mongo_url += "&directConnection=true"
-            else:
-                mongo_url += "?directConnection=true"
-        client = MongoClient(mongo_url)
-        _mongo_checkpointer = MongoDBSaver(client, db_name=settings.MONGODB_DB)
+            separator = "&" if "?" in mongo_url else "?"
+            mongo_url += f"{separator}directConnection=true"
+
+        client = AsyncIOMotorClient(mongo_url)
+        _mongo_checkpointer = AsyncMongoDBSaver(client, db_name=settings.MONGODB_DB)
     return _mongo_checkpointer
 
 
@@ -177,6 +183,15 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
         output_path = upload_dir / unique_name
 
         content = await file.read()
+        
+        # Enforce file size limit
+        max_size = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=413, 
+                detail=f"File too large. Max size is {settings.MAX_UPLOAD_SIZE_MB}MB"
+            )
+
         output_path.write_bytes(content)
 
         return UploadResponse(
@@ -196,6 +211,7 @@ async def run_workflow(request: ClaimRequest) -> dict:
 
     try:
         ocr_result = await asyncio.to_thread(_run_ocr_document, request.input_file)
+        
         await asyncio.to_thread(
             _save_ocr_result,
             run_id,
@@ -325,6 +341,8 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
         "run_id": run_id,
         "claim_id": result.get("claim_id"),
         "final_result": result.get("final_result"),
+        "agent_1_result": result.get("agent_1_result"),
+        "agent_2_result": result.get("agent_2_result"),
         "current_step": result.get("current_step"),
         "pending_human_review": is_pending,
         "paused": is_paused,

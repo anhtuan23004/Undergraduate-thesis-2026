@@ -75,7 +75,7 @@ class APIClient:
             "policy_number": policy_number,
             "input_file": input_file,
         }
-        return self._request("POST", "/api/v2/workflows/run", data=data, timeout=300)
+        return self._request("POST", "/api/v1/workflows/run", data=data, timeout=300)
 
     def get_workflow_status(self, run_id: str) -> dict:
         """Get current workflow status.
@@ -86,7 +86,7 @@ class APIClient:
         Returns:
             Current workflow state from MongoDB.
         """
-        return self._request("GET", f"/api/v2/workflows/status/{run_id}")
+        return self._request("GET", f"/api/v1/workflows/status/{run_id}")
 
     def resume_workflow(
         self,
@@ -114,7 +114,7 @@ class APIClient:
             data["edited_result"] = edited_result
 
         return self._request(
-            "POST", f"/api/v2/workflows/resume/{run_id}", data=data, timeout=300
+            "POST", f"/api/v1/workflows/resume/{run_id}", data=data, timeout=300
         )
 
     def continue_workflow(
@@ -133,12 +133,12 @@ class APIClient:
         """
         data = {"note": note} if note else {}
         return self._request(
-            "POST", f"/api/v2/workflows/continue/{run_id}", data=data, timeout=300
+            "POST", f"/api/v1/workflows/continue/{run_id}", data=data, timeout=300
         )
 
     def upload_document(self, file_name: str, file_bytes: bytes, mime_type: str) -> dict:
         """Upload claim document to agent-service and get server-side file path."""
-        url = f"{self.base_url}/api/v2/workflows/upload"
+        url = f"{self.base_url}/api/v1/workflows/upload"
         files = {"file": (file_name, file_bytes, mime_type or "application/octet-stream")}
 
         try:
@@ -160,7 +160,7 @@ class APIClient:
         Returns:
             Health status response.
         """
-        return self._request("GET", "/api/v2/health")
+        return self._request("GET", "/api/v1/health")
 
 
 def create_client(base_url: Optional[str] = None) -> APIClient:

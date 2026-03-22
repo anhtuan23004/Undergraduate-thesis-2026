@@ -14,6 +14,7 @@ from graphs.routing import (
     route_after_human_review,
 )
 from agents import CompletenessAgentFactory, QualityAgentFactory, DecisionAgentFactory
+from config import settings
 
 logger = structlog.get_logger()
 
@@ -87,8 +88,12 @@ def build_claim_workflow(
     )
 
     memory = checkpointer or MemorySaver()
+    
+    interrupts = ["human_review"]
+    if settings.PAUSE_AT_EACH_STAGE:
+        interrupts.extend(["quality_check", "final_decision"])
+
     return workflow.compile(
         checkpointer=memory,
-        # Pause after each stage by interrupting before next stage nodes.
-        interrupt_before=["quality_check", "final_decision", "human_review"],
+        interrupt_before=interrupts,
     )

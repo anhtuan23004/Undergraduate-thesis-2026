@@ -8,9 +8,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_core.callbacks import BaseCallbackHandler
 
-from langfuse import Langfuse
-from langfuse.langchain import CallbackHandler
-
 from config import settings
 
 logger = structlog.get_logger()
@@ -33,14 +30,20 @@ class LangfuseCallbackHandler(BaseCallbackHandler):
             if settings.LANGFUSE_HOST:
                 os.environ.setdefault("LANGFUSE_HOST", settings.LANGFUSE_HOST)
 
-            Langfuse(
-                public_key=settings.LANGFUSE_PUBLIC_KEY,
-                secret_key=settings.LANGFUSE_SECRET_KEY,
-                host=settings.LANGFUSE_HOST,
-            )
+            try:
+                from langfuse import Langfuse
+                from langfuse.langchain import CallbackHandler
+                
+                Langfuse(
+                    public_key=settings.LANGFUSE_PUBLIC_KEY,
+                    secret_key=settings.LANGFUSE_SECRET_KEY,
+                    host=settings.LANGFUSE_HOST,
+                )
 
-            self._handler = CallbackHandler(public_key=settings.LANGFUSE_PUBLIC_KEY or None)
-            logger.info("Langfuse callback handler initialized", trace_name=self.trace_name)
+                self._handler = CallbackHandler(public_key=settings.LANGFUSE_PUBLIC_KEY or None)
+                logger.info("Langfuse callback handler initialized", trace_name=self.trace_name)
+            except ImportError:
+                logger.warning("Langfuse is enabled but package is not installed.")
 
     @property
     def handler(self) -> Optional[BaseCallbackHandler]:

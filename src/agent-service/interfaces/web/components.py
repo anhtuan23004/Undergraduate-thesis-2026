@@ -111,7 +111,7 @@ def render_sidebar(
                 selected_run_id = st.radio(
                     "Chọn phiên",
                     options=run_ids,
-                    index=default_index,
+                    index=default_index if default_index is not None else 0,
                     format_func=_format_run_label,
                     key="run_history_selection",
                 )
@@ -137,7 +137,7 @@ def render_claim_input_form(on_start: Callable) -> None:
 
     if uploaded_file is not None:
         st.caption(
-            f"File da chon: {uploaded_file.name} | "
+            f"File đã chọn: {uploaded_file.name} | "
             f"{uploaded_file.type or 'application/octet-stream'} | "
             f"{uploaded_file.size} bytes"
         )

@@ -20,11 +20,14 @@ class Settings(BaseSettings):
 
     MONGODB_URL: str = "mongodb://localhost:27017"
     MONGODB_DB: str = "claims"
+    MEDICINE_DB: str = "document_qa"
     OCR_SERVICE_URL: str = "http://localhost:8091"
 
     PROCESS_TIMEOUT: int = 300
     OCR_TIMEOUT: int = 120
-    UPLOADS_DIR: str = "/uploads"
+    UPLOADS_DIR: str = "./uploads"
+    MAX_UPLOAD_SIZE_MB: int = 20
+    PAUSE_AT_EACH_STAGE: bool = True
 
     ALLOWED_ORIGINS: str = ""
 

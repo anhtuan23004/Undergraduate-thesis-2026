@@ -20,4 +20,4 @@ The medication repository serves as a centralized source of truth for medication
 
 ## Usage
 
-Medications are automatically loaded during service startup. Use the Agent service's `/api/v2/process` endpoint with claim documents containing medication information.
+Medications are automatically loaded during service startup. Use the Agent service's `/api/v1/process` endpoint with claim documents containing medication information.

@@ -51,9 +51,9 @@ async def root() -> dict:
         "version": settings.APP_VERSION,
         "endpoints": {
             "health": "/health",
-            "workflow_run": "/api/v2/workflows/run (POST)",
-            "workflow_resume": "/api/v2/workflows/resume/{run_id} (POST)",
-            "workflow_status": "/api/v2/workflows/status/{run_id} (GET)",
+            "workflow_run": "/api/v1/workflows/run (POST)",
+            "workflow_resume": "/api/v1/workflows/resume/{run_id} (POST)",
+            "workflow_status": "/api/v1/workflows/status/{run_id} (GET)",
         },
     }
 

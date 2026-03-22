@@ -131,7 +131,7 @@ docker-compose up agent-service
 
 ## API Endpoints
 
-### POST /api/v2/workflows/run
+### POST /api/v1/workflows/run
 
 Start a new claim processing workflow.
 
@@ -160,7 +160,7 @@ Start a new claim processing workflow.
 }
 ```
 
-### POST /api/v2/workflows/resume/{run_id}
+### POST /api/v1/workflows/resume/{run_id}
 
 Resume a workflow after human review decision.
 
@@ -181,7 +181,7 @@ For edit decisions:
 }
 ```
 
-### GET /api/v2/workflows/status/{run_id}
+### GET /api/v1/workflows/status/{run_id}
 
 Get current workflow status from MongoDB.
 
@@ -198,7 +198,7 @@ Get current workflow status from MongoDB.
 }
 ```
 
-### GET /api/v2/health
+### GET /api/v1/health
 
 Health check endpoint.
 
