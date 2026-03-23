@@ -5,7 +5,7 @@ to produce a final decision recommendation.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from langchain_core.tools import tool
 

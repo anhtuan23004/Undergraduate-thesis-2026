@@ -49,7 +49,7 @@ def build_medical_search_pipeline(raw_user_input: str):
     return [
         {"$search": {"index": "hybrid-full-text-search", "compound": main_compound}},
         {"$limit": 1},
-        {"$project": {"_id": 0, "name": 1, "usage": 1, "careful": 1}},
+        {"$project": {"_id": 0, "name": 1, "usage": 1, "careful": 1, "url": 1}},
     ]
 
 
@@ -82,9 +82,7 @@ def search_medicine(medicine_names: List[str]) -> str:
 
     results = {}
     with ThreadPoolExecutor(max_workers=min(len(medicine_names), 10)) as executor:
-        future_to_name = {
-            executor.submit(search_single_medicine, name): name for name in medicine_names
-        }
+        future_to_name = {executor.submit(search_single_medicine, name): name for name in medicine_names}
         for future in as_completed(future_to_name):
             name = future_to_name[future]
             try:

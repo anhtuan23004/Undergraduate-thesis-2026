@@ -4,7 +4,6 @@ These tests verify that the routing logic correctly handles
 various agent results and human review decisions.
 """
 
-import pytest
 
 from graphs.routing import (
     route_after_completeness,
@@ -12,6 +11,7 @@ from graphs.routing import (
     route_after_completeness_review,
     route_after_quality_review,
     route_after_final_review,
+    route_after_agent_review,
     _get_decision_from_result,
     _get_human_decision,
 )
@@ -119,18 +119,18 @@ class TestRouteAfterCompleteness:
         state = {"agent_1_result": {"valid": False, "issues": [{"severity": "high"}]}}
         assert route_after_completeness(state) == "final_decision"
 
-    def test_accept_with_edit_routes_to_human_review(self):
-        """Soft issues should route to human_review."""
+    def test_accept_with_edit_routes_to_agent_review(self):
+        """Soft issues should route to agent_review."""
         state = {"agent_1_result": {"valid": False, "issues": [{"severity": "low"}]}}
-        assert route_after_completeness(state) == "human_review"
+        assert route_after_completeness(state) == "agent_review"
 
     def test_edited_result_takes_precedence(self):
         """Edited result should override original agent result."""
         state = {
             "agent_1_result": {"valid": True},
-            "edited_agent_1_result": {"decision": "edit"},
+            "edited_agent_1_result": {"decision": "accept_with_edit"},
         }
-        assert route_after_completeness(state) == "human_review"
+        assert route_after_completeness(state) == "agent_review"
 
 
 class TestRouteAfterQuality:
@@ -146,18 +146,51 @@ class TestRouteAfterQuality:
         state = {"agent_2_result": {"valid": False, "issues": [{"severity": "high"}]}}
         assert route_after_quality(state) == "final_decision"
 
-    def test_accept_with_edit_routes_to_human_review(self):
-        """Soft issues should route to human_review."""
+    def test_accept_with_edit_routes_to_agent_review(self):
+        """Soft issues should route to agent_review."""
         state = {"agent_2_result": {"valid": False, "issues": [{"severity": "low"}]}}
-        assert route_after_quality(state) == "human_review"
+        assert route_after_quality(state) == "agent_review"
 
     def test_edited_result_takes_precedence(self):
         """Edited result should override original agent result."""
         state = {
             "agent_2_result": {"valid": True},
-            "edited_agent_2_result": {"decision": "edit"},
+            "edited_agent_2_result": {"decision": "accept_with_edit"},
         }
-        assert route_after_quality(state) == "human_review"
+        assert route_after_quality(state) == "agent_review"
+
+
+class TestRouteAfterAgentReview:
+    """Tests for route_after_agent_review routing."""
+
+    def test_auto_reviewed_completeness_routes_to_quality(self):
+        """Auto-reviewed completeness should route to quality_check."""
+        state = {
+            "current_step": "agent_reviewed_completeness",
+            "agent_1_result": {"is_auto_reviewed": True},
+        }
+        assert route_after_agent_review(state) == "quality_check"
+
+    def test_auto_reviewed_quality_routes_to_final(self):
+        """Auto-reviewed quality should route to final_decision."""
+        state = {
+            "current_step": "agent_reviewed_quality",
+            "agent_2_result": {"is_auto_reviewed": True},
+        }
+        assert route_after_agent_review(state) == "final_decision"
+
+    def test_not_auto_reviewed_routes_to_human(self):
+        """Not auto-reviewed should route to human_review."""
+        state = {
+            "current_step": "agent_review_escalated_quality",
+            "agent_2_result": {"is_auto_reviewed": False},
+        }
+        assert route_after_agent_review(state) == "human_review"
+
+    def test_missing_result_routes_to_human(self):
+        """Missing agent result should route to human_review."""
+        state = {"current_step": "agent_review_escalated_completeness"}
+        assert route_after_agent_review(state) == "human_review"
 
 
 class TestRouteAfterCompletenessReview:
@@ -201,25 +234,50 @@ class TestRouteAfterQualityReview:
 class TestRouteAfterFinalReview:
     """Tests for route_after_final_review routing."""
 
-    def test_approve_routes_to_end(self):
-        """Approve should route to end."""
-        state = {"human_review_result": {"decision": "approve"}}
-        assert route_after_final_review(state) == "end"
+    def test_approve_routes_to_human_review(self):
+        """Approve from final agent should route to human_review for final sign-off."""
+        state = {"final_result": {"decision": "approve"}}
+        assert route_after_final_review(state) == "human_review"
 
-    def test_reject_routes_to_end(self):
-        """Reject should route to end."""
-        state = {"human_review_result": {"decision": "reject"}}
-        assert route_after_final_review(state) == "end"
+    def test_reject_routes_to_human_review(self):
+        """Reject from final agent should route to human_review for final sign-off."""
+        state = {"final_result": {"decision": "reject"}}
+        assert route_after_final_review(state) == "human_review"
 
     def test_edit_routes_to_quality(self):
-        """Edit should route to quality_check."""
-        state = {"human_review_result": {"decision": "edit"}}
+        """Edit from final agent should still route to quality_check if agent wants more info."""
+        state = {"final_result": {"decision": "edit"}}
         assert route_after_final_review(state) == "quality_check"
 
     def test_final_result_decision_takes_precedence(self):
-        """Final result decision should override human review result."""
         state = {
-            "human_review_result": {"decision": "edit"},  # Would route to quality_check
-            "final_result": {"decision": "approve"},     # Should route to end
+            "human_review_result": {"decision": "edit"},  # Previous human decision
+            "final_result": {"decision": "approve"},  # Final agent decision
         }
-        assert route_after_final_review(state) == "end"
+        # DecisionAgent result should now route to human_review for final approval
+        assert route_after_final_review(state) == "human_review"
+
+
+class TestRouteAfterFinalHumanReview:
+    """Tests for route_after_human_review specifically for final stage."""
+
+    def test_final_approve_routes_to_end(self):
+        """Human approval of the final decision should route to end."""
+        state = {"human_review_result": {"decision": "approve", "stage": "final"}}
+        from graphs.routing import route_after_human_review
+
+        assert route_after_human_review(state) == "end"
+
+    def test_final_reject_routes_to_end(self):
+        """Human rejection of the final decision should route to end."""
+        state = {"human_review_result": {"decision": "reject", "stage": "final"}}
+        from graphs.routing import route_after_human_review
+
+        assert route_after_human_review(state) == "end"
+
+    def test_final_edit_routes_to_quality(self):
+        """Human request for edit on final decision should route to quality_check."""
+        state = {"human_review_result": {"decision": "edit", "stage": "final"}}
+        from graphs.routing import route_after_human_review
+
+        assert route_after_human_review(state) == "quality_check"

@@ -136,9 +136,7 @@ class APIClient:
         if edited_result:
             data["edited_result"] = edited_result
 
-        return self._request(
-            "POST", f"/api/v1/workflows/resume/{run_id}", data=data, timeout=300
-        )
+        return self._request("POST", f"/api/v1/workflows/resume/{run_id}", data=data, timeout=300)
 
     def continue_workflow(
         self,
@@ -155,9 +153,7 @@ class APIClient:
             Updated workflow state after continue.
         """
         data = {"note": note} if note else {}
-        return self._request(
-            "POST", f"/api/v1/workflows/continue/{run_id}", data=data, timeout=300
-        )
+        return self._request("POST", f"/api/v1/workflows/continue/{run_id}", data=data, timeout=300)
 
     def upload_document(self, file_name: str, file_bytes: bytes, mime_type: str) -> dict:
         """Upload claim document to agent-service and get server-side file path."""
@@ -165,7 +161,7 @@ class APIClient:
         files = {"file": (file_name, file_bytes, mime_type or "application/octet-stream")}
 
         try:
-            # Use requests.post instead of self._session.post to avoid the session's 
+            # Use requests.post instead of self._session.post to avoid the session's
             # Content-Type: application/json overriding the multipart/form-data boundary
             response = requests.post(url, files=files, timeout=60)
             response.raise_for_status()
@@ -188,6 +184,101 @@ class APIClient:
             return {"error": "Upload timed out", "endpoint": "/api/v1/workflows/upload"}
         except requests.exceptions.RequestException as e:
             return {"error": str(e), "endpoint": "/api/v1/workflows/upload"}
+
+    def start_workflow_stream(
+        self,
+        claim_id: str,
+        policy_number: str,
+        input_file: str = "streamlit_upload",
+        file_hash: Optional[str] = None,
+    ):
+        """Start a new workflow and yield SSE events as dicts.
+
+        Args:
+            claim_id: Unique claim identifier.
+            policy_number: Insurance policy number.
+            input_file: Source file identifier.
+            file_hash: Optional SHA-256 hash of the uploaded file.
+
+        Yields:
+            Tuple of (event_type: str, payload: dict) for each SSE event.
+        """
+        url = f"{self.base_url}/api/v1/workflows/run-stream"
+        data = {
+            "claim_id": claim_id,
+            "policy_number": policy_number,
+            "input_file": input_file,
+            "file_hash": file_hash,
+        }
+        yield from self._consume_sse_stream("POST", url, json_data=data)
+
+    def stream_events(self, run_id: str):
+        """Stream SSE events for an existing workflow run.
+
+        Args:
+            run_id: The workflow run identifier.
+
+        Yields:
+            Tuple of (event_type: str, payload: dict) for each SSE event.
+        """
+        url = f"{self.base_url}/api/v1/workflows/stream/{run_id}"
+        yield from self._consume_sse_stream("GET", url)
+
+    def _consume_sse_stream(
+        self,
+        method: str,
+        url: str,
+        json_data: Optional[dict] = None,
+    ):
+        """Low-level SSE consumer that parses event/data lines.
+
+        Args:
+            method: HTTP method (GET or POST).
+            url: Full URL to stream from.
+            json_data: Optional JSON body for POST requests.
+
+        Yields:
+            Tuple of (event_type: str, payload: dict).
+        """
+        import json as _json
+
+        try:
+            if method.upper() == "POST":
+                resp = self._session.post(
+                    url, json=json_data, stream=True, timeout=600
+                )
+            else:
+                resp = self._session.get(url, stream=True, timeout=600)
+
+            resp.raise_for_status()
+
+            event_type = "message"
+            data_lines: list[str] = []
+
+            for raw_line in resp.iter_lines(decode_unicode=True):
+                if raw_line is None:
+                    continue
+
+                line = raw_line
+
+                if line.startswith("event:"):
+                    event_type = line[len("event:"):].strip()
+                elif line.startswith("data:"):
+                    data_lines.append(line[len("data:"):].strip())
+                elif line == "":
+                    # WHY: Empty line is the SSE event boundary.
+                    if data_lines:
+                        raw_data = "\n".join(data_lines)
+                        try:
+                            payload = _json.loads(raw_data)
+                        except _json.JSONDecodeError:
+                            payload = {"raw": raw_data}
+                        yield (event_type, payload)
+                    event_type = "message"
+                    data_lines = []
+
+        except requests.exceptions.RequestException as e:
+            yield ("error", {"error": str(e)})
 
     def health_check(self) -> dict:
         """Check API health status.

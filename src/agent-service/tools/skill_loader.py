@@ -6,7 +6,6 @@ functions and BaseTool subclasses, with automatic kebab-case to snake_case mappi
 """
 
 import importlib.util
-import json
 import os
 import structlog
 import sys
@@ -124,9 +123,7 @@ def _import_tool_from_module(skill_dir: Path) -> Optional[LangChainBaseTool]:
         return None
 
 
-def _load_skills_recursive(
-    search_dir: Path, tools: List[LangChainBaseTool], contexts: List[str]
-) -> None:
+def _load_skills_recursive(search_dir: Path, tools: List[LangChainBaseTool], contexts: List[str]) -> None:
     """Helper to load skills from a given directory."""
     if not (search_dir.exists() and search_dir.is_dir()):
         return

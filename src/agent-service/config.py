@@ -27,7 +27,10 @@ class Settings(BaseSettings):
     OCR_TIMEOUT: int = 120
     UPLOADS_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE_MB: int = 20
-    PAUSE_AT_EACH_STAGE: bool = True
+    PAUSE_AT_EACH_STAGE: bool = False
+
+    AGENT_REVIEW_AMOUNT_THRESHOLD: int = 5_000_000
+    AGENT_REVIEW_CONFIDENCE_THRESHOLD: float = 0.9
 
     ALLOWED_ORIGINS: str = ""
 
