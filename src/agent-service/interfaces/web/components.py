@@ -918,7 +918,7 @@ def _render_evidence_panel(evidence: dict, step_key: str = "") -> None:
             render_field(["documents_missing"])
 
         # WHY: For completeness stage, we stop here.
-        if step_key == "completeness_check":
+        if step_key in {"completeness", "completeness_check"}:
             return
 
         st.divider()
