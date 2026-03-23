@@ -18,9 +18,11 @@ pymongo>=4.6.1
 python-dotenv>=1.0.0
 structlog>=24.1.0
 requests>=2.31.0
+langfuse>=2.0.0
 
 # Streamlit UI
 streamlit>=1.28.0
+streamlit-autorefresh>=1.0.1
 
 # Testing
 pytest>=7.4.4

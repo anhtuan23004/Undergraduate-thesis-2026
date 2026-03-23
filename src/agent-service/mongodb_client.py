@@ -16,7 +16,11 @@ def get_mongodb_client() -> MongoClient:
     """Get or create MongoDB client singleton."""
     global _client
     if _client is None:
-        _client = MongoClient(settings.MONGODB_URL)
+        mongo_url = settings.MONGODB_URL
+        if "directConnection" not in mongo_url:
+            separator = "&" if "?" in mongo_url else "?"
+            mongo_url += f"{separator}directConnection=true"
+        _client = MongoClient(mongo_url)
     return _client
 
 
