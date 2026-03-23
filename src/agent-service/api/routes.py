@@ -241,15 +241,25 @@ async def run_workflow(request: ClaimRequest) -> dict:
             existing_doc = await asyncio.to_thread(
                 collection.find_one, {"file_hash": request.file_hash}
             )
-            
+
             if existing_doc:
                 logger.info("Using existing OCR result for hash", hash=request.file_hash)
                 ocr_result = existing_doc.get("ocr_result")
 
+                # Persist a new document record for this run, reusing the existing OCR result
+                await asyncio.to_thread(
+                    _save_ocr_result,
+                    run_id,
+                    request.claim_id,
+                    request.policy_number,
+                    request.input_file,
+                    ocr_result,
+                    request.file_hash,
+                )
+
         # If not found or no hash provided, run OCR service
         if not ocr_result:
             ocr_result = await asyncio.to_thread(_run_ocr_document, request.input_file)
-            
             await asyncio.to_thread(
                 _save_ocr_result,
                 run_id,
