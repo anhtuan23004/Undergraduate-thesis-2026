@@ -174,7 +174,7 @@ def render_sidebar(
     with st.sidebar:
         st.header(":material/tune: Điều khiển phiên")
 
-        if st.button(":material/add_circle: Hồ sơ mới", type="primary", width="stretch"):
+        if st.button(":material/add_circle: Hồ sơ mới", type="primary", use_container_width=True):
             on_new_claim()
 
         new_url = st.text_input("Địa chỉ API", value=api_url)
@@ -258,7 +258,7 @@ def render_claim_submission(on_start: Callable) -> None:
                     f"{uploaded_file.size} bytes"
                 )
 
-            submit = st.form_submit_button(":material/play_circle: Chạy workflow", type="primary", width="stretch")
+            submit = st.form_submit_button(":material/play_circle: Chạy workflow", type="primary", use_container_width=True)
 
         if submit:
             if not uploaded_file:
@@ -388,7 +388,7 @@ def _render_issue_details(issues: list[dict]) -> None:
     st.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
-        width="stretch",
+        use_container_width=True,
         column_config={
             "Mức độ": st.column_config.TextColumn("Mức độ", width="small"),
             "Mã/Nhóm": st.column_config.TextColumn("Mã/Nhóm", width="small"),
@@ -474,7 +474,7 @@ def render_history_log(history: list[dict]) -> None:
     st.dataframe(
         df,
         hide_index=True,
-        width="stretch",
+        use_container_width=True,
         column_config={
             "STT": st.column_config.NumberColumn("STT", width="small"),
             "Bước": st.column_config.TextColumn("Bước", width="medium"),
@@ -591,7 +591,7 @@ def render_human_review_panel(
             if st.button(
                 ":material/play_circle: Tiếp tục workflow",
                 type="primary",
-                width="stretch",
+                use_container_width=True,
                 disabled=action_locked,
             ):
                 on_resume(decision, notes, edited_result)
@@ -652,7 +652,7 @@ def render_final_dashboard(state_data: dict) -> None:
         issues_summary = final_result.get("issues_summary") or []
         if issues_summary:
             st.markdown("**Tổng hợp vấn đề**")
-            st.dataframe(pd.DataFrame(issues_summary), hide_index=True, width="stretch")
+            st.dataframe(pd.DataFrame(issues_summary), hide_index=True, use_container_width=True)
 
     st.markdown("**Audit trail toàn quy trình**")
     render_history_log(state_data.get("history", []))
@@ -662,7 +662,7 @@ def render_final_dashboard(state_data: dict) -> None:
         data=json.dumps(state_data, ensure_ascii=False, indent=2),
         file_name=f"claim_report_{state_data.get('run_id', 'unknown')}.json",
         mime="application/json",
-        width="stretch",
+        use_container_width=True,
     )
 
 

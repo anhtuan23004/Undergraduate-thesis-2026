@@ -43,10 +43,9 @@ Return the final medical quality assessment in JSON format with the following st
 
 ```json
 {
-  "status_code": 0,  // 0: Success, 1: Warning, 2: Error
-  "status_message": "success" | "warning" | "error",
-  "data" : {
-    "message": "string",
+  "status_message": "success | warning",
+  "data": {
+    "message": "string"
   }
 }
 ```

@@ -300,7 +300,6 @@ def render_main_content() -> None:
 
     if st.button(
         ":material/refresh: Làm mới trạng thái",
-        width="content",
         disabled=disable_refresh,
     ):
         refresh_status()
