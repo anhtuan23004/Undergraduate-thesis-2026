@@ -7,6 +7,7 @@ import asyncio
 from mongodb_client import get_collection
 from datetime import datetime, timezone
 
+from schemas.agent_outputs import AssessmentOutput, FinalDecisionOutput
 from agents.helpers import (
     create_agent_error_state,
     create_history_entry,
@@ -31,10 +32,15 @@ class AgentFactory:
         instructions_name: str,
         output_state_key: str,
         agent_name: str = "Agent",
+        schema_class: Any = None,
     ) -> Callable:
         """Create a stateful agent node using skill-based tool loading."""
         tools, skill_contexts = load_agent_skills(agent_skill_name)
         system_prompt = load_system_prompt(instructions_name, skill_contexts)
+
+        if schema_class:
+            schema_json = json.dumps(schema_class.model_json_schema(), ensure_ascii=False)
+            system_prompt += f"\n\n<output_format>\nBạn phải trả về kết quả tuân thủ chính xác lược đồ JSON sau:\n{schema_json}\n</output_format>"
 
         async def agent_node(state: dict) -> dict:
             logger.info(f"Executing agent node: {agent_name}")
@@ -53,6 +59,13 @@ class AgentFactory:
 
                 content_str = extract_agent_content(raw_result)
                 parsed_result = parse_json_response(content_str)
+
+                if schema_class:
+                    try:
+                        parsed_result = schema_class.model_validate(parsed_result).model_dump()
+                    except Exception as ve:
+                        logger.error(f"Schema validation failed for {agent_name}", error=str(ve))
+                        raise Exception(f"Output schema validation error: {ve}")
 
                 history_entry = create_history_entry(
                     agent_name=agent_name,
@@ -107,15 +120,15 @@ class CompletenessAgentFactory(AgentFactory):
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
         input_file = state.get("input_file", "N/A")
-        extracted = json.dumps(state.get("extracted_documents", {}), indent=2)
-        history = json.dumps(state.get("history", [])[-2:], indent=2)
+        extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
+        history_list = state.get("history", [])[-2:]
+        history_summary = "\n".join([f"- Bước {h.get('step', 'unknown')} ({h.get('agent_name', 'System')}): Đã xử lý" for h in history_list]) if history_list else "Chưa có"
 
         return (
-            f"Kiểm toán tính đầy đủ của hồ sơ bảo hiểm {claim_id}.\n"
-            f"Số hợp đồng: {policy_number}\n"
-            f"Tài liệu đầu vào: {input_file}\n"
-            f"Dữ liệu đã trích xuất: {extracted}\n\n"
-            f"Lịch sử xử lý hiện tại:\n{history}\n"
+            f"Kiểm toán tính đầy đủ của hồ sơ bảo hiểm {claim_id}. Số hợp đồng: {policy_number}\n"
+            f"Tài liệu đầu vào: {input_file}\n\n"
+            f"<extracted_documents>\n{extracted}\n</extracted_documents>\n\n"
+            f"<history_summary>\n{history_summary}\n</history_summary>\n"
         )
 
     def create_completeness_agent(self) -> Callable:
@@ -124,6 +137,7 @@ class CompletenessAgentFactory(AgentFactory):
             instructions_name="completeness_agent",
             output_state_key="agent_1_result",
             agent_name="CompletenessAgent",
+            schema_class=AssessmentOutput,
         )
 
 
@@ -133,14 +147,14 @@ class QualityAgentFactory(AgentFactory):
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
-        extracted = json.dumps(state.get("extracted_documents", {}), indent=2)
-        history = json.dumps(state.get("history", [])[-2:], indent=2)
+        extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
+        history_list = state.get("history", [])[-2:]
+        history_summary = "\n".join([f"- Bước {h.get('step', 'unknown')} ({h.get('agent_name', 'System')}): Đã xử lý" for h in history_list]) if history_list else "Chưa có"
 
         return (
-            f"Xác minh chất lượng y tế cho hồ sơ {claim_id}.\n"
-            f"Số hợp đồng: {policy_number}\n"
-            f"Dữ liệu đã trích xuất: {extracted}\n\n"
-            f"Lịch sử xử lý hiện tại:\n{history}\n"
+            f"Xác minh chất lượng y tế cho hồ sơ {claim_id}. Số hợp đồng: {policy_number}\n\n"
+            f"<extracted_documents>\n{extracted}\n</extracted_documents>\n\n"
+            f"<history_summary>\n{history_summary}\n</history_summary>\n"
         )
 
     def create_quality_agent(self) -> Callable:
@@ -149,6 +163,7 @@ class QualityAgentFactory(AgentFactory):
             instructions_name="quality_agent",
             output_state_key="agent_2_result",
             agent_name="QualityAgent",
+            schema_class=AssessmentOutput,
         )
 
 
@@ -158,16 +173,15 @@ class DecisionAgentFactory(AgentFactory):
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
         claim_id = state.get("claim_id", "N/A")
         policy_number = state.get("policy_number", "N/A")
-        completeness = json.dumps(state.get("agent_1_result", {}), indent=2)
-        quality = json.dumps(state.get("agent_2_result", {}), indent=2)
-        human_review = json.dumps(state.get("human_review_result", {}), indent=2)
+        completeness = json.dumps(state.get("agent_1_result", {}), indent=2, ensure_ascii=False)
+        quality = json.dumps(state.get("agent_2_result", {}), indent=2, ensure_ascii=False)
+        human_review = json.dumps(state.get("human_review_result", {}), indent=2, ensure_ascii=False)
 
         return (
-            f"Đưa ra quyết định cuối cùng cho hồ sơ {claim_id}.\n"
-            f"Số hợp đồng: {policy_number}\n\n"
-            f"Kết quả kiểm tra tính đầy đủ: {completeness}\n"
-            f"Kết quả kiểm tra chất lượng y tế: {quality}\n"
-            f"Kết quả đánh giá từ con người: {human_review}\n"
+            f"Đưa ra quyết định cuối cùng cho hồ sơ {claim_id}. Số hợp đồng: {policy_number}\n\n"
+            f"<completeness_result>\n{completeness}\n</completeness_result>\n\n"
+            f"<quality_result>\n{quality}\n</quality_result>\n\n"
+            f"<human_review_result>\n{human_review}\n</human_review_result>\n"
         )
 
     def create_decision_agent(self) -> Callable:
@@ -176,4 +190,5 @@ class DecisionAgentFactory(AgentFactory):
             instructions_name="final_agent",
             output_state_key="final_result",
             agent_name="FinalAgent",
+            schema_class=FinalDecisionOutput,
         )
