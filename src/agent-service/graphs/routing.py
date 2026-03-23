@@ -52,17 +52,25 @@ def route_after_quality(state: GraphState) -> str:
 
 
 def route_after_agent_review(state: GraphState) -> str:
-    """Route after the agent_review node.
+    """Route after the agent_review node based on auto-review status.
 
-    If the VerifierAgent was confident enough (confidence > 0.9) and
-    no critical/high issues remain, it proceeds automatically.
-    Otherwise it falls through to human_review.
+    The agent_review node is expected to update the corresponding agent
+    result with ``is_auto_reviewed=True`` when it is confident that no
+    further human intervention is required. This function inspects that
+    flag to decide whether to proceed to the next automated stage or
+    fall back to human review:
+
+    * For completeness-related steps, it routes to ``quality_check`` when
+      ``is_auto_reviewed`` is true, otherwise to ``human_review``.
+    * For quality-related steps, it routes to ``final_decision`` when
+      ``is_auto_reviewed`` is true, otherwise to ``human_review``.
 
     Args:
         state: Current graph state.
 
     Returns:
-        Next node name: the appropriate next stage or 'human_review'.
+        The name of the next node: either the appropriate next automated
+        stage (``quality_check`` or ``final_decision``) or ``human_review``.
     """
     # WHY: The agent_review node updates the corresponding agent result
     # with is_auto_reviewed=True when it is confident. We check that flag
