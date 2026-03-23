@@ -33,17 +33,22 @@ class LangfuseCallbackHandler(BaseCallbackHandler):
             try:
                 from langfuse import Langfuse
                 from langfuse.langchain import CallbackHandler
-                
-                Langfuse(
+
+                langfuse_client = Langfuse(
                     public_key=settings.LANGFUSE_PUBLIC_KEY,
                     secret_key=settings.LANGFUSE_SECRET_KEY,
                     host=settings.LANGFUSE_HOST,
                 )
+                try:
+                    self._handler = CallbackHandler(langfuse=langfuse_client)
+                except TypeError:
+                    self._handler = CallbackHandler()
 
-                self._handler = CallbackHandler(public_key=settings.LANGFUSE_PUBLIC_KEY or None)
                 logger.info("Langfuse callback handler initialized", trace_name=self.trace_name)
             except ImportError:
                 logger.warning("Langfuse is enabled but package is not installed.")
+            except Exception as exc:
+                logger.warning("Langfuse callback disabled due to init error", error=str(exc))
 
     @property
     def handler(self) -> Optional[BaseCallbackHandler]:

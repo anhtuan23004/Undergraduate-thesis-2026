@@ -4,9 +4,11 @@ import asyncio
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Dict, List
 from pathlib import Path
 import mimetypes
+import hashlib
+import structlog
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
@@ -24,26 +26,27 @@ router = APIRouter(prefix="/api/v1", tags=["workflows"])
 
 _compiled_graph = None
 _mongo_checkpointer = None
+logger = structlog.get_logger(__name__)
 
 
 async def _get_mongo_checkpointer() -> Any:
-    """Get or create MongoDB checkpointer using async driver.
+    """Get or create MongoDB checkpointer using pymongo driver.
 
     Returns:
-        Any: The async MongoDB checkpointer for LangGraph.
+        Any: The MongoDB checkpointer for LangGraph.
     """
     global _mongo_checkpointer
     if _mongo_checkpointer is None:
-        from langgraph.checkpoint.mongodb.aio import AsyncMongoDBSaver
-        from motor.motor_asyncio import AsyncIOMotorClient
+        from langgraph.checkpoint.mongodb import MongoDBSaver
+        from pymongo import MongoClient
 
         mongo_url = settings.MONGODB_URL
         if "directConnection" not in mongo_url:
             separator = "&" if "?" in mongo_url else "?"
             mongo_url += f"{separator}directConnection=true"
 
-        client = AsyncIOMotorClient(mongo_url)
-        _mongo_checkpointer = AsyncMongoDBSaver(client, db_name=settings.MONGODB_DB)
+        client = MongoClient(mongo_url)
+        _mongo_checkpointer = MongoDBSaver(client, db_name=settings.MONGODB_DB)
     return _mongo_checkpointer
 
 
@@ -67,6 +70,7 @@ class ClaimRequest(BaseModel):
     claim_id: str = Field(..., description="Claim identifier")
     policy_number: str = Field(..., description="Policy number")
     input_file: str = Field(..., description="Path to input document")
+    file_hash: Optional[str] = Field(None, description="SHA-256 hash of the document")
 
 
 class HumanReviewRequest(BaseModel):
@@ -91,6 +95,7 @@ class UploadResponse(BaseModel):
     filename: str
     file_path: str
     size_bytes: int
+    file_hash: str
 
 
 def _extract_pause_state(snapshot: Any) -> tuple[bool, bool, Optional[str]]:
@@ -144,21 +149,36 @@ def _save_ocr_result(
     run_id: str,
     claim_id: str,
     policy_number: str,
-    input_file: str,
+    file_path: str,
     ocr_result: dict,
+    file_hash: Optional[str] = None,
 ) -> None:
-    """Persist OCR result for reuse by tools and audits."""
-    collection = get_collection("documents")
-    collection.insert_one(
-        {
+    """Save raw OCR result to MongoDB for auditing and potential reuse.
+
+    Args:
+        run_id: Unique workflow execution ID.
+        claim_id: User-provided claim ID.
+        policy_number: Associated policy number.
+        file_path: Path to the uploaded document.
+        ocr_result: The extracted text/data from OCR.
+        file_hash: SHA-256 fingerprint of the document.
+    """
+    try:
+        from mongodb_client import get_collection
+
+        doc = {
             "run_id": run_id,
             "claim_id": claim_id,
             "policy_number": policy_number,
-            "input_file": input_file,
+            "file_path": file_path,
+            "file_hash": file_hash,
             "ocr_result": ocr_result,
             "created_at": datetime.now(timezone.utc),
         }
-    )
+        collection = get_collection("documents")
+        collection.insert_one(doc)
+    except Exception as e:
+        logger.error("Failed to save OCR result", error=str(e))
 
 
 @router.post("/workflows/upload", response_model=UploadResponse)
@@ -183,6 +203,7 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
         output_path = upload_dir / unique_name
 
         content = await file.read()
+        file_hash = hashlib.sha256(content).hexdigest()
         
         # Enforce file size limit
         max_size = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -198,6 +219,7 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
             filename=safe_name,
             file_path=str(output_path),
             size_bytes=len(content),
+            file_hash=file_hash,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
@@ -208,18 +230,45 @@ async def run_workflow(request: ClaimRequest) -> dict:
     """Start a new claim processing workflow."""
     graph = await _get_graph()
     run_id = str(uuid.uuid4())
+    ocr_result = None
 
     try:
-        ocr_result = await asyncio.to_thread(_run_ocr_document, request.input_file)
-        
-        await asyncio.to_thread(
-            _save_ocr_result,
-            run_id,
-            request.claim_id,
-            request.policy_number,
-            request.input_file,
-            ocr_result,
-        )
+        # Deduplication: Check for existing OCR result if file_hash is provided
+        if request.file_hash:
+            from mongodb_client import get_collection
+            # Use synchronous find_one since get_collection uses pymongo (sync)
+            collection = get_collection("documents")
+            existing_doc = await asyncio.to_thread(
+                collection.find_one, {"file_hash": request.file_hash}
+            )
+
+            if existing_doc:
+                logger.info("Using existing OCR result for hash", hash=request.file_hash)
+                ocr_result = existing_doc.get("ocr_result")
+
+                # Persist a new document record for this run, reusing the existing OCR result
+                await asyncio.to_thread(
+                    _save_ocr_result,
+                    run_id,
+                    request.claim_id,
+                    request.policy_number,
+                    request.input_file,
+                    ocr_result,
+                    request.file_hash,
+                )
+
+        # If not found or no hash provided, run OCR service
+        if not ocr_result:
+            ocr_result = await asyncio.to_thread(_run_ocr_document, request.input_file)
+            await asyncio.to_thread(
+                _save_ocr_result,
+                run_id,
+                request.claim_id,
+                request.policy_number,
+                request.input_file,
+                ocr_result,
+                request.file_hash,
+            )
     except requests.HTTPError as e:
         raise HTTPException(
             status_code=502,
@@ -268,6 +317,7 @@ async def run_workflow(request: ClaimRequest) -> dict:
     return {
         "run_id": run_id,
         "claim_id": result.get("claim_id"),
+        "extracted_documents": result.get("extracted_documents"),
         "final_result": result.get("final_result"),
         "agent_1_result": result.get("agent_1_result"),
         "agent_2_result": result.get("agent_2_result"),
@@ -340,6 +390,7 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
     return {
         "run_id": run_id,
         "claim_id": result.get("claim_id"),
+        "extracted_documents": result.get("extracted_documents"),
         "final_result": result.get("final_result"),
         "agent_1_result": result.get("agent_1_result"),
         "agent_2_result": result.get("agent_2_result"),
@@ -401,6 +452,7 @@ async def continue_workflow(run_id: str, request: ContinueRequest | None = None)
     return {
         "run_id": run_id,
         "claim_id": result.get("claim_id"),
+        "extracted_documents": result.get("extracted_documents"),
         "final_result": result.get("final_result"),
         "agent_1_result": result.get("agent_1_result"),
         "agent_2_result": result.get("agent_2_result"),
@@ -438,6 +490,7 @@ async def get_workflow_status(run_id: str) -> dict:
     return {
         "run_id": run_id,
         "claim_id": values.get("claim_id"),
+        "extracted_documents": values.get("extracted_documents"),
         "current_step": values.get("current_step"),
         "pending_human_review": is_pending,
         "paused": is_paused,
