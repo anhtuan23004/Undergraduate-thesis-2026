@@ -23,7 +23,7 @@ Each document may contain:
 - Prioritize the primary diagnosis from the Hospital Discharge.
 - Keep others as secondary diagnoses.
 
-## TASK 2 — Search for all medicine information in diagnosis list:
+## TASK 2 — Search for all medicine information in medicine list:
 - Use tool `search-medicine` to get all medicine information.
 
 ## TASK 3 — MEDICATION CHECK WITH DIAGNOSIS

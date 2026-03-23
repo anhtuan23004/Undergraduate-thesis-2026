@@ -30,10 +30,10 @@ logger = structlog.get_logger(__name__)
 
 
 async def _get_mongo_checkpointer() -> Any:
-    """Get or create MongoDB checkpointer using async driver.
+    """Get or create MongoDB checkpointer using pymongo driver.
 
     Returns:
-        Any: The async MongoDB checkpointer for LangGraph.
+        Any: The MongoDB checkpointer for LangGraph.
     """
     global _mongo_checkpointer
     if _mongo_checkpointer is None:
@@ -173,7 +173,7 @@ def _save_ocr_result(
             "file_path": file_path,
             "file_hash": file_hash,
             "ocr_result": ocr_result,
-            "created_at": datetime.now(),
+            "created_at": datetime.now(timezone.utc),
         }
         collection = get_collection("documents")
         collection.insert_one(doc)

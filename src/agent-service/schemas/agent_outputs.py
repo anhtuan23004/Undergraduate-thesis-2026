@@ -37,7 +37,7 @@ class IssueSummary(BaseModel):
 class FinalDecisionOutput(BaseModel):
     """Output for the Final Decision agent."""
     decision: Literal["approve", "reject"] = Field(description="Quyết định cuối cùng")
-    approved_amount: int = Field(
+    approved_amount: Optional[int] = Field(
         description="Số tiền phê duyệt (trả về 0 hoặc null nếu bị reject)", default=0
     )
     rejection_reason: Optional[str] = Field(

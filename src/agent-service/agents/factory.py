@@ -71,7 +71,7 @@ class AgentFactory:
                     agent_name=agent_name,
                     prompt=prompt,
                     result=parsed_result,
-                    step=state.get("current_step", "unknown"),
+                    step=agent_skill_name,
                 )
 
                 try:                   
@@ -122,7 +122,7 @@ class CompletenessAgentFactory(AgentFactory):
         input_file = state.get("input_file", "N/A")
         extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
         history_list = state.get("history", [])[-2:]
-        history_summary = "\n".join([f"- Bước {h.get('step', 'unknown')} ({h.get('agent_name', 'System')}): Đã xử lý" for h in history_list]) if history_list else "Chưa có"
+        history_summary = "\n".join([f"- Bước {h.get('step', 'unknown')} ({h.get('agent', 'System')}): Đã xử lý" for h in history_list]) if history_list else "Chưa có"
 
         return (
             f"Kiểm toán tính đầy đủ của hồ sơ bảo hiểm {claim_id}. Số hợp đồng: {policy_number}\n"
@@ -149,7 +149,7 @@ class QualityAgentFactory(AgentFactory):
         policy_number = state.get("policy_number", "N/A")
         extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
         history_list = state.get("history", [])[-2:]
-        history_summary = "\n".join([f"- Bước {h.get('step', 'unknown')} ({h.get('agent_name', 'System')}): Đã xử lý" for h in history_list]) if history_list else "Chưa có"
+        history_summary = "\n".join([f"- Bước {h.get('step', 'unknown')} ({h.get('agent', 'System')}): Đã xử lý" for h in history_list]) if history_list else "Chưa có"
 
         return (
             f"Xác minh chất lượng y tế cho hồ sơ {claim_id}. Số hợp đồng: {policy_number}\n\n"

@@ -43,6 +43,9 @@ def init_session_state() -> None:
         "client": None,
         "auto_poll_enabled": True,
         "workflow_action_lock": False,
+        "paused_continue_button_disabled": False,
+        "pending_paused_continue_request": False,
+        "refresh_in_flight": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -60,12 +63,18 @@ def handle_new_claim() -> None:
     """Reset active run and cached state for a new submission."""
     st.session_state.current_run_id = None
     st.session_state.workflow_state_data = None
+    st.session_state.paused_continue_button_disabled = False
+    st.session_state.pending_paused_continue_request = False
+    st.session_state.refresh_in_flight = False
     st.rerun()
 
 
 def handle_select_run(run_id: str) -> None:
     """Switch to an existing run from history."""
     st.session_state.current_run_id = run_id
+    st.session_state.paused_continue_button_disabled = False
+    st.session_state.pending_paused_continue_request = False
+    st.session_state.refresh_in_flight = False
     refresh_status(silent=True)
     st.rerun()
 
@@ -190,15 +199,11 @@ def handle_resume_workflow(
 
 def handle_continue_workflow() -> None:
     """Continue paused workflow stage."""
-    if st.session_state.workflow_action_lock:
-        return
-
     run_id = st.session_state.current_run_id
     if not run_id:
         render_error_state("Không tìm thấy run_id để tiếp tục bước xử lý")
         return
 
-    st.session_state.workflow_action_lock = True
     try:
         client = get_client()
         with st.spinner("Đang tiếp tục workflow..."):
@@ -216,7 +221,8 @@ def handle_continue_workflow() -> None:
         upsert_run_history(run_id, result.get("claim_id"), result)
         st.rerun()
     finally:
-        st.session_state.workflow_action_lock = False
+        st.session_state.paused_continue_button_disabled = False
+        st.session_state.pending_paused_continue_request = False
 
 
 def refresh_status(silent: bool = False) -> Optional[dict]:
@@ -225,20 +231,24 @@ def refresh_status(silent: bool = False) -> Optional[dict]:
     if not run_id:
         return None
 
-    client = get_client()
-    result = client.get_workflow_status(run_id)
-    if result.get("error"):
-        if not silent:
-            render_error_state(
-                result["error"],
-                error_payload=result,
-                context_label="lấy trạng thái workflow",
-            )
-        return None
+    try:
+        st.session_state.refresh_in_flight = True
+        client = get_client()
+        result = client.get_workflow_status(run_id)
+        if result.get("error"):
+            if not silent:
+                render_error_state(
+                    result["error"],
+                    error_payload=result,
+                    context_label="lấy trạng thái workflow",
+                )
+            return None
 
-    st.session_state.workflow_state_data = result
-    upsert_run_history(run_id, result.get("claim_id"), result)
-    return result
+        st.session_state.workflow_state_data = result
+        upsert_run_history(run_id, result.get("claim_id"), result)
+        return result
+    finally:
+        st.session_state.refresh_in_flight = False
 
 
 def render_auto_polling(state_data: dict) -> None:
@@ -269,15 +279,31 @@ def render_main_content() -> None:
     """Render full UI according to current workflow state."""
     data = st.session_state.workflow_state_data
 
-    if st.button(":material/refresh: Làm mới trạng thái", use_container_width=False):
-        refresh_status()
-
     if data is None and st.session_state.current_run_id:
         data = refresh_status(silent=True)
 
     if data is None:
         render_claim_submission(on_start=handle_start_workflow)
         return
+
+    if st.session_state.pending_paused_continue_request:
+        handle_continue_workflow()
+        return
+
+    # Disable refresh button during processing states to prevent duplicate API calls
+    ui_state = get_ui_state(data)
+    disable_refresh = (
+        st.session_state.refresh_in_flight
+        or st.session_state.workflow_action_lock
+        or ui_state in (UIState.PROCESSING, UIState.WAITING_FOR_HUMAN)
+    )
+
+    if st.button(
+        ":material/refresh: Làm mới trạng thái",
+        width="content",
+        disabled=disable_refresh,
+    ):
+        refresh_status()
 
     render_auto_polling(data)
     data = st.session_state.workflow_state_data or data
@@ -306,7 +332,6 @@ def render_main_content() -> None:
         if st.button(
             ":material/replay: Thử chạy tiếp",
             type="primary",
-            disabled=st.session_state.workflow_action_lock,
         ):
             handle_continue_workflow()
         return
@@ -316,9 +341,11 @@ def render_main_content() -> None:
         if st.button(
             ":material/play_circle: Tiếp tục bước tạm dừng",
             type="primary",
-            disabled=st.session_state.workflow_action_lock,
+            disabled=st.session_state.paused_continue_button_disabled,
         ):
-            handle_continue_workflow()
+            st.session_state.paused_continue_button_disabled = True
+            st.session_state.pending_paused_continue_request = True
+            st.rerun()
 
 
 def main() -> None:
