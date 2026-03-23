@@ -88,7 +88,6 @@ def build_claim_workflow(
         {
             "quality_check": "quality_check",
             "human_review": "human_review",
-            "end": END,
         },
     )
 
@@ -99,6 +98,7 @@ def build_claim_workflow(
             "completeness_check": "completeness_check",
             "quality_check": "quality_check",
             "final_decision": "final_decision",
+            "end": END,
         },
     )
 

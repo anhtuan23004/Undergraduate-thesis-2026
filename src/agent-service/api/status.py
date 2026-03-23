@@ -5,37 +5,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from config import settings
-from .helpers import _extract_pause_state
+from .helpers import _extract_pause_state, _get_graph
 
 router = APIRouter(prefix="", tags=["status"])
-
-_compiled_graph = None
-
-
-async def _get_graph() -> Any:
-    """Get or create the compiled workflow graph."""
-    global _compiled_graph
-    if _compiled_graph is None:
-        from agent import get_llm_client
-
-        from graphs import build_claim_workflow
-        from langgraph.checkpoint.mongodb import MongoDBSaver
-        from pymongo import MongoClient
-
-        mongo_url = settings.MONGODB_URL
-        if "directConnection" not in mongo_url:
-            separator = "&" if "?" in mongo_url else "?"
-            mongo_url += f"{separator}directConnection=true"
-
-        client = MongoClient(mongo_url)
-        checkpointer = MongoDBSaver(client, db_name=settings.MONGODB_DB)
-
-        _compiled_graph = build_claim_workflow(
-            llm_client=get_llm_client(),
-            checkpointer=checkpointer,
-        )
-    return _compiled_graph
-
 
 @router.get("/workflows/status/{run_id}")
 async def get_workflow_status(run_id: str) -> dict:
