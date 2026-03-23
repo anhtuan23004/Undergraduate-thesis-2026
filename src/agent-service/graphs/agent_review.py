@@ -1,11 +1,13 @@
-"""Agent Review Node for automated issue resolution.
+"""Agent Review Node for automated cross-verification of agent outputs.
 
 This module implements the AgentReviewNode which acts as an automated
 verification layer. When an assessment agent returns `accept_with_edit`,
-the workflow routes here first. The VerifierAgent attempts to resolve
-minor issues using available tools. If confident (score > 0.9) and no
-critical/high issues remain, it marks the result as auto-reviewed and
-the workflow proceeds without human intervention.
+the workflow routes here first. The VerifierAgent re-evaluates the
+proposed result and identified issues using available tools but does not
+apply updates itself. If confident (score > 0.9, configurable) and it
+determines that no medium, high, or critical issues remain, it marks the
+result as auto-reviewed and the workflow proceeds without human
+intervention; otherwise, it escalates to human review.
 """
 
 import structlog
