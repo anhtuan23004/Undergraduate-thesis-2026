@@ -5,7 +5,7 @@ benefit type and treatment type according to insurance policy rules.
 """
 
 import json
-from typing import Dict, List
+from typing import List
 
 from langchain_core.tools import tool
 

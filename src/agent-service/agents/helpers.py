@@ -34,9 +34,7 @@ def extract_agent_content(result: dict) -> str:
     return str(last_message).strip()
 
 
-def parse_json_response(
-    text: str, default_on_error: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+def parse_json_response(text: str, default_on_error: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Parse JSON from agent output with markdown cleaning."""
     if not text:
         if default_on_error:
@@ -110,12 +108,9 @@ def create_agent_error_state(
             "decision": "reject",
             "issues": [{"severity": "critical", "description": f"Error: {error}"}],
         },
-        "history": [{
-            "agent": "System",
-            "prompt": "Error generation",
-            "result": {"error": str(error)},
-            "step": error_step_name
-        }],
+        "history": [
+            {"agent": "System", "prompt": "Error generation", "result": {"error": str(error)}, "step": error_step_name}
+        ],
         "current_step": f"{error_step_name}_error",
         "error": str(error),
     }

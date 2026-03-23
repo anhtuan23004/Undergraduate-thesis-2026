@@ -55,15 +55,11 @@ class HumanReviewNode:
         logger.info(
             "[Human Review] Resuming with decision",
             decision=decision,
-            reviewed_by=human_review_result.get("reviewed_by", "unknown")
+            reviewed_by=human_review_result.get("reviewed_by", "unknown"),
         )
 
         return {
             "current_step": "human_review_complete",
             "pending_human_review": False,
-            "history": [{
-                "step": "human_review",
-                "decision": decision,
-                "resumed": True
-            }]
+            "history": [{"step": "human_review", "decision": decision, "resumed": True}],
         }

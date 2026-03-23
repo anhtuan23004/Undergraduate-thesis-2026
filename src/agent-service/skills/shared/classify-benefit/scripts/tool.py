@@ -12,9 +12,7 @@ from langchain_core.tools import tool
 
 @tool("classify-benefit")
 def classify_benefit(
-    diagnosis: Optional[str] = None,
-    treatment: Optional[str] = None,
-    documents: Optional[List[str]] = None
+    diagnosis: Optional[str] = None, treatment: Optional[str] = None, documents: Optional[List[str]] = None
 ) -> str:
     """Classify the insurance benefit type from claim information.
 
@@ -34,11 +32,14 @@ def classify_benefit(
     """
     # This tool provides input data for the LLM to classify
     # The actual classification logic is performed by the LLM using the skill context
-    return json.dumps({
-        "diagnosis": diagnosis,
-        "treatment": treatment,
-        "documents": documents or [],
-    }, ensure_ascii=False)
+    return json.dumps(
+        {
+            "diagnosis": diagnosis,
+            "treatment": treatment,
+            "documents": documents or [],
+        },
+        ensure_ascii=False,
+    )
 
 
 __all__ = ["classify_benefit"]

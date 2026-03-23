@@ -12,6 +12,7 @@ from graphs.routing import (
     route_after_quality,
     route_after_final_review,
     route_after_human_review,
+    route_after_agent_review,
 )
 from agents import CompletenessAgentFactory, QualityAgentFactory, DecisionAgentFactory
 from config import settings
@@ -43,9 +44,12 @@ def build_claim_workflow(
     workflow.add_node("final_decision", d_factory.create_decision_agent())
 
     from graphs.human_review import HumanReviewNode
+    from graphs.agent_review import AgentReviewNode
 
     h_node = HumanReviewNode()
+    a_node = AgentReviewNode(llm_client)
     workflow.add_node("human_review", h_node.run)
+    workflow.add_node("agent_review", a_node.run)
 
     workflow.set_entry_point("completeness_check")
 
@@ -55,7 +59,7 @@ def build_claim_workflow(
         {
             "quality_check": "quality_check",
             "final_decision": "final_decision",
-            "human_review": "human_review",
+            "agent_review": "agent_review",
         },
     )
 
@@ -63,6 +67,16 @@ def build_claim_workflow(
         "quality_check",
         route_after_quality,
         {
+            "final_decision": "final_decision",
+            "agent_review": "agent_review",
+        },
+    )
+
+    workflow.add_conditional_edges(
+        "agent_review",
+        route_after_agent_review,
+        {
+            "quality_check": "quality_check",
             "final_decision": "final_decision",
             "human_review": "human_review",
         },
@@ -73,6 +87,7 @@ def build_claim_workflow(
         route_after_final_review,
         {
             "quality_check": "quality_check",
+            "human_review": "human_review",
             "end": END,
         },
     )
@@ -88,7 +103,7 @@ def build_claim_workflow(
     )
 
     memory = checkpointer or MemorySaver()
-    
+
     interrupts = ["human_review"]
     if settings.PAUSE_AT_EACH_STAGE:
         interrupts.extend(["quality_check", "final_decision"])

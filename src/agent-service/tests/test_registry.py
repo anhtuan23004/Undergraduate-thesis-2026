@@ -4,7 +4,6 @@ These tests verify that tools are correctly discovered and loaded
 using the skill-based architecture.
 """
 
-import pytest
 from tools.skill_loader import load_agent_skills, clear_skill_cache
 
 
@@ -17,13 +16,14 @@ class TestSkillLoaderDiscovery:
         assert len(tools) > 0
         tool_names = [t.name for t in tools]
         assert "check-icd" in tool_names
-        assert "validate-diagnosis" in tool_names
+        assert "validate-medication" in tool_names
         assert len(contexts) > 0
 
     def test_load_completeness_agent_skills(self):
         """Should load completeness agent skills."""
         tools, contexts = load_agent_skills("completeness_agent")
         assert len(tools) > 0
+        tool_names = [t.name for t in tools]
         assert "check-required-docs" in tool_names
         assert len(contexts) > 0
 

@@ -10,6 +10,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from api_client import create_client
 from components import (
+    STEP_LABELS,
     UIState,
     get_ui_state,
     render_app_header,
@@ -112,7 +113,14 @@ def handle_start_workflow(
     input_file: str = "streamlit_upload",
     uploaded_file: Optional[UploadedFile] = None,
 ) -> None:
-    """Upload file then run workflow."""
+    """Upload file then run workflow with real-time SSE streaming.
+
+    Args:
+        claim_id: Unique claim identifier.
+        policy_number: Insurance policy number.
+        input_file: Source file identifier.
+        uploaded_file: Optional Streamlit uploaded file.
+    """
     client = get_client()
     file_hash = None
 
@@ -135,26 +143,73 @@ def handle_start_workflow(
         input_file = upload_result.get("file_path", input_file)
         file_hash = upload_result.get("file_hash")
 
-    with st.spinner("Đang chạy workflow..."):
-        result = client.start_workflow(
+    # WHY: Use SSE streaming to show each step's result immediately.
+    last_state = _consume_stream_events(
+        client.start_workflow_stream(
             claim_id=claim_id,
             policy_number=policy_number,
             input_file=input_file,
             file_hash=file_hash,
+        ),
+        status_label="Đang xử lý hồ sơ...",
+    )
+
+    if last_state:
+        st.session_state.workflow_state_data = last_state
+        upsert_run_history(
+            st.session_state.current_run_id, claim_id, last_state
         )
 
-    if result.get("error"):
-        render_error_state(
-            result["error"],
-            error_payload=result,
-            context_label="khởi chạy workflow",
-        )
-        return
-
-    st.session_state.current_run_id = result.get("run_id")
-    st.session_state.workflow_state_data = result
-    upsert_run_history(result.get("run_id"), claim_id, result)
     st.rerun()
+
+
+def _consume_stream_events(
+    event_iter,
+    status_label: str = "Đang xử lý...",
+) -> Optional[dict]:
+    """Shared helper to display SSE stream events via st.status.
+
+    Args:
+        event_iter: Iterable of (event_type, payload) tuples from APIClient.
+        status_label: Initial label for the st.status widget.
+
+    Returns:
+        Final state dict, or None on error.
+    """
+    status = st.status(status_label, expanded=True)
+    last_state = None
+
+    for event_type, payload in event_iter:
+        if event_type == "run_started":
+            run_id = payload.get("run_id")
+            st.session_state.current_run_id = run_id
+            status.write(f"🚀 Workflow khởi tạo — run_id: `{run_id[:8]}`")
+
+        elif event_type == "node_start":
+            step_label = STEP_LABELS.get(payload.get("step"), payload.get("node", ""))
+            status.write(f"⏳ Đang xử lý: **{step_label}**...")
+
+        elif event_type == "node_end":
+            step_label = STEP_LABELS.get(payload.get("step"), payload.get("node", ""))
+            status.write(f"✅ Hoàn thành: **{step_label}**")
+            last_state = payload.get("state", last_state)
+            if last_state:
+                st.session_state.workflow_state_data = last_state
+
+        elif event_type == "done":
+            last_state = payload
+            status.update(label="Xử lý hoàn tất!", state="complete", expanded=False)
+
+        elif event_type == "error":
+            status.update(label="Lỗi xử lý!", state="error")
+            render_error_state(
+                payload.get("error", "Unknown streaming error"),
+                error_payload=payload,
+                context_label="stream workflow",
+            )
+            return None
+
+    return last_state
 
 
 def handle_resume_workflow(
@@ -162,7 +217,13 @@ def handle_resume_workflow(
     notes: Optional[str],
     edited_result: Optional[dict] = None,
 ) -> None:
-    """Submit human review decision and continue workflow."""
+    """Submit human review decision and continue workflow.
+
+    Args:
+        decision: Human review decision (approve, reject, edit).
+        notes: Optional reviewer comments.
+        edited_result: Optional edited result dict for 'edit' decisions.
+    """
     if st.session_state.workflow_action_lock:
         return
 
@@ -171,6 +232,10 @@ def handle_resume_workflow(
         render_error_state("Không tìm thấy run_id để tiếp tục workflow")
         return
 
+    # WHY: Reset the continue flags so handle_continue_workflow is not triggered
+    # on the next rerun after this resume call completes.
+    st.session_state.pending_paused_continue_request = False
+    st.session_state.paused_continue_button_disabled = False
     st.session_state.workflow_action_lock = True
     try:
         client = get_client()
@@ -198,7 +263,7 @@ def handle_resume_workflow(
 
 
 def handle_continue_workflow() -> None:
-    """Continue paused workflow stage."""
+    """Continue paused workflow stage with real-time streaming."""
     run_id = st.session_state.current_run_id
     if not run_id:
         render_error_state("Không tìm thấy run_id để tiếp tục bước xử lý")
@@ -206,19 +271,14 @@ def handle_continue_workflow() -> None:
 
     try:
         client = get_client()
-        with st.spinner("Đang tiếp tục workflow..."):
-            result = client.continue_workflow(run_id)
+        last_state = _consume_stream_events(
+            client.stream_events(run_id),
+            status_label="Đang tiếp tục xử lý...",
+        )
 
-        if result.get("error"):
-            render_error_state(
-                result["error"],
-                error_payload=result,
-                context_label="continue workflow",
-            )
-            return
-
-        st.session_state.workflow_state_data = result
-        upsert_run_history(run_id, result.get("claim_id"), result)
+        if last_state:
+            st.session_state.workflow_state_data = last_state
+            upsert_run_history(run_id, last_state.get("claim_id"), last_state)
         st.rerun()
     finally:
         st.session_state.paused_continue_button_disabled = False
@@ -252,12 +312,17 @@ def refresh_status(silent: bool = False) -> Optional[dict]:
 
 
 def render_auto_polling(state_data: dict) -> None:
-    """Poll status every 2.5s while workflow is active."""
+    """Poll status every 2.5s while workflow is actively processing.
+
+    WHY: We deliberately skip polling for WAITING_FOR_HUMAN:
+    the human must explicitly submit a decision. Auto-refresh during this
+    state would cause repeated resume calls and an infinite loop.
+    """
     ui_state = get_ui_state(state_data)
     should_poll = (
         st.session_state.auto_poll_enabled
         and st.session_state.current_run_id
-        and ui_state in (UIState.PROCESSING, UIState.WAITING_FOR_HUMAN)
+        and ui_state == UIState.PROCESSING  # Only poll while actively processing
     )
 
     if not should_poll:
