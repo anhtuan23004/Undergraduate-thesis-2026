@@ -1,8 +1,6 @@
-"""Streamlit UI for Insurance Claims Processing Multi-Agent System.
+"""Streamlit UI for insurance claims workflow with HITL review."""
 
-This application demonstrates the multi-agent workflow with human-in-the-loop
-capabilities for insurance claims processing.
-"""
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
@@ -12,19 +10,27 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from api_client import create_client
 from components import (
-    render_claim_input_form,
-    render_error,
-    render_step_flow,
+    UIState,
+    get_ui_state,
+    render_app_header,
+    render_brand_theme,
+    render_claim_submission,
+    render_error_state,
+    render_final_dashboard,
+    render_human_review_panel,
+    render_monitoring,
     render_raw_state,
     render_sidebar,
-    render_success,
-    render_workflow_status,
-    render_info,
-    WorkflowStatus,
-    get_status,
 )
 
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:
+    st_autorefresh = None
+
+
 DEFAULT_API_URL = "http://localhost:8003"
+POLLING_INTERVAL_MS = 2500
 
 
 def init_session_state() -> None:
@@ -32,11 +38,11 @@ def init_session_state() -> None:
     defaults = {
         "current_run_id": None,
         "workflow_state_data": None,
-        "is_waiting_human": False,
-        "is_stage_paused": False,
         "run_history": [],
         "api_base_url": DEFAULT_API_URL,
         "client": None,
+        "auto_poll_enabled": True,
+        "workflow_action_lock": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -44,31 +50,51 @@ def init_session_state() -> None:
 
 
 def get_client():
-    """Get or create the API client."""
+    """Get or create API client from current base URL."""
     if st.session_state.client is None:
         st.session_state.client = create_client(st.session_state.api_base_url)
     return st.session_state.client
 
 
 def handle_new_claim() -> None:
-    """Handle new claim button click."""
+    """Reset active run and cached state for a new submission."""
     st.session_state.current_run_id = None
     st.session_state.workflow_state_data = None
-    st.session_state.is_waiting_human = False
-    st.session_state.is_stage_paused = False
     st.rerun()
 
 
 def handle_select_run(run_id: str) -> None:
-    """Handle run selection from history."""
+    """Switch to an existing run from history."""
     st.session_state.current_run_id = run_id
+    refresh_status(silent=True)
     st.rerun()
 
 
 def handle_url_change(new_url: str) -> None:
-    """Handle API URL change."""
-    st.session_state.api_base_url = new_url
-    st.session_state.client = create_client(new_url)
+    """Update API base URL and recreate client."""
+    st.session_state.api_base_url = new_url.strip()
+    st.session_state.client = create_client(st.session_state.api_base_url)
+
+
+def upsert_run_history(run_id: Optional[str], claim_id: Optional[str], payload: dict) -> None:
+    """Insert or update run history row by run_id."""
+    if not run_id:
+        return
+
+    for item in st.session_state.run_history:
+        if item.get("run_id") == run_id:
+            item["data"] = payload
+            item["updated_at"] = datetime.now().isoformat()
+            return
+
+    st.session_state.run_history.append(
+        {
+            "run_id": run_id,
+            "claim_id": claim_id or payload.get("claim_id"),
+            "timestamp": datetime.now().isoformat(),
+            "data": payload,
+        }
+    )
 
 
 def handle_start_workflow(
@@ -77,11 +103,12 @@ def handle_start_workflow(
     input_file: str = "streamlit_upload",
     uploaded_file: Optional[UploadedFile] = None,
 ) -> None:
-    """Handle workflow start request."""
+    """Upload file then run workflow."""
     client = get_client()
+    file_hash = None
 
     if uploaded_file is not None:
-        with st.spinner("Đang upload tài liệu..."):
+        with st.spinner("Đang tải tài liệu lên..."):
             upload_result = client.upload_document(
                 file_name=uploaded_file.name,
                 file_bytes=uploaded_file.getvalue(),
@@ -89,165 +116,221 @@ def handle_start_workflow(
             )
 
         if upload_result.get("error"):
-            render_error(f"Upload thất bại: {upload_result['error']}")
+            render_error_state(
+                f"Tải tệp thất bại: {upload_result['error']}",
+                error_payload=upload_result,
+                context_label="upload",
+            )
             return
 
         input_file = upload_result.get("file_path", input_file)
+        file_hash = upload_result.get("file_hash")
 
-    with st.spinner("Đang xử lý..."):
+    with st.spinner("Đang chạy workflow..."):
         result = client.start_workflow(
             claim_id=claim_id,
             policy_number=policy_number,
             input_file=input_file,
+            file_hash=file_hash,
         )
 
     if result.get("error"):
-        render_error(result["error"])
+        render_error_state(
+            result["error"],
+            error_payload=result,
+            context_label="khởi chạy workflow",
+        )
         return
 
     st.session_state.current_run_id = result.get("run_id")
     st.session_state.workflow_state_data = result
-    st.session_state.is_waiting_human = result.get("pending_human_review", False)
-    st.session_state.is_stage_paused = bool(result.get("paused", False))
-
-    st.session_state.run_history.append(
-        {
-            "run_id": result.get("run_id"),
-            "claim_id": claim_id,
-            "timestamp": datetime.now().isoformat(),
-            "data": result,
-        }
-    )
-
-    if st.session_state.is_waiting_human:
-        render_info("Hồ sơ cần được xem xét bởi chuyên viên.")
-    elif st.session_state.is_stage_paused:
-        render_info("Đã hoàn thành một chặng. Nhấn tiếp tục để chạy bước kế tiếp.")
-    else:
-        render_success("Xử lý hoàn tất!")
-
+    upsert_run_history(result.get("run_id"), claim_id, result)
     st.rerun()
 
 
 def handle_resume_workflow(
     decision: str,
     notes: Optional[str],
+    edited_result: Optional[dict] = None,
 ) -> None:
-    """Handle human review resume request."""
-    client = get_client()
+    """Submit human review decision and continue workflow."""
+    if st.session_state.workflow_action_lock:
+        return
+
     run_id = st.session_state.current_run_id
-
     if not run_id:
-        render_error("Không tìm thấy phiên đang xử lý.")
+        render_error_state("Không tìm thấy run_id để tiếp tục workflow")
         return
 
-    with st.spinner("Đang gửi quyết định..."):
-        result = client.resume_workflow(
-            run_id=run_id,
-            decision=decision,
-            notes=notes,
-        )
+    st.session_state.workflow_action_lock = True
+    try:
+        client = get_client()
+        with st.spinner("Đang gửi quyết định thẩm định..."):
+            result = client.resume_workflow(
+                run_id=run_id,
+                decision=decision,
+                notes=notes,
+                edited_result=edited_result,
+            )
 
-    if result.get("error"):
-        render_error(result["error"])
-        return
+        if result.get("error"):
+            render_error_state(
+                result["error"],
+                error_payload=result,
+                context_label="resume workflow",
+            )
+            return
 
-    st.session_state.workflow_state_data = result
-    st.session_state.is_waiting_human = result.get("pending_human_review", False)
-    st.session_state.is_stage_paused = bool(result.get("paused", False))
-
-    for run in st.session_state.run_history:
-        if run["run_id"] == run_id:
-            run["data"] = result
-            break
-
-    render_success("Đã gửi quyết định thành công!")
-    st.rerun()
+        st.session_state.workflow_state_data = result
+        upsert_run_history(run_id, result.get("claim_id"), result)
+        st.rerun()
+    finally:
+        st.session_state.workflow_action_lock = False
 
 
 def handle_continue_workflow() -> None:
-    """Handle continue request for non-human stage pause."""
-    client = get_client()
+    """Continue paused workflow stage."""
+    if st.session_state.workflow_action_lock:
+        return
+
     run_id = st.session_state.current_run_id
-
     if not run_id:
-        render_error("Không tìm thấy phiên đang xử lý.")
+        render_error_state("Không tìm thấy run_id để tiếp tục bước xử lý")
         return
 
-    with st.spinner("Đang tiếp tục xử lý bước kế tiếp..."):
-        result = client.continue_workflow(run_id=run_id)
+    st.session_state.workflow_action_lock = True
+    try:
+        client = get_client()
+        with st.spinner("Đang tiếp tục workflow..."):
+            result = client.continue_workflow(run_id)
 
-    if result.get("error"):
-        render_error(result["error"])
-        return
+        if result.get("error"):
+            render_error_state(
+                result["error"],
+                error_payload=result,
+                context_label="continue workflow",
+            )
+            return
 
-    st.session_state.workflow_state_data = result
-    st.session_state.is_waiting_human = result.get("pending_human_review", False)
-    st.session_state.is_stage_paused = bool(result.get("paused", False))
-
-    for run in st.session_state.run_history:
-        if run["run_id"] == run_id:
-            run["data"] = result
-            break
-
-    if st.session_state.is_waiting_human:
-        render_info("Đã chuyển sang bước cần duyệt thủ công.")
-    elif st.session_state.is_stage_paused:
-        render_info("Đã hoàn thành thêm một chặng và đang tạm dừng.")
-    else:
-        render_success("Xử lý hoàn tất!")
-
-    st.rerun()
+        st.session_state.workflow_state_data = result
+        upsert_run_history(run_id, result.get("claim_id"), result)
+        st.rerun()
+    finally:
+        st.session_state.workflow_action_lock = False
 
 
-def handle_refresh_status() -> None:
-    """Handle status refresh request."""
-    client = get_client()
+def refresh_status(silent: bool = False) -> Optional[dict]:
+    """Fetch latest workflow status from API by current run_id."""
     run_id = st.session_state.current_run_id
-
     if not run_id:
-        return
+        return None
 
+    client = get_client()
     result = client.get_workflow_status(run_id)
-
     if result.get("error"):
-        render_error(result["error"])
-        return
+        if not silent:
+            render_error_state(
+                result["error"],
+                error_payload=result,
+                context_label="lấy trạng thái workflow",
+            )
+        return None
 
     st.session_state.workflow_state_data = result
-    st.session_state.is_waiting_human = result.get("pending_human_review", False)
-    st.session_state.is_stage_paused = bool(result.get("paused", False))
+    upsert_run_history(run_id, result.get("claim_id"), result)
+    return result
 
-    for run in st.session_state.run_history:
-        if run["run_id"] == run_id:
-            run["data"] = result
-            break
 
-    status = get_status(result)
-    if status == WorkflowStatus.COMPLETED:
-        render_success("Xử lý hoàn tất!")
-    elif status == WorkflowStatus.PENDING_REVIEW:
-        render_info("Hồ sơ đang chờ xem xét.")
-    elif status == WorkflowStatus.PAUSED:
-        render_info("Workflow đang tạm dừng theo từng chặng.")
-    elif status == WorkflowStatus.ERROR:
-        render_error(result.get("error", "Unknown error"))
+def render_auto_polling(state_data: dict) -> None:
+    """Poll status every 2.5s while workflow is active."""
+    ui_state = get_ui_state(state_data)
+    should_poll = (
+        st.session_state.auto_poll_enabled
+        and st.session_state.current_run_id
+        and ui_state in (UIState.PROCESSING, UIState.WAITING_FOR_HUMAN)
+    )
 
-    st.rerun()
+    if not should_poll:
+        return
+
+    if st_autorefresh is not None:
+        st_autorefresh(interval=POLLING_INTERVAL_MS, key=f"poll_{st.session_state.current_run_id}")
+        refresh_status(silent=True)
+        st.caption("Tự động cập nhật trạng thái mỗi 2.5 giây")
+        return
+
+    st.warning(
+        "Tính năng tự động cập nhật cần package 'streamlit-autorefresh'. "
+        "Vui lòng cài dependencies trong src/agent-service/requirements.txt."
+    )
+
+
+def render_main_content() -> None:
+    """Render full UI according to current workflow state."""
+    data = st.session_state.workflow_state_data
+
+    if st.button(":material/refresh: Làm mới trạng thái", use_container_width=False):
+        refresh_status()
+
+    if data is None and st.session_state.current_run_id:
+        data = refresh_status(silent=True)
+
+    if data is None:
+        render_claim_submission(on_start=handle_start_workflow)
+        return
+
+    render_auto_polling(data)
+    data = st.session_state.workflow_state_data or data
+
+    render_monitoring(data)
+    ui_state = get_ui_state(data)
+
+    if ui_state == UIState.WAITING_FOR_HUMAN:
+        render_human_review_panel(
+            data,
+            on_resume=handle_resume_workflow,
+            action_locked=st.session_state.workflow_action_lock,
+        )
+        return
+
+    if ui_state == UIState.COMPLETED:
+        render_final_dashboard(data)
+        return
+
+    if ui_state == UIState.ERROR:
+        render_error_state(
+            str(data.get("error") or "Lỗi workflow không xác định"),
+            error_payload=data,
+            context_label="workflow",
+        )
+        if st.button(
+            ":material/replay: Thử chạy tiếp",
+            type="primary",
+            disabled=st.session_state.workflow_action_lock,
+        ):
+            handle_continue_workflow()
+        return
+
+    if data.get("paused") and not data.get("pending_human_review"):
+        st.info("Workflow đang tạm dừng ở một bước tự động")
+        if st.button(
+            ":material/play_circle: Tiếp tục bước tạm dừng",
+            type="primary",
+            disabled=st.session_state.workflow_action_lock,
+        ):
+            handle_continue_workflow()
 
 
 def main() -> None:
-    """Main application entry point."""
+    """Streamlit app entry point."""
     st.set_page_config(
-        page_title="Insurance Claims Processing",
-        page_icon="🏥",
+        page_title="Hệ thống bồi thường bảo hiểm",
+        page_icon=":material/health_and_safety:",
         layout="wide",
     )
 
     init_session_state()
-
-    st.title("🏥 Hệ Thống Xử Lý Bồi Thường Bảo Hiểm")
-    st.caption("Demo Multi-Agent AI với Human-in-the-Loop")
+    render_brand_theme()
 
     render_sidebar(
         on_new_claim=handle_new_claim,
@@ -258,35 +341,15 @@ def main() -> None:
         on_url_change=handle_url_change,
     )
 
-    st.divider()
-
-    if st.session_state.workflow_state_data:
-        if st.button("🔄 Làm Mới Trạng Thái"):
-            handle_refresh_status()
-
-        render_workflow_status(st.session_state.workflow_state_data)
-        st.divider()
-        render_step_flow(
-            st.session_state.workflow_state_data,
-            on_continue=handle_continue_workflow,
-            on_resume=handle_resume_workflow,
-        )
-
-    elif st.session_state.current_run_id:
-        handle_refresh_status()
-
-    else:
-        render_claim_input_form(
-            on_start=handle_start_workflow,
-        )
-
-    st.divider()
-    run_id_display = (
-        st.session_state.current_run_id[:8]
-        if st.session_state.current_run_id
-        else "None"
+    render_app_header(
+        current_run_id=st.session_state.current_run_id,
+        api_url=st.session_state.api_base_url,
     )
-    st.caption(f"Session: {run_id_display} | API: {st.session_state.api_base_url}")
+
+    render_main_content()
+
+    if st.toggle("Chế độ developer", key="developer_mode") and st.session_state.workflow_state_data:
+        render_raw_state(st.session_state.workflow_state_data)
 
 
 if __name__ == "__main__":

@@ -46,19 +46,41 @@ class APIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            if e.response is not None and e.response.status_code == 404:
-                return {"error": f"Resource not found: {endpoint}"}
-            return {"error": str(e)}
+            response = e.response
+            if response is not None:
+                status_code = response.status_code
+                try:
+                    response_body: Any = response.json()
+                except ValueError:
+                    response_body = response.text
+
+                if status_code == 404:
+                    return {
+                        "error": f"Resource not found: {endpoint}",
+                        "error_detail": response_body,
+                        "status_code": status_code,
+                        "endpoint": endpoint,
+                    }
+
+                return {
+                    "error": f"HTTP {status_code} while calling {endpoint}",
+                    "error_detail": response_body,
+                    "status_code": status_code,
+                    "endpoint": endpoint,
+                }
+
+            return {"error": str(e), "endpoint": endpoint}
         except requests.exceptions.Timeout:
-            return {"error": "Request timed out"}
+            return {"error": "Request timed out", "endpoint": endpoint}
         except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+            return {"error": str(e), "endpoint": endpoint}
 
     def start_workflow(
         self,
         claim_id: str,
         policy_number: str,
         input_file: str = "streamlit_upload",
+        file_hash: Optional[str] = None,
     ) -> dict:
         """Start a new claim processing workflow.
 
@@ -74,6 +96,7 @@ class APIClient:
             "claim_id": claim_id,
             "policy_number": policy_number,
             "input_file": input_file,
+            "file_hash": file_hash,
         }
         return self._request("POST", "/api/v1/workflows/run", data=data, timeout=300)
 
@@ -148,11 +171,23 @@ class APIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            return {"error": str(e)}
+            response = e.response
+            if response is not None:
+                try:
+                    response_body: Any = response.json()
+                except ValueError:
+                    response_body = response.text
+                return {
+                    "error": f"HTTP {response.status_code} while uploading document",
+                    "error_detail": response_body,
+                    "status_code": response.status_code,
+                    "endpoint": "/api/v1/workflows/upload",
+                }
+            return {"error": str(e), "endpoint": "/api/v1/workflows/upload"}
         except requests.exceptions.Timeout:
-            return {"error": "Upload timed out"}
+            return {"error": "Upload timed out", "endpoint": "/api/v1/workflows/upload"}
         except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
+            return {"error": str(e), "endpoint": "/api/v1/workflows/upload"}
 
     def health_check(self) -> dict:
         """Check API health status.

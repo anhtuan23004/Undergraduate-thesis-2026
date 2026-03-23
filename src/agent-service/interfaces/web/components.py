@@ -1,28 +1,40 @@
-"""Streamlit UI components for Insurance Claims Processing."""
+"""Streamlit UI components for insurance claims workflow monitoring and review."""
 
+from __future__ import annotations
+
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Optional
 
+import pandas as pd
 import streamlit as st
 
 
-class WorkflowStatus(str, Enum):
-    """Workflow status indicators."""
+class UIState(str, Enum):
+    """Primary UI states used by the app."""
 
-    COMPLETED = "completed"
-    PENDING_REVIEW = "pending_review"
-    PAUSED = "paused"
-    RUNNING = "running"
+    PROCESSING = "processing"
+    WAITING_FOR_HUMAN = "waiting_for_human"
     ERROR = "error"
+    COMPLETED = "completed"
 
 
 class HITLDecision(str, Enum):
-    """Human-in-the-loop decision options."""
+    """Human-in-the-loop decision values sent to API."""
 
     APPROVE = "approve"
     REJECT = "reject"
     EDIT = "edit"
+
+
+class StepStatus(str, Enum):
+    """Status for timeline nodes."""
+
+    DONE = "done"
+    ACTIVE = "active"
+    WAITING = "waiting"
+    PENDING = "pending"
 
 
 SEVERITY_COLORS = {
@@ -32,423 +44,659 @@ SEVERITY_COLORS = {
     "low": "🟢",
 }
 
-STATUS_EMOJIS = {
-    WorkflowStatus.COMPLETED: "🟢",
-    WorkflowStatus.PENDING_REVIEW: "🟡",
-    WorkflowStatus.PAUSED: "🟠",
-    WorkflowStatus.RUNNING: "🔵",
-    WorkflowStatus.ERROR: "🔴",
+STEP_ORDER = ["completeness", "quality", "human_review", "final_decision"]
+
+STEP_LABELS = {
+    "completeness": "Kiểm tra tính đầy đủ",
+    "quality": "Kiểm tra chất lượng y tế",
+    "human_review": "Thẩm định thủ công",
+    "final_decision": "Kết luận cuối cùng",
+}
+
+STEP_ICONS = {
+    "completeness": ":material/checklist:",
+    "quality": ":material/medical_services:",
+    "human_review": ":material/person_search:",
+    "final_decision": ":material/gavel:",
+}
+
+BADGE_BY_STEP_STATUS = {
+    StepStatus.DONE: ":green-badge[Hoàn thành]",
+    StepStatus.ACTIVE: ":blue-badge[Đang xử lý]",
+    StepStatus.WAITING: ":orange-badge[Chờ thẩm định]",
+    StepStatus.PENDING: ":gray-badge[Chờ bước trước]",
 }
 
 
-def get_status(state_data: Optional[dict]) -> WorkflowStatus:
-    """Determine workflow status from state data."""
+def render_brand_theme() -> None:
+    """Inject brand-aligned styling for spacing and visual consistency."""
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+        :root {
+            --brand-primary: #1B8DB6;
+            --brand-accent: #34A2CA;
+            --brand-bg-soft: #15232D;
+            --brand-border: #2D4656;
+            --brand-success: #1E8E5A;
+            --brand-danger: #C23B35;
+            --brand-warning: #BC7A00;
+        }
+
+        html, body, [class*="css"] {
+            font-family: "Be Vietnam Pro", sans-serif;
+        }
+
+        .stApp {
+            background:
+                radial-gradient(1200px 420px at -10% -20%, rgba(52, 162, 202, 0.14), transparent 62%),
+                radial-gradient(1000px 380px at 110% 0%, rgba(27, 141, 182, 0.12), transparent 56%),
+                linear-gradient(180deg, #0A1117 0%, #0E171F 55%, #121E27 100%);
+            color: #E7F2F8;
+        }
+
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #0A3E55 0%, #0F4B64 100%);
+        }
+
+        [data-testid="stSidebar"] * {
+            color: #F3FBFF !important;
+        }
+
+        [data-testid="stMarkdownContainer"],
+        [data-testid="stText"],
+        [data-testid="stCaptionContainer"] {
+            color: #E7F2F8;
+        }
+
+        div[data-testid="stForm"],
+        div[data-testid="stVerticalBlock"] div[data-testid="stContainer"] {
+            background: rgba(15, 28, 38, 0.58);
+            border-radius: 12px;
+        }
+
+        div[data-testid="stMetric"] {
+            background: var(--brand-bg-soft);
+            border: 1px solid var(--brand-border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #E7F2F8;
+        }
+
+        div[data-testid="stButton"] > button[kind="primary"] {
+            background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        div[data-testid="stButton"] > button {
+            border-radius: 10px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def get_ui_state(state_data: Optional[dict]) -> UIState:
+    """Map graph state into one of the four UI states."""
     if not state_data:
-        return WorkflowStatus.RUNNING
+        return UIState.PROCESSING
     if state_data.get("error"):
-        return WorkflowStatus.ERROR
-    if state_data.get("pending_human_review"):
-        return WorkflowStatus.PENDING_REVIEW
-    if state_data.get("paused"):
-        return WorkflowStatus.PAUSED
+        return UIState.ERROR
     if state_data.get("final_result"):
-        return WorkflowStatus.COMPLETED
-    if state_data.get("current_step", "").startswith("completed_"):
-        return WorkflowStatus.COMPLETED
-    return WorkflowStatus.RUNNING
+        return UIState.COMPLETED
+    if state_data.get("pending_human_review"):
+        return UIState.WAITING_FOR_HUMAN
+    return UIState.PROCESSING
+
+
+def render_app_header(current_run_id: Optional[str], api_url: str) -> None:
+    """Render top title section."""
+    st.title(":material/health_and_safety: Hệ thống quản lý hồ sơ bồi thường")
+    run_short = current_run_id[:8] if current_run_id else "-"
+    st.caption(f"Luồng LangGraph có Human-in-the-Loop | run_id: {run_short} | API: {api_url}")
 
 
 def render_sidebar(
     on_new_claim: Callable,
     on_select_run: Callable,
     current_run_id: Optional[str],
-    run_history: list,
+    run_history: list[dict],
     api_url: str,
     on_url_change: Callable,
 ) -> None:
-    """Render the sidebar with session management.
-
-    Args:
-        on_new_claim: Callback for new claim button.
-        on_select_run: Callback for selecting a run.
-        current_run_id: Currently selected run ID.
-        run_history: List of previous runs.
-        api_url: Current API URL.
-        on_url_change: Callback when URL changes.
-    """
+    """Render sidebar controls and run switcher."""
     with st.sidebar:
-        st.header("📋 Quản Lý Phiên")
+        st.header(":material/tune: Điều khiển phiên")
 
-        if st.button("➕ Tạo Hồ Sơ Mới", use_container_width=True):
+        if st.button(":material/add_circle: Hồ sơ mới", type="primary", use_container_width=True):
             on_new_claim()
 
-        st.divider()
-        st.subheader("Lịch Sử Phiên")
+        new_url = st.text_input("Địa chỉ API", value=api_url)
+        if new_url != api_url:
+            on_url_change(new_url)
+            st.rerun()
 
+        st.toggle("Tự động cập nhật", key="auto_poll_enabled", value=True)
+
+        st.subheader(":material/history: Lịch sử xử lý")
         if not run_history:
             st.caption("Chưa có phiên nào")
-        else:
-            # Show up to 10 most recent runs, most recent first
-            recent_runs = list(reversed(run_history[-10:]))
-            run_ids = [run["run_id"] for run in recent_runs if run.get("run_id")]
+            return
 
-            def _format_run_label(run_id: str) -> str:
-                run = next((r for r in recent_runs if r.get("run_id") == run_id), None)
-                if not run:
-                    return run_id
-                status = get_status(run.get("data"))
-                status_emoji = STATUS_EMOJIS.get(status, "⚪")
-                display_id = run_id[:8] if run_id else "N/A"
-                return f"{status_emoji} {display_id}..."
+        runs = list(reversed(run_history[-20:]))
+        run_ids = [r.get("run_id") for r in runs if r.get("run_id")]
+        if not run_ids:
+            st.caption("Không có run_id hợp lệ")
+            return
 
-            if run_ids:
-                # Default to the current run if it is in the history
-                if current_run_id in run_ids:
-                    default_index = run_ids.index(current_run_id)
-                else:
-                    default_index = None
+        new_claim_option = "__new_claim__"
+        options = [new_claim_option] + run_ids
+        default_index = options.index(current_run_id) if current_run_id in options else 0
 
-                selected_run_id = st.radio(
-                    "Chọn phiên",
-                    options=run_ids,
-                    index=default_index if default_index is not None else 0,
-                    format_func=_format_run_label,
-                    key="run_history_selection",
+        selected = st.selectbox(
+            "Chọn phiên",
+            options=options,
+            index=default_index,
+            format_func=lambda rid: "🆕 Tạo hồ sơ mới" if rid == new_claim_option else _format_history_label(runs, rid),
+        )
+
+        if selected == new_claim_option:
+            return
+
+        if selected != current_run_id:
+            on_select_run(selected)
+
+
+def _format_history_label(runs: list[dict], run_id: str) -> str:
+    run = next((item for item in runs if item.get("run_id") == run_id), {})
+    state = get_ui_state(run.get("data"))
+    emoji = {
+        UIState.PROCESSING: "🟦",
+        UIState.WAITING_FOR_HUMAN: "🟨",
+        UIState.ERROR: "🟥",
+        UIState.COMPLETED: "🟩",
+    }.get(state, "⬜")
+    claim = run.get("claim_id", "-")
+    return f"{emoji} {run_id[:8]} | {claim}"
+
+
+def render_claim_submission(on_start: Callable) -> None:
+    """Step 1: claim submission form with drag and drop upload."""
+    st.subheader(":material/assignment_add: Bước 1 - Khởi tạo hồ sơ")
+    with st.container(border=True):
+        with st.form("claim_submission_form", clear_on_submit=False, border=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                claim_id = st.text_input(
+                    "Mã hồ sơ (Claim ID)",
+                    value=f"CLM-{int(datetime.now().timestamp())}",
+                    key="claim_id_input",
+                )
+            with col2:
+                policy_number = st.text_input(
+                    "Số hợp đồng (Policy Number)",
+                    value="POL-2026",
+                    key="policy_number_input",
                 )
 
-                if selected_run_id and selected_run_id != current_run_id:
-                    on_select_run(selected_run_id)
+            uploaded_file = st.file_uploader(
+                "Kéo-thả tài liệu y tế (PDF/Ảnh)",
+                type=["pdf", "png", "jpg", "jpeg"],
+                key="submission_upload",
+            )
 
-def render_claim_input_form(on_start: Callable) -> None:
-    """Render the form for submitting a new claim."""
-    st.subheader("📝 Thông Tin Hồ Sơ")
-    col1, col2 = st.columns(2)
-    with col1:
-        claim_id = st.text_input("Mã Hồ Sơ (Claim ID)", value=f"CLM-{int(datetime.now().timestamp())}")
-    with col2:
-        policy_number = st.text_input("Mã Hợp Đồng (Policy Number)", value="POL-2024")
+            if uploaded_file is not None:
+                st.caption(
+                    f"Tệp đã chọn: {uploaded_file.name} | "
+                    f"{uploaded_file.type or 'application/octet-stream'} | "
+                    f"{uploaded_file.size} bytes"
+                )
 
-    st.subheader("📎 Tài Liệu Bồi Thường")
-    uploaded_file = st.file_uploader(
-        "Upload tài liệu (PDF/Ảnh/JSON/TXT)",
-        type=["pdf", "png", "jpg", "jpeg", "json", "txt"],
-        help="Có thể upload tài liệu gốc; nếu là JSON OCR thì hệ thống sẽ đọc tự động.",
-    )
+            submit = st.form_submit_button(":material/play_circle: Chạy workflow", type="primary", use_container_width=True)
 
-    if uploaded_file is not None:
-        st.caption(
-            f"File đã chọn: {uploaded_file.name} | "
-            f"{uploaded_file.type or 'application/octet-stream'} | "
-            f"{uploaded_file.size} bytes"
-        )
-
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        if st.button("🚀 Bắt Đầu Phân Tích", use_container_width=True, type="primary"):
-            if uploaded_file is None:
-                st.error("Vui lòng upload tài liệu trước khi bắt đầu.")
-            else:
-                input_file = uploaded_file.name
-                on_start(claim_id, policy_number, input_file, uploaded_file)
+        if submit:
+            if not uploaded_file:
+                st.error("Vui lòng tải tệp trước khi chạy workflow.")
+                return
+            on_start(claim_id.strip(), policy_number.strip(), uploaded_file.name, uploaded_file)
 
 
-def render_workflow_status(state_data: dict) -> None:
-    """Render the workflow status dashboard.
+def render_monitoring(state_data: dict) -> None:
+    """Step 2: workflow monitoring timeline + live status + history."""
+    st.subheader(":material/monitoring: Bước 2 - Theo dõi tiến trình")
 
-    Args:
-        state_data: Current workflow state.
-    """
-    history = state_data.get("history", [])
+    ui_state = get_ui_state(state_data)
+    current_step = str(state_data.get("current_step") or "unknown")
 
-    st.subheader("📊 Tiến Trình Xử Lý")
+    top_col1, top_col2, top_col3 = st.columns(3)
+    with top_col1:
+        st.metric("Bước hiện tại", current_step, border=True)
+    with top_col2:
+        st.metric("Mã phiên", (state_data.get("run_id") or "")[:12], border=True)
+    with top_col3:
+        st.metric("Trạng thái UI", ui_state.value.upper(), border=True)
+
+    render_timeline(state_data)
+    render_step_messages(state_data)
+    render_history_log(state_data.get("history", []))
+
+
+def render_timeline(state_data: dict) -> None:
+    """Render 4-step timeline with active and completed nodes."""
+    step_status = _compute_timeline_status(state_data)
+    cols = st.columns(4)
+
+    for idx, step_key in enumerate(STEP_ORDER):
+        status = step_status[step_key]
+        icon = STEP_ICONS[step_key]
+        label = STEP_LABELS[step_key]
+        with cols[idx]:
+            with st.container(border=True):
+                st.markdown(icon)
+                st.markdown(f"**{label}**")
+                st.markdown(BADGE_BY_STEP_STATUS[status])
+
+
+def render_step_messages(state_data: dict) -> None:
+    """Show detailed message after each step for better readability."""
+    st.markdown("**Diễn giải chi tiết theo từng bước**")
 
     steps = [
-        ("completeness_check", "Agent 1: Kiểm Tra Tính Đầy Đủ", "📋"),
-        ("quality_check", "Agent 2: Kiểm Tra Chất Lượng Y Tế", "🏥"),
-        ("final_decision", "Agent 3: Kết Luận Cuối Cùng", "✅"),
+        (
+            "completeness",
+            "Bước 1 - Kiểm tra tính đầy đủ",
+            state_data.get("agent_1_result"),
+        ),
+        (
+            "quality",
+            "Bước 2 - Kiểm tra chất lượng y tế",
+            state_data.get("agent_2_result"),
+        ),
+        (
+            "human_review",
+            "Bước 3 - Kết quả thẩm định thủ công",
+            state_data.get("human_review_result"),
+        ),
+        (
+            "final_decision",
+            "Bước 4 - Kết luận cuối cùng",
+            state_data.get("final_result"),
+        ),
     ]
 
-    completed_steps = {
-        entry.get("step", "").replace("completed_", "")
-        for entry in history
-        if entry.get("step", "").startswith("completed_")
-    }
+    for step_key, title, payload in steps:
+        with st.container(border=True):
+            st.markdown(f"**{title}**")
+            if not payload:
+                st.caption("Chưa có dữ liệu ở bước này")
+                continue
 
-    cols = st.columns(3)
-    for idx, (step_key, step_name, icon) in enumerate(steps):
-        with cols[idx]:
-            if step_key in completed_steps or state_data.get("final_result"):
-                st.success(f"{icon} {step_name}\n✓ Hoàn Thành")
-            elif idx == 0 or list(steps)[idx - 1][0] in completed_steps:
-                st.info(f"{icon} {step_name}\n⏳ Đang Xử Lý")
-            else:
-                st.caption(f"{icon} {step_name}\n⭕ Chưa Bắt Đầu")
+            decision = payload.get("decision") or payload.get("status") or "-"
+            message = payload.get("message") or payload.get("rejection_reason") or "Không có message"
 
-    st.divider()
+            col1, col2 = st.columns([1, 4])
+            with col1:
+                st.caption("Quyết định")
+                st.write(f"**{str(decision).upper()}**")
+            with col2:
+                st.caption("Message")
+                st.write(message)
 
-    for entry in history:
-        render_agent_result(entry)
-
-
-def render_agent_result(entry: dict) -> None:
-    """Render a single agent result card.
-
-    Args:
-        entry: Agent result entry from history.
-    """
-    agent_name = entry.get("agent", "Unknown")
-    result = entry.get("result", {})
-
-    with st.expander(f"📦 Kết Quả: {agent_name}", expanded=True):
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            decision = result.get("decision", result.get("valid", False))
-            if decision == "accept" or decision is True:
-                st.success("✅ Chấp Nhận")
-            elif decision == "reject" or decision is False:
-                st.error("❌ Từ Chối")
-            else:
-                st.warning("⚠️ Cần Xem Xét")
-
-        with col2:
-            agent_msg = result.get("message")
-            if agent_msg:
-                st.info(f"**Thông điệp:** {agent_msg}")
-
-            issues = result.get("issues", [])
+            issues = payload.get("issues") or payload.get("issues_summary") or []
             if issues:
-                st.write("**Vấn Đề Phát Hiện:**")
-                for issue in issues:
-                    severity = issue.get("severity", "unknown")
-                    desc = issue.get("description", issue.get("message", ""))
-                    emoji = SEVERITY_COLORS.get(severity, "⚪")
-                    st.write(f"{emoji} [{severity.upper()}] {desc}")
+                _render_issue_details(issues)
+
+            if step_key == "human_review":
+                notes = payload.get("notes")
+                if notes:
+                    st.caption(f"Ghi chú thẩm định: {notes}")
 
 
-def render_hitl_panel(
-    state_data: dict,
-    on_resume: Callable,
-) -> None:
-    """Render the Human-in-the-Loop review panel.
+def _render_issue_details(issues: list[dict]) -> None:
+    """Render issue list in a clear and reviewer-friendly format."""
+    st.markdown("**Lỗi / Cảnh báo chi tiết**")
 
-    Args:
-        state_data: Current workflow state.
-        on_resume: Callback when decision is submitted.
-    """
-    st.warning("⚠️ **Hệ thống phát hiện dữ liệu không nhất quán. Cần chuyên viên y tế can thiệp!**")
+    rows = []
+    for issue in issues:
+        severity = str(issue.get("severity", "low")).lower()
+        icon = SEVERITY_COLORS.get(severity, "⚪")
+        code = issue.get("code") or issue.get("category") or "-"
+        description = issue.get("description") or issue.get("message") or "-"
+        count = issue.get("count")
 
-    st.subheader("📋 Thông Tin Can Thiệp")
+        if count is not None:
+            description = f"{description} (số lượng: {count})"
 
-    col1, col2 = st.columns(2)
-    with col1:
-        waiting_at = (
-            "Completeness Check" if not state_data.get("agent_2_result") else "Quality Check"
-        )
-        st.info(f"**Đang chờ tại:** {waiting_at}")
-
-        agent_result = (
-            state_data.get("agent_1_result")
-            if not state_data.get("agent_2_result")
-            else state_data.get("agent_2_result")
-        )
-        if agent_result and "issues" in agent_result:
-            st.write("**Lý do dừng:**")
-            for issue in agent_result.get("issues", [])[:3]:
-                st.write(f"- {issue.get('description', issue.get('message', ''))}")
-
-    with col2:
-        st.write("**Hành động của bạn:**")
-        decision_labels = {
-            "approve": "✅ Chấp Nhận - Cho phép tiếp tục xử lý",
-            "reject": "❌ Từ Chối - Bác bỏ hồ sơ",
-            "edit": "✏️ Yêu Cầu Sửa Đổi - Cần bổ sung thông tin",
-        }
-
-        def _format_decision(x: Any) -> str:
-            return decision_labels.get(x, str(x))
-
-        action = st.selectbox(
-            "Quyết định",
-            options=[h.value for h in HITLDecision],
-            format_func=_format_decision,
+        rows.append(
+            {
+                "Mức độ": f"{icon} {severity.upper()}",
+                "Mã/Nhóm": str(code),
+                "Mô tả": str(description),
+            }
         )
 
-    notes = st.text_area("Ghi Chú (Tuỳ Chọn)", height=100, key="hitl_notes")
-
-    if st.button("⚡ Gửi Quyết Định & Tiếp Tục", type="primary", use_container_width=True):
-        on_resume(action, notes)
-
-
-def render_stage_pause_panel(
-    state_data: dict,
-    on_continue: Callable,
-) -> None:
-    """Render pause panel for stage-by-stage execution mode."""
-    pause_at = state_data.get("pause_at", "unknown")
-    stage_labels = {
-        "quality_check": "Quality Check",
-        "final_decision": "Final Decision",
-    }
-    next_stage = stage_labels.get(pause_at, pause_at)
-
-    st.info("⏸️ **Đã hoàn thành một chặng và tạm dừng theo luồng mới.**")
-    st.write(f"**Bước kế tiếp:** {next_stage}")
-    st.caption("Nhấn tiếp tục để chạy sang bước tiếp theo của workflow.")
-
-    if st.button("▶️ Tiếp Tục Workflow", type="primary", use_container_width=True):
-        on_continue()
-
-
-def _render_result_summary(result: Optional[dict]) -> None:
-    """Render compact summary for one step result."""
-    if not result:
-        st.caption("Chưa có kết quả ở bước này.")
+    if not rows:
+        st.caption("Không có lỗi/cảnh báo")
         return
 
-    decision = result.get("decision", result.get("status", result.get("valid")))
-    if decision in ("accept", "approve", True):
-        st.success(f"Kết luận: {decision}")
-    elif decision in ("reject", False):
-        st.error(f"Kết luận: {decision}")
-    else:
-        st.warning(f"Kết luận: {decision}")
-
-    agent_message = result.get("message")
-    if agent_message:
-        st.info(f"**Thông điệp:** {agent_message}")
-
-    issues = result.get("issues", []) or []
-    if issues:
-        st.write("Vấn đề phát hiện:")
-        for issue in issues[:5]:
-            severity = issue.get("severity", "unknown")
-            desc = issue.get("description", issue.get("message", ""))
-            emoji = SEVERITY_COLORS.get(severity, "⚪")
-            st.write(f"- {emoji} [{severity.upper()}] {desc}")
+    st.dataframe(
+        pd.DataFrame(rows),
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Mức độ": st.column_config.TextColumn("Mức độ", width="small"),
+            "Mã/Nhóm": st.column_config.TextColumn("Mã/Nhóm", width="small"),
+            "Mô tả": st.column_config.TextColumn("Mô tả", width="large"),
+        },
+    )
 
 
-def _infer_active_step(state_data: dict) -> int:
-    """Infer current active step for UI focus.
+def _compute_timeline_status(state_data: dict) -> dict[str, StepStatus]:
+    out = {step: StepStatus.PENDING for step in STEP_ORDER}
 
-    Returns:
-        1|2|3 for active processing step, 0 when completed.
-    """
+    if state_data.get("agent_1_result"):
+        out["completeness"] = StepStatus.DONE
+    if state_data.get("agent_2_result"):
+        out["quality"] = StepStatus.DONE
+    if state_data.get("human_review_result") and not state_data.get("pending_human_review"):
+        out["human_review"] = StepStatus.DONE
     if state_data.get("final_result"):
-        return 0
+        out["final_decision"] = StepStatus.DONE
+        return out
 
+    current_step = str(state_data.get("current_step") or "").lower()
     if state_data.get("pending_human_review"):
-        review = state_data.get("human_review_result") or {}
-        stage = review.get("stage")
-        if stage == "quality" or state_data.get("agent_2_result"):
-            return 2
-        return 1
+        out["human_review"] = StepStatus.WAITING
+        if state_data.get("agent_2_result"):
+            out["quality"] = StepStatus.DONE
+        elif state_data.get("agent_1_result"):
+            out["completeness"] = StepStatus.DONE
+        return out
 
-    if state_data.get("paused"):
-        pause_at = state_data.get("pause_at")
-        if pause_at == "quality_check":
-            return 2
-        if pause_at == "final_decision":
-            return 3
+    if "quality" in current_step:
+        out["quality"] = StepStatus.ACTIVE
+    elif "final" in current_step or "decision" in current_step:
+        out["final_decision"] = StepStatus.ACTIVE
+    elif "human" in current_step:
+        out["human_review"] = StepStatus.ACTIVE
+    else:
+        out["completeness"] = StepStatus.ACTIVE
 
-    if not state_data.get("agent_1_result"):
-        return 1
-    if not state_data.get("agent_2_result"):
-        return 2
-    return 3
+    return out
 
 
-def render_step_flow(
+def render_history_log(history: list[dict]) -> None:
+    """Render completed actions from graph history list."""
+    st.markdown("**Nhật ký hành động**")
+    if not history:
+        st.caption("Chưa có lịch sử")
+        return
+
+    rows = []
+    for idx, item in enumerate(history, start=1):
+        result = item.get("result") if isinstance(item.get("result"), dict) else {}
+        step_raw = str(item.get("step") or "unknown")
+        step_label = _friendly_step_name(step_raw)
+
+        decision = item.get("decision") or result.get("decision") or result.get("status") or "-"
+        status = _friendly_status(decision, result)
+
+        message = (
+            result.get("message")
+            or result.get("rejection_reason")
+            or item.get("notes")
+            or result.get("error")
+            or "-"
+        )
+
+        issues = result.get("issues") or result.get("issues_summary") or []
+        issue_count = len(issues) if isinstance(issues, list) else 0
+
+        rows.append(
+            {
+                "STT": idx,
+                "Bước": step_label,
+                "Tác nhân": item.get("agent", "System"),
+                "Trạng thái": status,
+                "Quyết định": str(decision).upper() if decision != "-" else "-",
+                "Số lỗi": issue_count,
+                "Thông điệp": message,
+            }
+        )
+
+    df = pd.DataFrame(rows)
+    st.dataframe(
+        df,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "STT": st.column_config.NumberColumn("STT", width="small"),
+            "Bước": st.column_config.TextColumn("Bước", width="medium"),
+            "Tác nhân": st.column_config.TextColumn("Tác nhân", width="small"),
+            "Trạng thái": st.column_config.TextColumn("Trạng thái", width="small"),
+            "Quyết định": st.column_config.TextColumn("Quyết định", width="small"),
+            "Số lỗi": st.column_config.NumberColumn("Số lỗi", width="small"),
+            "Thông điệp": st.column_config.TextColumn("Thông điệp", width="large"),
+        },
+    )
+
+
+def _friendly_step_name(step_raw: str) -> str:
+    raw = step_raw.lower()
+    if "completeness" in raw:
+        return "Kiểm tra tính đầy đủ"
+    if "quality" in raw:
+        return "Kiểm tra chất lượng y tế"
+    if "human_review" in raw or "human" in raw:
+        return "Thẩm định thủ công"
+    if "final" in raw or "decision" in raw:
+        return "Kết luận cuối cùng"
+    if "start" in raw:
+        return "Khởi tạo workflow"
+    return step_raw
+
+
+def _friendly_status(decision: Any, result: dict) -> str:
+    if result.get("error"):
+        return "Lỗi"
+
+    decision_text = str(decision).lower()
+    if decision_text in ("approve", "accept", "accepted"):
+        return "Đạt"
+    if decision_text in ("reject", "rejected"):
+        return "Không đạt"
+    if decision_text in ("accept_with_edit", "edit"):
+        return "Cần chỉnh sửa"
+    return "Đã ghi nhận"
+
+
+def render_human_review_panel(
     state_data: dict,
-    on_continue: Callable,
     on_resume: Callable,
+    action_locked: bool = False,
 ) -> None:
-    """Render step-by-step workflow UI with action in active step."""
-    st.subheader("🧭 Luồng xử Lý Theo Từng Step")
+    """Step 3: split-view HITL panel with optional edit JSON."""
+    st.subheader(":material/person_search: Bước 3 - Giao diện thẩm định")
+    st.warning("Hồ sơ cần thẩm định thủ công. Vui lòng đưa ra quyết định để tiếp tục workflow.")
 
-    active_step = _infer_active_step(state_data)
-    step_defs = [
-        (1, "Step 1: Completeness", state_data.get("agent_1_result")),
-        (2, "Step 2: Quality", state_data.get("agent_2_result")),
-        (3, "Step 3: Final Decision", state_data.get("final_result")),
-    ]
+    assessment = _get_pending_assessment(state_data)
+    extracted_documents = state_data.get("extracted_documents") or {}
 
-    for idx, title, result in step_defs:
-        is_done = result is not None
-        is_active = active_step == idx
-        prefix = "✅" if is_done else ("🔵" if is_active else "⭕")
+    left_col, right_col = st.columns([1.2, 1.0])
 
-        with st.expander(f"{prefix} {title}", expanded=is_active or is_done):
-            _render_result_summary(result)
+    with left_col:
+        with st.container(border=True):
+            st.markdown("**Kết quả từ Agent**")
+            _render_assessment_findings(assessment)
 
-            if is_active and state_data.get("pending_human_review"):
-                st.divider()
-                render_hitl_panel(state_data, on_resume=on_resume)
+        with st.container(border=True):
+            st.markdown("**Dữ liệu OCR thô (extracted_documents)**")
+            st.json(extracted_documents)
 
-            if is_active and state_data.get("paused") and not state_data.get("pending_human_review"):
-                st.divider()
-                render_stage_pause_panel(state_data, on_continue=on_continue)
+    with right_col:
+        with st.container(border=True):
+            st.markdown("**Biểu mẫu quyết định**")
+            decision = st.radio(
+                "Quyết định",
+                options=[d.value for d in HITLDecision],
+                horizontal=True,
+                format_func=lambda value: {
+                    "approve": "Phê duyệt",
+                    "reject": "Từ chối",
+                    "edit": "Chỉnh sửa",
+                }.get(value, value),
+                key="hitl_decision",
+            )
 
-    if state_data.get("final_result"):
-        st.divider()
-        st.subheader("📝 Kết Quả Phê Duyệt Cuối Cùng")
-        res = state_data["final_result"]
-        
-        decision = res.get("decision", "").upper()
-        if decision == "APPROVE" or decision == "ACCEPT":
-            st.success(f"✅ QUYẾT ĐỊNH: CHẤP NHẬN BỒI THƯỜNG")
-            amount = res.get("approved_amount")
-            if amount is not None:
-                st.write(f"**Số tiền duyệt chi:** {amount:,} VNĐ")
+            notes = st.text_area(
+                "Ghi chú",
+                height=120,
+                placeholder="Nhập ghi chú thẩm định...",
+                key="hitl_notes",
+            )
+
+            edited_result = None
+            if decision == HITLDecision.EDIT.value:
+                st.markdown("**Trình sửa dữ liệu có cấu trúc (JSON)**")
+                default_editor_payload = assessment if assessment else {"valid": False, "issues": []}
+                text_value = st.text_area(
+                    "Chỉnh sửa dữ liệu JSON Agent trích xuất",
+                    value=json.dumps(default_editor_payload, ensure_ascii=False, indent=2),
+                    height=260,
+                    key="hitl_edit_json",
+                )
+                try:
+                    edited_result = json.loads(text_value)
+                except json.JSONDecodeError as ex:
+                    st.error(f"JSON không hợp lệ: {ex}")
+                    return
+
+            if st.button(
+                ":material/play_circle: Tiếp tục workflow",
+                type="primary",
+                use_container_width=True,
+                disabled=action_locked,
+            ):
+                on_resume(decision, notes, edited_result)
+
+
+def _render_assessment_findings(assessment: Optional[dict]) -> None:
+    if not assessment:
+        st.caption("Không có kết quả đánh giá ở bước này")
+        return
+
+    st.write(f"Hợp lệ: **{assessment.get('valid', '-') }**")
+    st.write(f"Quyết định: **{assessment.get('decision', '-') }**")
+    message = assessment.get("message")
+    if message:
+        st.caption(message)
+
+    issues = assessment.get("issues") or []
+    if not issues:
+        st.caption("Không có cảnh báo")
+        return
+
+    for issue in issues:
+        severity = str(issue.get("severity", "low")).lower()
+        icon = SEVERITY_COLORS.get(severity, "⚪")
+        code = issue.get("code", "-")
+        description = issue.get("description", "")
+        st.write(f"{icon} [{severity.upper()}] {code} - {description}")
+
+
+def _get_pending_assessment(state_data: dict) -> Optional[dict]:
+    if state_data.get("agent_2_result"):
+        return state_data.get("agent_2_result")
+    return state_data.get("agent_1_result")
+
+
+def render_final_dashboard(state_data: dict) -> None:
+    """Step 4: final decision card + details + audit trail."""
+    st.subheader(":material/gavel: Bước 4 - Kết quả cuối cùng")
+    final_result = state_data.get("final_result") or {}
+
+    decision = str(final_result.get("decision") or "").lower()
+    approved_amount = final_result.get("approved_amount", 0)
+    message = final_result.get("message") or final_result.get("rejection_reason") or "-"
+
+    with st.container(border=True):
+        if decision == "approve":
+            st.success("PHÊ DUYỆT")
         else:
-            st.error(f"❌ QUYẾT ĐỊNH: TỪ CHỐI BỒI THƯỜNG")
-            reason = res.get("rejection_reason")
-            if reason:
-                st.write(f"**Lý do từ chối:** {reason}")
-                
-        st.info(f"**Thông điệp từ hệ thống:** {res.get('message', '')}")
-        
-        issues = res.get("issues_summary", [])
-        if issues:
-            st.write("**Tổng hợp vấn đề:**")
-            for issue in issues:
-                cat = issue.get("category", "")
-                count = issue.get("count", 0)
-                sev = issue.get("severity", "")
-                st.write(f"- {cat.title()}: {count} lỗi (Mức độ: {sev.title()})")
+            st.error("TỪ CHỐI")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Số tiền bồi thường", f"{approved_amount:,}")
+        with col2:
+            st.write("**Lý do / diễn giải**")
+            st.write(message)
+
+        issues_summary = final_result.get("issues_summary") or []
+        if issues_summary:
+            st.markdown("**Tổng hợp vấn đề**")
+            st.dataframe(pd.DataFrame(issues_summary), hide_index=True, use_container_width=True)
+
+    st.markdown("**Audit trail toàn quy trình**")
+    render_history_log(state_data.get("history", []))
+
+    st.download_button(
+        ":material/download: Tải báo cáo kết quả (JSON)",
+        data=json.dumps(state_data, ensure_ascii=False, indent=2),
+        file_name=f"claim_report_{state_data.get('run_id', 'unknown')}.json",
+        mime="application/json",
+        use_container_width=True,
+    )
+
+
+def render_error_state(
+    error_message: str,
+    error_payload: Optional[dict] = None,
+    context_label: str = "workflow",
+) -> None:
+    """Render API/workflow error with full details for human review."""
+    st.error(f"Lỗi {context_label}: {error_message}")
+
+    with st.container(border=True):
+        st.markdown("**Chi tiết lỗi cho Human Review**")
+
+        status_code = None
+        endpoint = None
+        detail = None
+        if isinstance(error_payload, dict):
+            status_code = error_payload.get("status_code")
+            endpoint = error_payload.get("endpoint")
+            detail = error_payload.get("error_detail") or error_payload.get("detail")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.caption("Mã lỗi HTTP")
+            st.write(str(status_code) if status_code is not None else "-")
+        with col2:
+            st.caption("Endpoint")
+            st.write(endpoint or "-")
+
+        st.caption("Thông tin chi tiết")
+        if detail:
+            if isinstance(detail, (dict, list)):
+                st.json(detail)
+            else:
+                st.code(str(detail), language="text")
+        else:
+            st.write(error_message)
+
+        if isinstance(error_payload, dict):
+            with st.expander("Xem payload lỗi đầy đủ"):
+                st.json(error_payload)
 
 
 def render_raw_state(state_data: dict) -> None:
-    """Render the raw graph state in developer mode.
-
-    Args:
-        state_data: Current workflow state.
-    """
-    with st.expander("🛠️ Xem Trạng Thái Graph (Developer Mode)"):
+    """Developer helper to inspect current full state payload."""
+    with st.expander("Chế độ developer: raw graph state"):
         st.json(state_data)
-
-
-def render_error(message: str) -> None:
-    """Render an error message.
-
-    Args:
-        message: Error message to display.
-    """
-    st.error(f"❌ Lỗi: {message}")
-
-
-def render_success(message: str) -> None:
-    """Render a success message.
-
-    Args:
-        message: Success message to display.
-    """
-    st.success(f"✅ {message}")
-
-
-def render_info(message: str) -> None:
-    """Render an info message.
-
-    Args:
-        message: Info message to display.
-    """
-    st.info(message)
