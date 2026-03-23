@@ -694,8 +694,16 @@ def _render_assessment_findings(assessment: Optional[dict]) -> None:
 
     suggested_updates = assessment.get("suggested_updates")
     if suggested_updates:
-        # Determine step_key for hitl panel based on result keys if possible
-        _render_suggested_updates(suggested_updates, step_key="quality" if "agent_2_result" in str(assessment) else "completeness")
+        # Determine step_key for hitl panel using explicit stage when available,
+        # otherwise fall back to simple inference from evidence.
+        step_key = assessment.get("stage")
+        if not step_key:
+            inferred_step_key = "completeness"
+            evidence_payload = assessment.get("evidence") or {}
+            if isinstance(evidence_payload, dict) and "medical_findings" in evidence_payload:
+                inferred_step_key = "quality"
+            step_key = inferred_step_key
+        _render_suggested_updates(suggested_updates, step_key=step_key)
 
 
 def _render_agent_review_summary(state_data: dict) -> None:
