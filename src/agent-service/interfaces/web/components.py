@@ -456,10 +456,11 @@ def _compute_timeline_status(state_data: dict) -> dict[str, StepStatus]:
     current_step = str(state_data.get("current_step") or "").lower()
 
     # WHY: Detect agent_review states from current_step patterns.
-    if "agent_review" in current_step:
-        out["agent_review"] = StepStatus.ACTIVE
-    elif "agent_reviewed" in current_step:
+    # NOTE: Check for completed agent-review states before generic "agent_review"
+    if "agent_reviewed" in current_step or "agent_review_escalated" in current_step:
         out["agent_review"] = StepStatus.DONE
+    elif current_step.startswith("agent_review"):
+        out["agent_review"] = StepStatus.ACTIVE
     elif out["completeness"] == StepStatus.DONE and out["quality"] == StepStatus.DONE:
         out["agent_review"] = StepStatus.DONE
     elif out["completeness"] == StepStatus.DONE:
