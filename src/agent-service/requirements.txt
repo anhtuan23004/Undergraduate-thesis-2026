@@ -19,6 +19,7 @@ python-dotenv>=1.0.0
 structlog>=24.1.0
 requests>=2.31.0
 langfuse>=2.0.0
+tavily-python>=0.3.3
 
 # Streamlit UI
 streamlit>=1.28.0
