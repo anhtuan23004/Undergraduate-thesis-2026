@@ -7,20 +7,15 @@ Multi-service system for automated health insurance claim processing.
 | Service | Host Port | Container Port | Notes |
 |---|---:|---:|---|
 | OCR Service | `8001` | `8000` | Gemini OCR extraction |
-| RAG Service | `8002` | `8000` | Hybrid retrieval (BM25 + vector) |
 | Agent Service | `8003` | `8000` | LangGraph multi-agent workflow |
 | MongoDB | `27017` | `27017` | Metadata + app data |
-| Redis | `6379` | `6379` | Claim metadata and pending review state |
-| Milvus | `19530` | `19530` | Vector database |
 | Mongo Express | `8081` | `8081` | Mongo UI |
-| Milvus Attu | `8000` | `3000` | Milvus UI |
 
 ## Data Flow
 
 1. OCR extracts document content
-2. RAG ingests/searches policy context
-3. Agent service runs multi-agent decision workflow
-4. Human review loop is triggered for interrupted cases
+2. Agent service runs multi-agent decision workflow
+3. Human review loop is triggered for interrupted cases
 
 ## Prerequisites
 
@@ -44,7 +39,6 @@ Verify health:
 
 ```bash
 curl http://localhost:8001/health
-curl http://localhost:8002/health
 curl http://localhost:8003/health
 ```
 
@@ -54,12 +48,6 @@ curl http://localhost:8003/health
 
 - `POST /api/v1/ocr/raw`
 - `POST /api/v1/ocr/fields`
-
-### RAG
-
-- `POST /api/v1/ingest`
-- `POST /api/v1/search`
-- `POST /api/v1/rag/query`
 
 ### Agent (new runtime contract)
 
@@ -77,14 +65,6 @@ curl http://localhost:8003/health
 cd src/ocr-service
 pip install -r requirements.txt
 uvicorn api.main:app --reload --port 8001
-```
-
-### RAG Service
-
-```bash
-cd src/rag-service
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8002
 ```
 
 ### Agent Service
@@ -109,7 +89,6 @@ streamlit run interfaces/web/app.py
 ├── docker-compose.yml
 ├── src/
 │   ├── ocr-service/
-│   ├── rag-service/
 │   └── agent-service/
 ├── infrastructure/
 ├── docs/
@@ -119,5 +98,4 @@ streamlit run interfaces/web/app.py
 ## Service Docs
 
 - [OCR Service](src/ocr-service/README.md)
-- [RAG Service](src/rag-service/README.md)
 - [Agent Service](src/agent-service/README.md)

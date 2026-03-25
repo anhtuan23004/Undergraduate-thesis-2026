@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     GEMINI_TEMPERATURE: float = 0.3
     GEMINI_MAX_TOKENS: int = 8192
 
-    MONGODB_URL: str = "mongodb://localhost:27017"
+    MONGODB_URL: str = "mongodb://admin:admin123@localhost:27017/claims?authSource=admin&directConnection=true"
+    MONGODB_URL_AGENT: str = "mongodb://admin:admin123@localhost:27017/agent?authSource=admin&directConnection=true"
     MONGODB_DB: str = "claims"
     MEDICINE_DB: str = "document_qa"
     OCR_SERVICE_URL: str = "http://localhost:8091"
@@ -38,6 +39,8 @@ class Settings(BaseSettings):
     LANGFUSE_SECRET_KEY: str = ""
     LANGFUSE_HOST: str = "http://localhost:3000"
     LANGFUSE_ENABLED: bool = False
+
+    TAVILY_API_KEY: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
