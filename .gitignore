@@ -16,3 +16,4 @@ skill-based-design.md
 data/my_database.gz
 src/agent-service/uploads/*
 .agents
+data/dataset
