@@ -4,7 +4,7 @@ services:
     container_name: mongodb_thesis
     hostname: mongodb
     env_file:
-      - ../.env
+      - ../../.env
     environment:
       - MONGODB_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-admin}
       - MONGODB_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-admin123}
@@ -22,7 +22,7 @@ services:
     image: mongo-express:latest
     container_name: mongo-express-thesis
     env_file:
-      - ../.env
+      - ../../.env
     ports:
       - "8081:8081"
     environment:

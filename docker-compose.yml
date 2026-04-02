@@ -1,65 +1,29 @@
-# Complete Docker Compose for Insurance Claims Processing System
-# Runs all services: Infrastructure + Application Services
+# ============================================
+# Agentic AI Insurance Claims Processing System
+# Docker Compose Configuration
+# ============================================
+#
+# This configuration composes services from infrastructure:
+#   - infrastructure/mongodb/docker-compose-mongodb.yml
+#   - infrastructure/langfuse/docker-compose.langfuse.yml
+#
+# And builds application services:
+#   - ocr-service (document text extraction)
+#   - agent-service (LangGraph multi-agent workflow)
 #
 # Quick Start:
 #   1. cp .env.example .env
-#   2. Edit .env with your API keys
-#   3. docker-compose up -d
+#   2. Edit .env with your GEMINI_API_KEY
+#   3. docker-compose up -d --build
 #   4. docker-compose logs -f
 #
-# Services will start in dependency order automatically
+# ============================================
 
 services:
-  # ============================================
-  # INFRASTRUCTURE SERVICES
-  # ============================================
-
-  # --- MongoDB ---
-  mongodb:
-    image: mongo:7.0.4
-    container_name: claims-mongodb
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      MONGO_INITDB_DATABASE: claims
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      - ./infrastructure/mongodb/scripts:/docker-entrypoint-initdb.d:ro
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  mongo-express:
-    image: mongo-express:1.0.2
-    container_name: claims-mongo-express
-    restart: unless-stopped
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongodb:27017/
-      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER:-admin}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin123}
-    ports:
-      - "8081:8081"
-    networks:
-      - backend
-    depends_on:
-      mongodb:
-        condition: service_healthy
-
   # ============================================
   # APPLICATION SERVICES
   # ============================================
 
-  # --- OCR Service ---
   ocr-service:
     build:
       context: ./src/ocr-service
@@ -68,6 +32,8 @@ services:
     restart: unless-stopped
     ports:
       - "8001:8000"
+    env_file:
+      - .env
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
@@ -83,7 +49,6 @@ services:
       retries: 3
       start_period: 60s
 
-  # --- Agent Service ---
   agent-service:
     build:
       context: ./src/agent-service
@@ -92,20 +57,26 @@ services:
     restart: unless-stopped
     ports:
       - "8003:8000"
+    env_file:
+      - .env
     environment:
-      - MONGODB_URL=mongodb://claims_app:claims_password@mongodb:27017/claims
+      - MONGODB_URL=mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongodb:27017/claims?authSource=admin
+      - REDIS_URL=redis://redis:6379/0
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
       - OCR_SERVICE_URL=http://ocr-service:8000
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
-      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://localhost:3000}
+      - LANGFUSE_HOST=http://langfuse-web:3000
+      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       mongodb:
         condition: service_healthy
       ocr-service:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - backend
@@ -117,11 +88,16 @@ services:
       start_period: 60s
 
 # ============================================
+# INCLUDE INFRASTRUCTURE SERVICES
+# ============================================
+include:
+  - infrastructure/mongodb/docker-compose-mongodb.yml
+  - infrastructure/langfuse/docker-compose.langfuse.yml
+
+# ============================================
 # VOLUMES
 # ============================================
 volumes:
-  mongodb_data:
-    driver: local
   ocr_uploads:
     driver: local
 
