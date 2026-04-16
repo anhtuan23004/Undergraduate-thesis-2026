@@ -3,7 +3,7 @@ name = "insurance-claims-system"
 version = "1.0.0"
 description = "Agentic AI Insurance Claims Processing System"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "Undergraduate Thesis Project"}
@@ -14,7 +14,7 @@ classifiers = [
     "Intended Audience :: Healthcare Industry",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 
@@ -52,7 +52,7 @@ filterwarnings = [
 ]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]

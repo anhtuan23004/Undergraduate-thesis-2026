@@ -6,9 +6,7 @@ including all fields needed for agent communication and state management.
 """
 
 import operator
-from typing import Annotated
-
-from typing_extensions import TypedDict
+from typing import Annotated, TypedDict
 
 
 class GraphState(TypedDict):
