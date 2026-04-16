@@ -19,6 +19,26 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.3",
+    "pydantic-settings>=2.1.0",
+    "langgraph>=0.0.50",
+    "langgraph-checkpoint-mongodb>=2.0.0",
+    "langchain-core>=0.3.0",
+    "langchain-google-genai>=1.0.0",
+    "motor>=3.3.2",
+    "pymongo>=4.6.1",
+    "python-dotenv>=1.0.0",
+    "structlog>=24.1.0",
+    "requests>=2.31.0",
+    "langfuse>=2.0.0",
+    "tavily-python>=0.3.3",
+    "streamlit>=1.28.0",
+    "streamlit-autorefresh>=1.0.1",
+]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.4",
