@@ -6,7 +6,7 @@ pydantic-settings>=2.1.0
 
 # LangGraph & LangChain
 langgraph>=0.0.50
-langgraph-checkpoint-mongo>=0.1.0
+langgraph-checkpoint-mongodb>=0.1.0
 langchain-core>=0.3.0
 langchain-google-genai>=1.0.0
 
