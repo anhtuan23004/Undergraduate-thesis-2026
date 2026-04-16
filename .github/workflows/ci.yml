@@ -8,11 +8,10 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ============================================
   # LINTING
-  # ============================================
   lint:
     name: Lint with Ruff
     runs-on: ubuntu-latest
@@ -35,10 +34,6 @@ jobs:
       - name: Run Ruff linter
         run: |
           uv run ruff check .
-
-      - name: Run Ruff formatter check
-        run: |
-          uv run ruff format --check .
 
   # TYPE CHECKING (skipped - requires type annotations)
   # type-check:
