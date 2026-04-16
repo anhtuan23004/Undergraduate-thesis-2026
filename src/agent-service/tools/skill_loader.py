@@ -9,7 +9,6 @@ import importlib.util
 import os
 import sys
 import types
-import typing
 from pathlib import Path
 
 import structlog
@@ -69,14 +68,11 @@ def _find_tool_in_module(module: types.ModuleType) -> LangChainBaseTool | None:
         attr = getattr(module, attr_name)
 
         # Skip typing, modules, and built-in types
-        if isinstance(
-            attr,
-            (typing._SpecialGenericAlias, typing._SpecialForm, types.ModuleType, type),
-        ):
+        if isinstance(attr, types.ModuleType | type):
             continue
 
         # Check for LangChain tool types
-        if isinstance(attr, (StructuredTool, LangChainBaseTool)):
+        if isinstance(attr, StructuredTool | LangChainBaseTool):
             logger.debug(f"Found LangChain tool: {attr_name}")
             return attr
     return None

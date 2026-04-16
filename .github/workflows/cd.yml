@@ -11,9 +11,7 @@ env:
   PYTHON_VERSION: "3.13"
 
 jobs:
-  # ============================================
   # BUILD AND PUSH IMAGES
-  # ============================================
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
@@ -101,10 +99,7 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ============================================
   # DEPLOY TO STAGING (Optional)
-  # ============================================
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
@@ -126,9 +121,7 @@ jobs:
           # Example: SSH into server and pull new images
           # ssh user@staging-server "cd /app && docker-compose pull && docker-compose up -d"
 
-  # ============================================
   # DEPLOY TO PRODUCTION (Manual Approval)
-  # ============================================
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -168,9 +161,7 @@ jobs:
           echo "Deployment to production failed!"
           # Add failure notification commands here
 
-  # ============================================
   # DEPLOY NOTIFICATION
-  # ============================================
   notify:
     name: Send Deployment Notification
     runs-on: ubuntu-latest
