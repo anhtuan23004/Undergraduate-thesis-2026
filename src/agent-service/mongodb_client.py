@@ -1,6 +1,5 @@
 """MongoDB client utility with singleton pattern."""
 
-
 from config import settings
 from pymongo import MongoClient
 from pymongo.collection import Collection

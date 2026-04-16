@@ -1,6 +1,5 @@
 """Status and health check API routes."""
 
-
 from config import settings
 from fastapi import APIRouter, HTTPException
 

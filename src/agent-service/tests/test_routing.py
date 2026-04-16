@@ -4,7 +4,6 @@ These tests verify that the routing logic correctly handles
 various agent results and human review decisions.
 """
 
-
 from graphs.routing import (
     _get_decision_from_result,
     _get_human_decision,
