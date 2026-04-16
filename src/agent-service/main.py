@@ -3,11 +3,10 @@
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from api.routes import router as workflows_router
 from config import settings
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from mongodb_client import close_mongodb_client
 
 logger = structlog.get_logger()

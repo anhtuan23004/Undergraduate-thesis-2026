@@ -5,13 +5,12 @@ STDs, occupational diseases) according to insurance policy.
 """
 
 import json
-from typing import List
 
 from langchain_core.tools import tool
 
 
 @tool("check-exclusion")
-def check_exclusion(diagnoses: List[str]) -> str:
+def check_exclusion(diagnoses: list[str]) -> str:
     """Check if diagnoses are excluded from insurance coverage.
 
     This tool validates diagnoses against policy exclusion criteria to determine

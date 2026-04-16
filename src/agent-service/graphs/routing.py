@@ -17,7 +17,9 @@ def _get_decision_from_result(result: dict) -> str:
         return "accept"
 
     issues = result.get("issues", []) or []
-    has_critical_or_high = any(i.get("severity") in ("critical", "high") for i in issues if isinstance(i, dict))
+    has_critical_or_high = any(
+        i.get("severity") in ("critical", "high") for i in issues if isinstance(i, dict)
+    )
     return "reject" if has_critical_or_high else "accept_with_edit"
 
 

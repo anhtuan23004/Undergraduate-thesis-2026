@@ -1,14 +1,17 @@
 """Agent Factory for creating skill-based LangGraph agents."""
 
-import structlog
-import json
-from typing import Any, Callable
 import asyncio
-from mongodb_client import get_collection
-from datetime import datetime, timezone
+import json
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
+import structlog
+from mongodb_client import get_collection
 from schemas.agent_outputs import AssessmentOutput, FinalDecisionOutput
 from schemas.verifier_outputs import VerifierOutput
+from tools.skill_loader import load_agent_skills
+
 from agents.helpers import (
     create_agent_error_state,
     create_history_entry,
@@ -16,7 +19,6 @@ from agents.helpers import (
     load_system_prompt,
     parse_json_response,
 )
-from tools.skill_loader import load_agent_skills
 
 logger = structlog.get_logger()
 
@@ -76,7 +78,7 @@ class AgentFactory:
                         parsed_result = schema_class.model_validate(parsed_result).model_dump()
                     except Exception as ve:
                         logger.error(f"Schema validation failed for {agent_name}", error=str(ve))
-                        raise Exception(f"Output schema validation error: {ve}")
+                        raise Exception(f"Output schema validation error: {ve}") from ve
 
                 history_entry = create_history_entry(
                     agent_name=agent_name,
@@ -96,7 +98,7 @@ class AgentFactory:
                                 "step_name": agent_skill_name,
                                 "agent_name": agent_name,
                                 "result_json": parsed_result,
-                                "timestamp": datetime.now(timezone.utc),
+                                "timestamp": datetime.now(UTC),
                             }
                         )
 

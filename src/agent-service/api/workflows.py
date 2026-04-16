@@ -3,25 +3,26 @@
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
 import structlog
+from config import settings
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-
-from config import settings
 from graphs import build_claim_workflow
 from graphs.state import GraphState
 from mongodb_client import get_collection
-from .schemas import ClaimRequest, ContinueRequest, HumanReviewRequest
+
 from .helpers import (
+    _determine_review_stage,
     _extract_pause_state,
     _run_ocr_document,
     _save_ocr_result,
-    _determine_review_stage,
 )
+from .schemas import ClaimRequest, ContinueRequest, HumanReviewRequest
 
 logger = structlog.get_logger()
 
@@ -35,7 +36,6 @@ async def _get_graph() -> Any:
     global _compiled_graph
     if _compiled_graph is None:
         from agent import get_llm_client
-
         from langgraph.checkpoint.mongodb import MongoDBSaver
         from pymongo import MongoClient
 
@@ -54,9 +54,7 @@ async def _get_graph() -> Any:
     return _compiled_graph
 
 
-def _build_response(
-    result: dict, is_pending: bool, is_paused: bool, pause_at: Optional[str]
-) -> dict:
+def _build_response(result: dict, is_pending: bool, is_paused: bool, pause_at: str | None) -> dict:
     """Build standardized workflow response dict."""
     return {
         "run_id": result.get("run_id"),
@@ -124,13 +122,15 @@ async def run_workflow(request: ClaimRequest) -> dict:
         raise HTTPException(
             status_code=502,
             detail=f"OCR service error: {e.response.status_code if e.response else str(e)}",
-        )
+        ) from e
     except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Failed to connect OCR service: {str(e)}")
+        raise HTTPException(
+            status_code=502, detail=f"Failed to connect OCR service: {str(e)}"
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to prepare OCR data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to prepare OCR data: {str(e)}") from e
 
     initial_state: GraphState = {
         "run_id": run_id,
@@ -159,11 +159,11 @@ async def run_workflow(request: ClaimRequest) -> dict:
             snapshot = await graph.aget_state(config)
             is_pending, is_paused, pause_at = _extract_pause_state(snapshot)
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=504,
             detail=f"Processing timed out after {settings.PROCESS_TIMEOUT}s",
-        )
+        ) from None
 
     return _build_response(result, is_pending, is_paused, pause_at)
 
@@ -197,7 +197,7 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
             "decision": request.decision,
             "notes": request.notes,
             "stage": stage,
-            "reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "reviewed_at": datetime.now(UTC).isoformat(),
         }
 
         state_update = {
@@ -229,7 +229,7 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
 
 
 @router.post("/workflows/continue/{run_id}")
-async def continue_workflow(run_id: str, request: Optional[ContinueRequest] = None) -> dict:
+async def continue_workflow(run_id: str, request: ContinueRequest | None = None) -> dict:
     """Continue a workflow paused at a non-human stage.
 
     Args:
@@ -323,9 +323,7 @@ async def _stream_graph_events(
         SSE-formatted strings for each graph event.
     """
     try:
-        async for event in graph.astream_events(
-            input_state, config=config, version="v2"
-        ):
+        async for event in graph.astream_events(input_state, config=config, version="v2"):
             kind = event.get("event", "")
             name = event.get("name", "")
             step_key = _NODE_TO_STEP.get(name)
@@ -340,11 +338,14 @@ async def _stream_graph_events(
                 state_values = snapshot.values if snapshot else {}
                 is_pending, is_paused, pause_at = _extract_pause_state(snapshot)
                 partial = _build_response(state_values, is_pending, is_paused, pause_at)
-                yield _sse_event("node_end", {
-                    "step": step_key,
-                    "node": name,
-                    "state": partial,
-                })
+                yield _sse_event(
+                    "node_end",
+                    {
+                        "step": step_key,
+                        "node": name,
+                        "state": partial,
+                    },
+                )
 
         # WHY: Send a final snapshot once the graph run completes (or pauses).
         snapshot = await graph.aget_state(config)
@@ -389,28 +390,38 @@ async def run_workflow_stream(request: ClaimRequest) -> StreamingResponse:
                 ocr_result = existing_doc.get("ocr_result")
                 await asyncio.to_thread(
                     _save_ocr_result,
-                    run_id, request.claim_id, request.policy_number,
-                    request.input_file, ocr_result, request.file_hash,
+                    run_id,
+                    request.claim_id,
+                    request.policy_number,
+                    request.input_file,
+                    ocr_result,
+                    request.file_hash,
                 )
 
         if not ocr_result:
             ocr_result = await asyncio.to_thread(_run_ocr_document, request.input_file)
             await asyncio.to_thread(
                 _save_ocr_result,
-                run_id, request.claim_id, request.policy_number,
-                request.input_file, ocr_result, request.file_hash,
+                run_id,
+                request.claim_id,
+                request.policy_number,
+                request.input_file,
+                ocr_result,
+                request.file_hash,
             )
     except requests.HTTPError as e:
         raise HTTPException(
             status_code=502,
             detail=f"OCR service error: {e.response.status_code if e.response else str(e)}",
-        )
+        ) from e
     except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Failed to connect OCR service: {str(e)}")
+        raise HTTPException(
+            status_code=502, detail=f"Failed to connect OCR service: {str(e)}"
+        ) from e
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to prepare OCR data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to prepare OCR data: {str(e)}") from e
 
     initial_state: GraphState = {
         "run_id": run_id,
@@ -476,4 +487,3 @@ async def stream_workflow(run_id: str) -> StreamingResponse:
             "X-Accel-Buffering": "no",
         },
     )
-

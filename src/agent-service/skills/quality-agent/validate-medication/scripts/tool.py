@@ -5,16 +5,15 @@ the given diagnoses by cross-referencing with medical databases.
 """
 
 import json
-from typing import List, Optional
 
 from langchain_core.tools import tool
 
 
 @tool("validate-medication")
 def validate_medication(
-    medications: List[str],
-    diagnoses: Optional[List[str]] = None,
-    diagnosis_codes: Optional[List[str]] = None,
+    medications: list[str],
+    diagnoses: list[str] | None = None,
+    diagnosis_codes: list[str] | None = None,
 ) -> str:
     """Validate medications against diagnoses and insurance policy.
 

@@ -15,6 +15,7 @@ interfaces/web/
 ## Components
 
 ### api_client.py
+
 API client for communicating with the agent service backend.
 
 | Function | Description |
@@ -24,6 +25,7 @@ API client for communicating with the agent service backend.
 | `resume_workflow()` | POST to `/api/v1/workflows/resume/{run_id}` |
 
 ### components.py
+
 Reusable Streamlit UI components.
 
 | Function | Description |
@@ -35,11 +37,13 @@ Reusable Streamlit UI components.
 | `render_raw_state()` | Developer mode (raw GraphState) |
 
 ### app.py
+
 Main application entry point. Orchestrates components and manages session state.
 
 ## Features
 
 ### 1. Sidebar - Session Management
+
 - **➕ New Claim**: Create new processing session
 - **📋 Run History**: View and select previous sessions
 - **Status Indicators**:
@@ -49,6 +53,7 @@ Main application entry point. Orchestrates components and manages session state.
   - 🔴 Error
 
 ### 2. Claim Input Form
+
 - Claim ID and Policy Number
 - Insurance type (Health, Dental, Vision, Life)
 - Task type (full-flow, med-verification, etc.)
@@ -56,6 +61,7 @@ Main application entry point. Orchestrates components and manages session state.
 - 🚀 Start Workflow button
 
 ### 3. Workflow Status Dashboard
+
 - Visual progress through 3 agents:
   - Agent 1: Completeness Check 📋
   - Agent 2: Medical Quality 🏥
@@ -64,12 +70,14 @@ Main application entry point. Orchestrates components and manages session state.
 - Issue severity indicators
 
 ### 4. Human-in-the-Loop Panel
+
 - ⚠️ Warning alert
 - Decision options (Approve/Reject/Edit)
 - Notes field
 - ⚡ Resume workflow
 
 ### 5. Developer Mode
+
 - Raw GraphState viewer
 
 ## Running

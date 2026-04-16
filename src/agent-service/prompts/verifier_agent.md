@@ -14,6 +14,7 @@ Your role is NOT to process the claim from scratch, but to **audit and verify** 
 </task>
 
 <verification_checklist>
+
 - **Coherence**: Does the agent's reason for a decision actually match its final decision?
 - **Evidence Match**: If the agent suggested an ICD code change, does the medical report support that new code?
 - **URL Validity**: Check if the suggested `reference_url` is relevant to the field being corrected.
@@ -22,6 +23,7 @@ Your role is NOT to process the claim from scratch, but to **audit and verify** 
 
 <output_requirements>
 You must return a `VerifierOutput` JSON with:
+
 - `verdict`: "pass" (reliable) or "fail" (suspect/wrong).
 - `reason`: A detailed explanation of your finding.
 - `contradictions`: A list of specific discrepancies found.

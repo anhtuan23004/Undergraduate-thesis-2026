@@ -5,14 +5,13 @@ benefit type and treatment type according to insurance policy rules.
 """
 
 import json
-from typing import List
 
 from langchain_core.tools import tool
 
 
 @tool("check-required-docs")
 def check_required_documents(
-    benefit_type: str, treatment_type: str, submitted_documents: List[str]
+    benefit_type: str, treatment_type: str, submitted_documents: list[str]
 ) -> str:
     """Check if required documents are present for the given benefit and treatment types.
 

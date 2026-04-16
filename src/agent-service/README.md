@@ -115,16 +115,19 @@ STRICT_SKILL_LOADING=false
 ## Running
 
 ### Development
+
 ```bash
 uvicorn main:app --reload --port 8003
 ```
 
 ### Production
+
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8003
 ```
 
 ### Docker
+
 ```bash
 docker-compose up agent-service
 ```
@@ -136,6 +139,7 @@ docker-compose up agent-service
 Start a new claim processing workflow.
 
 **Request:**
+
 ```json
 {
   "claim_id": "CLM-001",
@@ -149,6 +153,7 @@ Start a new claim processing workflow.
 ```
 
 **Response:**
+
 ```json
 {
   "run_id": "uuid-xxx",
@@ -165,6 +170,7 @@ Start a new claim processing workflow.
 Resume a workflow after human review decision.
 
 **Request:**
+
 ```json
 {
   "decision": "approve",
@@ -173,6 +179,7 @@ Resume a workflow after human review decision.
 ```
 
 For edit decisions:
+
 ```json
 {
   "decision": "edit",
@@ -186,6 +193,7 @@ For edit decisions:
 Get current workflow status from MongoDB.
 
 **Response:**
+
 ```json
 {
   "run_id": "uuid-xxx",
@@ -296,6 +304,7 @@ streamlit run app.py --server.port 8501
 ```
 
 Features:
+
 - Session management with run history
 - Claim input form
 - Workflow status dashboard
@@ -314,6 +323,7 @@ Features:
 ### Adding New Tools
 
 1. Create directory in appropriate agent's skills folder:
+
    ```
    skills/quality-agent/my-new-tool/
    ├── scripts/
@@ -323,6 +333,7 @@ Features:
    ```
 
 2. Implement tool using `@tool` decorator:
+
    ```python
    from langchain_core.tools import tool
 

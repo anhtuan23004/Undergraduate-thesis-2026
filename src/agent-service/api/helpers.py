@@ -3,12 +3,11 @@
 import hashlib
 import mimetypes
 import os
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
 import structlog
-
 from config import settings
 from mongodb_client import get_collection
 
@@ -16,12 +15,12 @@ logger = structlog.get_logger(__name__)
 
 _compiled_graph = None
 
+
 async def _get_graph() -> Any:
     """Get or create the compiled workflow graph."""
     global _compiled_graph
     if _compiled_graph is None:
         from agent import get_llm_client
-
         from graphs import build_claim_workflow
         from langgraph.checkpoint.mongodb import MongoDBSaver
         from pymongo import MongoClient
@@ -41,7 +40,7 @@ async def _get_graph() -> Any:
     return _compiled_graph
 
 
-def _extract_pause_state(snapshot: Any) -> tuple[bool, bool, Optional[str]]:
+def _extract_pause_state(snapshot: Any) -> tuple[bool, bool, str | None]:
     """Compute pause flags from graph snapshot.
 
     Returns:
@@ -96,7 +95,7 @@ def _save_ocr_result(
     policy_number: str,
     file_path: str,
     ocr_result: dict,
-    file_hash: Optional[str] = None,
+    file_hash: str | None = None,
 ) -> None:
     """Save raw OCR result to MongoDB for auditing and potential reuse.
 
@@ -116,7 +115,7 @@ def _save_ocr_result(
             "file_path": file_path,
             "file_hash": file_hash,
             "ocr_result": ocr_result,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
         }
         collection = get_collection("documents")
         collection.insert_one(doc)

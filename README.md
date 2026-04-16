@@ -81,11 +81,13 @@ HF_TOKEN=
 ```
 
 ### Step 3: Start All Services
+
 ```bash
 docker-compose up -d --build
 ```
 
 This will:
+
 - Build the OCR and Agent service Docker images
 - Start MongoDB and Mongo Express (from `infrastructure/mongodb/`)
 - Start Langfuse services (optional, from `infrastructure/langfuse/`)
@@ -118,11 +120,11 @@ curl http://localhost:8003/health
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Agent API | http://localhost:8003/docs | API Documentation (Swagger) |
-| Agent Health | http://localhost:8003/health | Service Health Check |
-| OCR Health | http://localhost:8001/health | OCR Service Health Check |
-| Mongo Express | http://localhost:8081 | MongoDB Web UI |
-| Langfuse Web | http://localhost:3000 | Observability Dashboard (optional) |
+| Agent API | <http://localhost:8003/docs> | API Documentation (Swagger) |
+| Agent Health | <http://localhost:8003/health> | Service Health Check |
+| OCR Health | <http://localhost:8001/health> | OCR Service Health Check |
+| Mongo Express | <http://localhost:8081> | MongoDB Web UI |
+| Langfuse Web | <http://localhost:3000> | Observability Dashboard (optional) |
 
 ### Step 6: Run the Web UI (Optional)
 
@@ -131,7 +133,7 @@ cd src/agent-service
 streamlit run interfaces/web/app.py
 ```
 
-Then open http://localhost:8501 in your browser.
+Then open <http://localhost:8501> in your browser.
 
 ## Architecture
 
@@ -202,7 +204,7 @@ completeness_check → (route) → quality_check → (route) → final_decision
 
 ### Interactive API Docs
 
-Visit http://localhost:8003/docs to see the full interactive API documentation powered by Swagger UI.
+Visit <http://localhost:8003/docs> to see the full interactive API documentation powered by Swagger UI.
 
 ## Local Development
 
@@ -357,7 +359,7 @@ cd src/agent-service
 uv run streamlit run interfaces/web/app.py
 ```
 
-Then open http://localhost:8501 in your browser.
+Then open <http://localhost:8501> in your browser.
 
 ### Web UI Features
 
@@ -386,6 +388,7 @@ Then open http://localhost:8501 in your browser.
 ### Services Not Starting
 
 1. Check if ports are already in use:
+
    ```bash
    lsof -i :8001
    lsof -i :8003
@@ -393,6 +396,7 @@ Then open http://localhost:8501 in your browser.
    ```
 
 2. Check service logs:
+
    ```bash
    docker-compose logs -f [service-name]
    ```
@@ -406,11 +410,13 @@ Then open http://localhost:8501 in your browser.
 ### MongoDB Connection Issues
 
 - Verify MongoDB is healthy:
+
   ```bash
   docker-compose ps mongodb
   ```
 
 - Check MongoDB logs:
+
   ```bash
   docker-compose logs -f mongodb
   ```
@@ -449,4 +455,5 @@ docker-compose down -v
 - [Google Gemini API Docs](https://ai.google.dev/docs)
 
 ## License
+
 MIT

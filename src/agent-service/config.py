@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
-    HOST: str = "0.0.0.0"
+    HOST: str = "0.0.0.0"  # nosec: B104 - localhost binding for development
     PORT: int = 8003
 
     GEMINI_API_KEY: str = ""
@@ -18,8 +18,12 @@ class Settings(BaseSettings):
     GEMINI_TEMPERATURE: float = 0.3
     GEMINI_MAX_TOKENS: int = 8192
 
-    MONGODB_URL: str = "mongodb://admin:admin123@localhost:27017/claims?authSource=admin&directConnection=true"
-    MONGODB_URL_AGENT: str = "mongodb://admin:admin123@localhost:27017/agent?authSource=admin&directConnection=true"
+    MONGODB_URL: str = (
+        "mongodb://admin:admin123@localhost:27017/claims?authSource=admin&directConnection=true"
+    )
+    MONGODB_URL_AGENT: str = (
+        "mongodb://admin:admin123@localhost:27017/agent?authSource=admin&directConnection=true"
+    )
     MONGODB_DB: str = "claims"
     MEDICINE_DB: str = "document_qa"
     OCR_SERVICE_URL: str = "http://localhost:8091"

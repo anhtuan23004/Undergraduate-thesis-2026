@@ -54,6 +54,8 @@ filterwarnings = [
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -68,7 +70,7 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/*" = ["E501"]
 
@@ -78,14 +80,18 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+exclude = [
+    "src/agent-service/skills/.*/scripts/",
+    "src/agent-service/skills/.*/SKILL\\.md",
+]
 
 [[tool.mypy.overrides]]
 module = "pymilvus.*"
-ignore_missing = true
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "milvus_lite.*"
-ignore_missing = true
+ignore_missing_imports = true
 
 [tool.coverage.run]
 source = ["src/"]

@@ -5,16 +5,16 @@ to produce a final decision recommendation.
 """
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.tools import tool
 
 
 @tool("aggregate-issues")
-def aggregate_issues(
-    completeness_result: Optional[Dict[str, Any]] = None,
-    quality_result: Optional[Dict[str, Any]] = None,
-    human_review_notes: Optional[str] = None,
+def aggregate_issues(  # noqa: C901
+    completeness_result: dict[str, Any] | None = None,
+    quality_result: dict[str, Any] | None = None,
+    human_review_notes: str | None = None,
 ) -> str:
     """Aggregate issues from all verification stages and generate final decision recommendation.
 
@@ -36,7 +36,7 @@ def aggregate_issues(
         if "issues" in completeness_result:
             completeness_issues = completeness_result["issues"]
         elif isinstance(completeness_result, dict):
-            for key, value in completeness_result.items():
+            for _key, value in completeness_result.items():
                 if isinstance(value, dict) and "issues" in value:
                     completeness_issues.extend(value["issues"])
 
@@ -44,7 +44,7 @@ def aggregate_issues(
         if "issues" in quality_result:
             quality_issues = quality_result["issues"]
         elif isinstance(quality_result, dict):
-            for key, value in quality_result.items():
+            for _key, value in quality_result.items():
                 if isinstance(value, dict) and "issues" in value:
                     quality_issues.extend(value["issues"])
 

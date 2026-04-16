@@ -2,14 +2,14 @@
 
 import os
 import tempfile
-from typing import Any, Dict, Final, Optional, Tuple, Union
+from typing import Any, Final
 
 import google.genai as genai
-from google.genai import types
-
 from app.config import settings
-from core.utils import build_generation_config, is_gemini_3_model, parse_markdown_json
+from google.genai import types
 from utils.logging import get_logger
+
+from core.utils import build_generation_config, parse_markdown_json
 
 logger = get_logger(__name__)
 
@@ -24,9 +24,9 @@ FIELDS_PROMPT: Final[str] = (
     "return a concise JSON object with clearly named keys."
 )
 
-DOCUMENT_PROMPT: Final[str] = (
-    "Analyze the document structure and return a structured JSON representation of its content."
-)
+DOCUMENT_PROMPT: Final[
+    str
+] = "Analyze the document structure and return a structured JSON representation of its content."
 
 DEFAULT_FIELDS_USER_PROMPT: Final[str] = "Extract key fields and return JSON."
 DEFAULT_DOCUMENT_USER_PROMPT: Final[str] = "Extract document structure as JSON."
@@ -47,17 +47,13 @@ class GeminiOCRService:
         api_key: Optional API key override.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or settings.GEMINI_API_KEY
         if not self.api_key:
-            raise GeminiConfigError(
-                "Missing GEMINI_API_KEY. Set env var or pass via UI."
-            )
+            raise GeminiConfigError("Missing GEMINI_API_KEY. Set env var or pass via UI.")
         self.client = genai.Client(api_key=self.api_key)
 
-    def _upload_temp_file(
-        self, file_bytes: bytes, file_name: str, mime_type: str
-    ) -> types.File:
+    def _upload_temp_file(self, file_bytes: bytes, file_name: str, mime_type: str) -> types.File:
         """Upload file bytes to Gemini Files API.
 
         Args:
@@ -71,7 +67,7 @@ class GeminiOCRService:
         # Preserve file extension for proper MIME type detection
         suffix = ""
         if "." in file_name:
-            suffix = file_name[file_name.rfind("."):]
+            suffix = file_name[file_name.rfind(".") :]
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(file_bytes)
@@ -88,9 +84,7 @@ class GeminiOCRService:
 
             return self.client.files.upload(
                 file=path,
-                config=types.UploadFileConfig(
-                    display_name=display_name, mime_type=mime_type
-                ),
+                config=types.UploadFileConfig(display_name=display_name, mime_type=mime_type),
             )
         finally:
             # Clean up temporary file
@@ -101,7 +95,7 @@ class GeminiOCRService:
 
     def _build_contents(
         self, uploaded_file: types.File, prompt: str
-    ) -> list[Union[types.File, types.Part]]:
+    ) -> list[types.File | types.Part]:
         """Build content list for model generation.
 
         Args:
@@ -111,12 +105,12 @@ class GeminiOCRService:
         Returns:
             List of content items.
         """
-        contents: list[Union[types.File, types.Part]] = [uploaded_file]
+        contents: list[types.File | types.Part] = [uploaded_file]
         if prompt:
             contents.append(types.Part.from_text(text=prompt))
         return contents
 
-    def _extract_usage_info(self, response: Any) -> Dict[str, int]:
+    def _extract_usage_info(self, response: Any) -> dict[str, int]:
         """Extract token usage information from response.
 
         Args:
@@ -139,14 +133,14 @@ class GeminiOCRService:
         self,
         uploaded_file: types.File,
         prompt: str,
-        model_name: Optional[str] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        top_k: Optional[int] = None,
-        max_output_tokens: Optional[int] = None,
-        thinking_budget: Optional[int] = None,
-        thinking_level: Optional[str] = None,
-    ) -> Tuple[str, Dict[str, int]]:
+        model_name: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
+        thinking_level: str | None = None,
+    ) -> tuple[str, dict[str, int]]:
         """Call Gemini model with uploaded file and prompt.
 
         Args:
@@ -171,7 +165,9 @@ class GeminiOCRService:
             temperature=temperature if temperature is not None else settings.GEMINI_TEMPERATURE,
             top_p=top_p if top_p is not None else settings.GEMINI_TOP_P,
             top_k=top_k if top_k is not None else settings.GEMINI_TOP_K,
-            max_output_tokens=max_output_tokens if max_output_tokens is not None else settings.GEMINI_MAX_OUTPUT_TOKENS,
+            max_output_tokens=max_output_tokens
+            if max_output_tokens is not None
+            else settings.GEMINI_MAX_OUTPUT_TOKENS,
             thinking_budget=thinking_budget,
             thinking_level=thinking_level,
             default_thinking_budget=settings.GEMINI_THINKING_BUDGET,
@@ -188,7 +184,7 @@ class GeminiOCRService:
 
         return text, usage_info
 
-    def _log_token_usage(self, operation: str, usage_info: Dict[str, int]) -> None:
+    def _log_token_usage(self, operation: str, usage_info: dict[str, int]) -> None:
         """Log token usage information.
 
         Args:
@@ -210,13 +206,13 @@ class GeminiOCRService:
         file_name: str,
         mime_type: str,
         prompt: str,
-        model_name: Optional[str] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        top_k: Optional[int] = None,
-        max_output_tokens: Optional[int] = None,
-        thinking_budget: Optional[int] = None,
-        thinking_level: Optional[str] = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
+        thinking_level: str | None = None,
     ) -> str:
         """Extract raw text from an image or PDF.
 
@@ -263,13 +259,13 @@ class GeminiOCRService:
         file_name: str,
         mime_type: str,
         prompt: str,
-        model_name: Optional[str] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        top_k: Optional[int] = None,
-        max_output_tokens: Optional[int] = None,
-        thinking_budget: Optional[int] = None,
-        thinking_level: Optional[str] = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
+        thinking_level: str | None = None,
     ) -> Any:
         """Extract structured fields from a document.
 
@@ -315,13 +311,13 @@ class GeminiOCRService:
         file_name: str,
         mime_type: str,
         prompt: str,
-        model_name: Optional[str] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        top_k: Optional[int] = None,
-        max_output_tokens: Optional[int] = None,
-        thinking_budget: Optional[int] = None,
-        thinking_level: Optional[str] = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
+        thinking_level: str | None = None,
     ) -> Any:
         """Extract document structure from a document.
 

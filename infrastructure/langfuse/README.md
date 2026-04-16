@@ -16,6 +16,7 @@ This directory contains the Docker Compose configuration for self-hosting Langfu
 ## Quick Start
 
 1. **Start Langfuse:**
+
    ```bash
    cd infrastructure/langfuse
    docker-compose -f docker-compose.langfuse.yml up -d
@@ -24,11 +25,11 @@ This directory contains the Docker Compose configuration for self-hosting Langfu
 2. **Wait for services to be ready** (first startup takes ~30-60 seconds)
 
 3. **Access Langfuse:**
-   - UI: http://localhost:3000
-   - MinIO Console: http://localhost:9091 (login: minio / miniosecret)
+   - UI: <http://localhost:3000>
+   - MinIO Console: <http://localhost:9091> (login: minio / miniosecret)
 
 4. **Create your account:**
-   - Open http://localhost:3000
+   - Open <http://localhost:3000>
    - Sign up with your email
    - Create an organization and project
    - Get your API keys from Settings → API Keys
@@ -45,6 +46,7 @@ Edit the `.env` file to customize:
 ### Optional: Auto-create Organization/Project
 
 Uncomment and set these in `.env`:
+
 ```bash
 LANGFUSE_INIT_ORG_ID=my-org
 LANGFUSE_INIT_ORG_NAME="My Organization"
@@ -102,6 +104,7 @@ docker-compose -f docker-compose.langfuse.yml down -v
 ## Data Persistence
 
 Data is stored in Docker volumes:
+
 - `langfuse_postgres_data` - Main database
 - `langfuse_clickhouse_data` - Analytics data
 - `langfuse_minio_data` - File uploads
@@ -109,19 +112,24 @@ Data is stored in Docker volumes:
 ## Troubleshooting
 
 ### Port Conflicts
+
 The compose file uses non-standard ports to avoid conflicts with the main infrastructure:
+
 - Postgres: 15432 (instead of 5432)
 - Redis: 16379 (instead of 6379)
 - ClickHouse: 18123, 19000
 - MinIO: 9090, 9091 (main infra uses 9000, 9001)
 
 ### Services Not Starting
+
 Check health status:
+
 ```bash
 docker-compose -f docker-compose.langfuse.yml ps
 ```
 
 View specific service logs:
+
 ```bash
 docker-compose -f docker-compose.langfuse.yml logs postgres
 docker-compose -f docker-compose.langfuse.yml logs clickhouse

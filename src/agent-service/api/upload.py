@@ -3,11 +3,11 @@
 import uuid
 from pathlib import Path
 
+from config import settings
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from config import settings
-from .schemas import UploadResponse
 from .helpers import compute_file_hash
+from .schemas import UploadResponse
 
 router = APIRouter(prefix="", tags=["uploads"])
 
@@ -54,4 +54,6 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to save uploaded file: {str(e)}"
+        ) from e

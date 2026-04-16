@@ -5,10 +5,8 @@ This tool wraps the existing search_medicine function for use with the skill-bas
 
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List
 
 from langchain_core.tools import tool
-
 from mongodb_client import get_medicine_collection
 
 
@@ -62,7 +60,7 @@ def search_single_medicine(medicine_name: str) -> dict:
 
 
 @tool("search-medicine")
-def search_medicine(medicine_names: List[str]) -> str:
+def search_medicine(medicine_names: list[str]) -> str:
     """Search medicines in parallel and return JSON result.
 
     This tool searches for medications in the MongoDB medicine collection
@@ -82,7 +80,9 @@ def search_medicine(medicine_names: List[str]) -> str:
 
     results = {}
     with ThreadPoolExecutor(max_workers=min(len(medicine_names), 10)) as executor:
-        future_to_name = {executor.submit(search_single_medicine, name): name for name in medicine_names}
+        future_to_name = {
+            executor.submit(search_single_medicine, name): name for name in medicine_names
+        }
         for future in as_completed(future_to_name):
             name = future_to_name[future]
             try:

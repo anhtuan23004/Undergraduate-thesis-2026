@@ -1,12 +1,12 @@
 """Main FastAPI application for the OCR service."""
 
+from app.config import settings
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from utils.logging import setup_logging
 
 from api.routes import health_router, ocr_router
-from app.config import settings
-from utils.logging import setup_logging
 
 # Configure logging on module load
 setup_logging()

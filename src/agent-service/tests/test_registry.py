@@ -4,7 +4,7 @@ These tests verify that tools are correctly discovered and loaded
 using the skill-based architecture.
 """
 
-from tools.skill_loader import load_agent_skills, clear_skill_cache
+from tools.skill_loader import clear_skill_cache, load_agent_skills
 
 
 class TestSkillLoaderDiscovery:

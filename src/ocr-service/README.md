@@ -36,6 +36,7 @@ LOG_FILE=ocr_service.log
 ```
 
 Optional generation parameters are supported by request form fields:
+
 - `temperature`
 - `top_p`
 - `top_k`
@@ -56,6 +57,7 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
 ## Docker Runtime
 
 In root compose (`docker-compose.yml`):
+
 - container port `8000`
 - host port `8001`
 

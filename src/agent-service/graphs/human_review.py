@@ -9,7 +9,8 @@ in state), the graph resumes and this node executes as a no-op.
 All routing logic lives in the conditional edge (route_after_human_review).
 """
 
-from typing import Any, Dict
+from typing import Any
+
 import structlog
 
 from graphs.state import GraphState
@@ -33,7 +34,7 @@ class HumanReviewNode:
         """Initialize the HumanReviewNode."""
         pass
 
-    async def run(self, state: GraphState) -> Dict[str, Any]:
+    async def run(self, state: GraphState) -> dict[str, Any]:
         """Execute the human review node (no-op).
 
         This node is a virtual interrupt point. The graph pauses before this

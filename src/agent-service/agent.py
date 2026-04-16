@@ -1,14 +1,13 @@
 """LLM client for LangGraph with async support and Langfuse tracing."""
 
-import structlog
 import os
-from typing import Optional
-from langchain.agents import create_agent
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.tools import BaseTool as LangChainBaseTool
-from langchain_core.callbacks import BaseCallbackHandler
 
+import structlog
 from config import settings
+from langchain.agents import create_agent
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.tools import BaseTool as LangChainBaseTool
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 logger = structlog.get_logger()
 
@@ -51,7 +50,7 @@ class LangfuseCallbackHandler(BaseCallbackHandler):
                 logger.warning("Langfuse callback disabled due to init error", error=str(exc))
 
     @property
-    def handler(self) -> Optional[BaseCallbackHandler]:
+    def handler(self) -> BaseCallbackHandler | None:
         return self._handler
 
     async def on_agent_action(self, action, *args, **kwargs):
@@ -85,7 +84,7 @@ class LangGraphLLMClient:
         tools: list[LangChainBaseTool],
         system_prompt: str,
         trace_name: str = "agent_invocation",
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ) -> dict:
         """Invoke agent asynchronously without blocking event loop."""
         langfuse_callback = LangfuseCallbackHandler(trace_name)

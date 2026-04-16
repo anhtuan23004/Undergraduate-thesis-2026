@@ -1,6 +1,6 @@
 """API client for the Insurance Claims Processing Agent Service."""
 
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -17,7 +17,7 @@ class APIClient:
         self,
         method: str,
         endpoint: str,
-        data: Optional[dict] = None,
+        data: dict | None = None,
         timeout: int = 30,
     ) -> dict:
         """Make HTTP request to the API.
@@ -80,7 +80,7 @@ class APIClient:
         claim_id: str,
         policy_number: str,
         input_file: str = "streamlit_upload",
-        file_hash: Optional[str] = None,
+        file_hash: str | None = None,
     ) -> dict:
         """Start a new claim processing workflow.
 
@@ -115,8 +115,8 @@ class APIClient:
         self,
         run_id: str,
         decision: str,
-        notes: Optional[str] = None,
-        edited_result: Optional[dict] = None,
+        notes: str | None = None,
+        edited_result: dict | None = None,
     ) -> dict:
         """Resume workflow after human review decision.
 
@@ -141,7 +141,7 @@ class APIClient:
     def continue_workflow(
         self,
         run_id: str,
-        note: Optional[str] = None,
+        note: str | None = None,
     ) -> dict:
         """Continue workflow when paused at a non-human stage.
 
@@ -190,7 +190,7 @@ class APIClient:
         claim_id: str,
         policy_number: str,
         input_file: str = "streamlit_upload",
-        file_hash: Optional[str] = None,
+        file_hash: str | None = None,
     ):
         """Start a new workflow and yield SSE events as dicts.
 
@@ -228,7 +228,7 @@ class APIClient:
         self,
         method: str,
         url: str,
-        json_data: Optional[dict] = None,
+        json_data: dict | None = None,
     ):
         """Low-level SSE consumer that parses event/data lines.
 
@@ -244,9 +244,7 @@ class APIClient:
 
         try:
             if method.upper() == "POST":
-                resp = self._session.post(
-                    url, json=json_data, stream=True, timeout=600
-                )
+                resp = self._session.post(url, json=json_data, stream=True, timeout=600)
             else:
                 resp = self._session.get(url, stream=True, timeout=600)
 
@@ -262,9 +260,9 @@ class APIClient:
                 line = raw_line
 
                 if line.startswith("event:"):
-                    event_type = line[len("event:"):].strip()
+                    event_type = line[len("event:") :].strip()
                 elif line.startswith("data:"):
-                    data_lines.append(line[len("data:"):].strip())
+                    data_lines.append(line[len("data:") :].strip())
                 elif line == "":
                     # WHY: Empty line is the SSE event boundary.
                     if data_lines:
@@ -289,7 +287,7 @@ class APIClient:
         return self._request("GET", "/api/v1/health")
 
 
-def create_client(base_url: Optional[str] = None) -> APIClient:
+def create_client(base_url: str | None = None) -> APIClient:
     """Create a new API client instance.
 
     Args:

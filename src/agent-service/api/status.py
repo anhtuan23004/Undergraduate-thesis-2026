@@ -1,13 +1,13 @@
 """Status and health check API routes."""
 
-from typing import Any
-
-from fastapi import APIRouter, HTTPException
 
 from config import settings
+from fastapi import APIRouter, HTTPException
+
 from .helpers import _extract_pause_state, _get_graph
 
 router = APIRouter(prefix="", tags=["status"])
+
 
 @router.get("/workflows/status/{run_id}")
 async def get_workflow_status(run_id: str) -> dict:
