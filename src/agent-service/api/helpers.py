@@ -22,7 +22,11 @@ async def _get_graph() -> Any:
     if _compiled_graph is None:
         from agent import get_llm_client
         from graphs import build_claim_workflow
-        from langgraph.checkpoint.mongodb import MongoDBSaver
+
+        try:
+            from langgraph.checkpoint.mongodb import MongoDBSaver
+        except ImportError:
+            from langgraph.checkpoint.mongo import MongoDBSaver
         from pymongo import MongoClient
 
         mongo_url = settings.MONGODB_URL
