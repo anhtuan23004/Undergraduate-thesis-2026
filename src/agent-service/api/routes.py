@@ -11,7 +11,7 @@ Routes have been split into:
 
 from fastapi import APIRouter
 
-from . import workflows, upload, status
+from . import status, upload, workflows
 from .schemas import ClaimRequest, ContinueRequest, HumanReviewRequest, UploadResponse
 
 router = APIRouter(prefix="/api/v1", tags=["workflows"])

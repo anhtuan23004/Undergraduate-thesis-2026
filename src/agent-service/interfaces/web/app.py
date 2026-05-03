@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 import streamlit as st
-from streamlit.runtime.uploaded_file_manager import UploadedFile
-
 from api_client import create_client
 from components import (
     STEP_LABELS,
@@ -23,6 +20,7 @@ from components import (
     render_raw_state,
     render_sidebar,
 )
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 try:
     from streamlit_autorefresh import st_autorefresh
@@ -86,7 +84,7 @@ def handle_url_change(new_url: str) -> None:
     st.session_state.client = create_client(st.session_state.api_base_url)
 
 
-def upsert_run_history(run_id: Optional[str], claim_id: Optional[str], payload: dict) -> None:
+def upsert_run_history(run_id: str | None, claim_id: str | None, payload: dict) -> None:
     """Insert or update run history row by run_id."""
     if not run_id:
         return
@@ -111,7 +109,7 @@ def handle_start_workflow(
     claim_id: str,
     policy_number: str,
     input_file: str = "streamlit_upload",
-    uploaded_file: Optional[UploadedFile] = None,
+    uploaded_file: UploadedFile | None = None,
 ) -> None:
     """Upload file then run workflow with real-time SSE streaming.
 
@@ -156,9 +154,7 @@ def handle_start_workflow(
 
     if last_state:
         st.session_state.workflow_state_data = last_state
-        upsert_run_history(
-            st.session_state.current_run_id, claim_id, last_state
-        )
+        upsert_run_history(st.session_state.current_run_id, claim_id, last_state)
 
     st.rerun()
 
@@ -166,7 +162,7 @@ def handle_start_workflow(
 def _consume_stream_events(
     event_iter,
     status_label: str = "Đang xử lý...",
-) -> Optional[dict]:
+) -> dict | None:
     """Shared helper to display SSE stream events via st.status.
 
     Args:
@@ -214,8 +210,8 @@ def _consume_stream_events(
 
 def handle_resume_workflow(
     decision: str,
-    notes: Optional[str],
-    edited_result: Optional[dict] = None,
+    notes: str | None,
+    edited_result: dict | None = None,
 ) -> None:
     """Submit human review decision and continue workflow.
 
@@ -285,7 +281,7 @@ def handle_continue_workflow() -> None:
         st.session_state.pending_paused_continue_request = False
 
 
-def refresh_status(silent: bool = False) -> Optional[dict]:
+def refresh_status(silent: bool = False) -> dict | None:
     """Fetch latest workflow status from API by current run_id."""
     run_id = st.session_state.current_run_id
     if not run_id:
@@ -340,7 +336,7 @@ def render_auto_polling(state_data: dict) -> None:
     )
 
 
-def render_main_content() -> None:
+def render_main_content() -> None:  # noqa: C901
     """Render full UI according to current workflow state."""
     data = st.session_state.workflow_state_data
 

@@ -5,9 +5,8 @@ This module defines the state structure used by the LangGraph workflow,
 including all fields needed for agent communication and state management.
 """
 
-from typing import Annotated, Optional
 import operator
-from typing_extensions import TypedDict
+from typing import Annotated, TypedDict
 
 
 class GraphState(TypedDict):
@@ -36,24 +35,24 @@ class GraphState(TypedDict):
     """Documents extracted from the input file (OCR results, etc.)."""
 
     # Agent results
-    agent_1_result: Optional[dict]
+    agent_1_result: dict | None
     """Result from Agent 1 (initial processing/extraction)."""
 
-    agent_2_result: Optional[dict]
+    agent_2_result: dict | None
     """Result from Agent 2 (secondary processing/validation)."""
 
     # Human review
-    human_review_result: Optional[dict]
+    human_review_result: dict | None
     """Result from human review step (approval, corrections, etc.)."""
 
-    edited_agent_1_result: Optional[dict]
+    edited_agent_1_result: dict | None
     """Human-edited result for Agent 1 (completeness)."""
 
-    edited_agent_2_result: Optional[dict]
+    edited_agent_2_result: dict | None
     """Human-edited result for Agent 2 (quality)."""
 
     # Final output
-    final_result: Optional[dict]
+    final_result: dict | None
     """Final processed result after all agents and review."""
 
     # Workflow state
@@ -66,7 +65,7 @@ class GraphState(TypedDict):
     should_continue: bool
     """Flag indicating whether the workflow should continue or halt."""
 
-    error: Optional[str]
+    error: str | None
     """Error message if any step fails."""
 
     pending_human_review: bool

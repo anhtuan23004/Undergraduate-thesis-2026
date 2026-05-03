@@ -108,15 +108,17 @@ db.documents.find().limit(5)
 
 ### Mongo Express Web UI
 
-Access the web UI at: http://localhost:8081
+Access the web UI at: <http://localhost:8081>
 
 Default credentials:
+
 - Username: `admin`
 - Password: `pass`
 
 ### Application Connection
 
 Connection string for applications:
+
 ```
 mongodb://claims_app:claims_password@localhost:27017/claims
 ```

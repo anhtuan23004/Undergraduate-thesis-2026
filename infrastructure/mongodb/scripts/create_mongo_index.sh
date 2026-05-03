@@ -72,11 +72,11 @@ db.medicine.updateSearchIndex(
           {
             "type": "stopword",
             "tokens": [
-              "thuốc", "viên", "dịch", "nén", "dung", "uống", "tiêm", "bôi", 
-              "nhỏ", "da", "mắt", "kem", "bột", "nang", "pha", "siro", 
-              "hỗn", "cứng", "gel", "mỡ", "mũi", "plus", "đặt", "truyền", 
-              "xịt", "sủi", "âm", "vitamin", "đạo", "ngoài", "-", "cốm", "Spray", 
-              "Capsule", "Tablet", "Syrup", "Injection", "Cream", "Powder", 
+              "thuốc", "viên", "dịch", "nén", "dung", "uống", "tiêm", "bôi",
+              "nhỏ", "da", "mắt", "kem", "bột", "nang", "pha", "siro",
+              "hỗn", "cứng", "gel", "mỡ", "mũi", "plus", "đặt", "truyền",
+              "xịt", "sủi", "âm", "vitamin", "đạo", "ngoài", "-", "cốm", "Spray",
+              "Capsule", "Tablet", "Syrup", "Injection", "Cream", "Powder",
               "Ointment", "Nasal", "Suppository", "Infusion",
             ]
           }

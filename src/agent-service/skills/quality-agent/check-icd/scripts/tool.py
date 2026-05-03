@@ -52,7 +52,7 @@ def check_icd(query: str) -> str:
                 {"status": "success", "query": query, "result": payload},
                 ensure_ascii=False,
             )
-    except Exception:
+    except Exception:  # nosec: B110 - Intentional fallback on JSON parse failure
         pass
 
     return json.dumps(

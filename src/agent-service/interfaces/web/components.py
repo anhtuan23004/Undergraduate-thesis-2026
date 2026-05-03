@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import datetime
-from enum import Enum
-from typing import Any, Callable, Optional
+from enum import StrEnum
+from typing import Any
 
 import pandas as pd
 import streamlit as st
 
 
-class UIState(str, Enum):
+class UIState(StrEnum):
     """Primary UI states used by the app."""
 
     PROCESSING = "processing"
@@ -20,7 +21,7 @@ class UIState(str, Enum):
     COMPLETED = "completed"
 
 
-class HITLDecision(str, Enum):
+class HITLDecision(StrEnum):
     """Human-in-the-loop decision values sent to API."""
 
     APPROVE = "approve"
@@ -28,7 +29,7 @@ class HITLDecision(str, Enum):
     EDIT = "edit"
 
 
-class StepStatus(str, Enum):
+class StepStatus(StrEnum):
     """Status for timeline nodes."""
 
     DONE = "done"
@@ -144,7 +145,7 @@ def render_brand_theme() -> None:
     )
 
 
-def get_ui_state(state_data: Optional[dict]) -> UIState:
+def get_ui_state(state_data: dict | None) -> UIState:
     """Map graph state into one of the four UI states."""
     if not state_data:
         return UIState.PROCESSING
@@ -157,7 +158,7 @@ def get_ui_state(state_data: Optional[dict]) -> UIState:
     return UIState.PROCESSING
 
 
-def render_app_header(current_run_id: Optional[str], api_url: str) -> None:
+def render_app_header(current_run_id: str | None, api_url: str) -> None:
     """Render top title section."""
     st.title(":material/health_and_safety: Hệ thống quản lý hồ sơ bồi thường")
     run_short = current_run_id[:8] if current_run_id else "-"
@@ -167,7 +168,7 @@ def render_app_header(current_run_id: Optional[str], api_url: str) -> None:
 def render_sidebar(
     on_new_claim: Callable,
     on_select_run: Callable,
-    current_run_id: Optional[str],
+    current_run_id: str | None,
     run_history: list[dict],
     api_url: str,
     on_url_change: Callable,
@@ -437,8 +438,8 @@ def _render_issue_details(issues: list[dict]) -> None:
     )
 
 
-def _compute_timeline_status(state_data: dict) -> dict[str, StepStatus]:
-    out = {step: StepStatus.PENDING for step in STEP_ORDER}
+def _compute_timeline_status(state_data: dict) -> dict[str, StepStatus]:  # noqa: C901
+    out = dict.fromkeys(STEP_ORDER, StepStatus.PENDING)
 
     if state_data.get("agent_1_result"):
         out["completeness"] = StepStatus.DONE
@@ -599,7 +600,7 @@ def render_human_review_panel(
     st.warning("Hồ sơ cần thẩm định thủ công. Vui lòng đưa ra quyết định để tiếp tục workflow.")
 
     assessment = _get_pending_assessment(state_data)
-    extracted_documents = state_data.get("extracted_documents") or {}
+    state_data.get("extracted_documents") or {}
 
     left_col, right_col = st.columns([1.2, 1.0])
 
@@ -661,7 +662,7 @@ def render_human_review_panel(
                 on_resume(decision, notes, edited_result)
 
 
-def _render_assessment_findings(assessment: Optional[dict]) -> None:
+def _render_assessment_findings(assessment: dict | None) -> None:
     if not assessment:
         st.caption("Không có kết quả đánh giá ở bước này")
         return
@@ -734,6 +735,7 @@ def _render_agent_review_summary(state_data: dict) -> None:
         else:
             st.warning(f"⚠️ Giai đoạn **{stage}** cần thẩm định thủ công — Lý do: {reason}")
 
+
 def _render_confidence_badge(payload: dict) -> None:
     """Display a color-coded confidence score badge.
 
@@ -757,7 +759,7 @@ def _render_confidence_badge(payload: dict) -> None:
     st.markdown(f":{color}-badge[Độ tin cậy: {confidence:.0%}]{auto_tag}")
 
 
-def _render_medical_findings(findings: dict) -> None:
+def _render_medical_findings(findings: dict) -> None:  # noqa: C901
     """Render structured medical findings (success/warnings) from Quality Agent.
 
     Args:
@@ -812,15 +814,20 @@ def _render_medical_findings(findings: dict) -> None:
             url = w.get("reference_url")
 
             content = f"{msg}"
-            if diag != "—": content = f"**{diag}** - {content}"
-            if icd != "—": content = f"[{icd}] {content}"
-            if url: content += f" ([Tham chiếu]({url}))"
+            if diag != "—":
+                content = f"**{diag}** - {content}"
+            if icd != "—":
+                content = f"[{icd}] {content}"
+            if url:
+                content += f" ([Tham chiếu]({url}))"
 
-            w_rows.append({
-                "Phân loại": type_labels.get(w_type, w_type.replace("_", " ").title()),
-                "Chi tiết nội dung": content,
-            })
-        
+            w_rows.append(
+                {
+                    "Phân loại": type_labels.get(w_type, w_type.replace("_", " ").title()),
+                    "Chi tiết nội dung": content,
+                }
+            )
+
         # Using st.write for markdown support in the content
         for row in w_rows:
             st.markdown(f"- **{row['Phân loại']}:** {row['Chi tiết nội dung']}")
@@ -838,20 +845,25 @@ def _render_medical_findings(findings: dict) -> None:
             url = s.get("reference_url")
 
             content = f"{msg}"
-            if diag != "—": content = f"**{diag}** - {content}"
-            if icd != "—": content = f"[{icd}] {content}"
-            if url: content += f" ([Tham chiếu]({url}))"
+            if diag != "—":
+                content = f"**{diag}** - {content}"
+            if icd != "—":
+                content = f"[{icd}] {content}"
+            if url:
+                content += f" ([Tham chiếu]({url}))"
 
-            s_rows.append({
-                "Phân loại": type_labels.get(s_type, s_type.replace("_", " ").title()),
-                "Chi tiết nội dung": content,
-            })
-        
+            s_rows.append(
+                {
+                    "Phân loại": type_labels.get(s_type, s_type.replace("_", " ").title()),
+                    "Chi tiết nội dung": content,
+                }
+            )
+
         for row in s_rows:
             st.markdown(f"- **{row['Phân loại']}:** {row['Chi tiết nội dung']}")
 
 
-def _render_evidence_panel(evidence: dict, step_key: str = "") -> None:
+def _render_evidence_panel(evidence: dict, step_key: str = "") -> None:  # noqa: C901
     """Display extracted evidence with a premium layout, avoiding duplicate fields.
 
     Args:
@@ -864,12 +876,22 @@ def _render_evidence_panel(evidence: dict, step_key: str = "") -> None:
             if value is None:
                 return "—"
             if key == "icd_codes" and isinstance(value, list):
-                return ", ".join(f"{i.get('code', '')} ({i.get('diagnosis', '')})" if isinstance(i, dict) else str(i) for i in value)
+                return ", ".join(
+                    f"{i.get('code', '')} ({i.get('diagnosis', '')})"
+                    if isinstance(i, dict)
+                    else str(i)
+                    for i in value
+                )
             if key == "medications" and isinstance(value, list):
-                return ", ".join(f"{i.get('name', '')} ({i.get('quantity', '')})" if isinstance(i, dict) else str(i) for i in value)
+                return ", ".join(
+                    f"{i.get('name', '')} ({i.get('quantity', '')})"
+                    if isinstance(i, dict)
+                    else str(i)
+                    for i in value
+                )
             if isinstance(value, list):
                 return ", ".join(str(v) for v in value) if value else "—"
-            if isinstance(value, (int, float)) and "amount" in key.lower():
+            if isinstance(value, int | float) and "amount" in key.lower():
                 return f"{value:,.0f} VNĐ"
             return str(value)
 
@@ -887,7 +909,7 @@ def _render_evidence_panel(evidence: dict, step_key: str = "") -> None:
             "icd_codes": "🔤 Mã ICD",
             "medications": "💊 Danh mục thuốc",
             "total_claim_amount": "💰 Tổng tiền yêu cầu",
-            "total_amount": "💰 Tổng tiền yêu cầu", # Alias for deduplication
+            "total_amount": "💰 Tổng tiền yêu cầu",  # Alias for deduplication
             "exclusions_found": "🚫 Loại trừ phát hiện",
             "medical_facility": "🏢 Cơ sở y tế",
             "hospital": "🏢 Bệnh viện/Phòng khám",
@@ -956,11 +978,13 @@ def _render_evidence_panel(evidence: dict, step_key: str = "") -> None:
             st.divider()
             with st.status("📌 Dữ liệu bổ sung khác...", expanded=False):
                 for k in sorted(leftover_keys):
-                    st.write(f"- **{field_labels.get(k, k.replace('_', ' ').title())}:** {format_val(k, evidence[k])}")
+                    st.write(
+                        f"- **{field_labels.get(k, k.replace('_', ' ').title())}:** {format_val(k, evidence[k])}"
+                    )
 
 
-def _render_suggested_updates(
-    suggested_updates: list, step_key: str = "unknown", column_labels: Optional[dict] = None
+def _render_suggested_updates(  # noqa: C901
+    suggested_updates: list, step_key: str = "unknown", column_labels: dict | None = None
 ) -> None:
     """Display suggested edits with reference URLs, with dynamic headers for Quality step.
 
@@ -981,7 +1005,7 @@ def _render_suggested_updates(
         if not isinstance(su, dict):
             continue
 
-        field = str(su.get("field", "")).lower()
+        str(su.get("field", "")).lower()
         url = str(su.get("reference_url", "")).lower()
 
         if step_key == "quality":
@@ -1042,7 +1066,9 @@ def _render_suggested_updates(
                     hide_index=True,
                     use_container_width=True,
                     column_config={
-                        labels["field"]: st.column_config.TextColumn(labels["field"], width="small"),
+                        labels["field"]: st.column_config.TextColumn(
+                            labels["field"], width="small"
+                        ),
                         labels["current_value"]: st.column_config.TextColumn(
                             labels["current_value"], width="medium"
                         ),
@@ -1056,7 +1082,7 @@ def _render_suggested_updates(
                 )
 
 
-def _get_pending_assessment(state_data: dict) -> Optional[dict]:
+def _get_pending_assessment(state_data: dict) -> dict | None:
     if state_data.get("agent_2_result"):
         return state_data.get("agent_2_result")
     return state_data.get("agent_1_result")
@@ -1103,7 +1129,7 @@ def render_final_dashboard(state_data: dict) -> None:
 
 def render_error_state(
     error_message: str,
-    error_payload: Optional[dict] = None,
+    error_payload: dict | None = None,
     context_label: str = "workflow",
 ) -> None:
     """Render API/workflow error with full details for human review."""
@@ -1130,7 +1156,7 @@ def render_error_state(
 
         st.caption("Thông tin chi tiết")
         if detail:
-            if isinstance(detail, (dict, list)):
+            if isinstance(detail, dict | list):
                 st.json(detail)
             else:
                 st.code(str(detail), language="text")

@@ -5,14 +5,15 @@ and claim information.
 """
 
 import json
-from typing import List, Optional
 
 from langchain_core.tools import tool
 
 
 @tool("classify-benefit")
 def classify_benefit(
-    diagnosis: Optional[str] = None, treatment: Optional[str] = None, documents: Optional[List[str]] = None
+    diagnosis: str | None = None,
+    treatment: str | None = None,
+    documents: list[str] | None = None,
 ) -> str:
     """Classify the insurance benefit type from claim information.
 

@@ -5,13 +5,12 @@ in an insurance claim file.
 """
 
 import json
-from typing import Dict, List, Optional
 
 from langchain_core.tools import tool
 
 
 @tool("validate-consistency")
-def validate_consistency(documents: List[Dict], treatment_type: Optional[str] = None) -> str:
+def validate_consistency(documents: list[dict], treatment_type: str | None = None) -> str:
     """Validate consistency of key information across multiple documents.
 
     This tool checks that the insured person's name is consistent across

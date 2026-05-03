@@ -5,7 +5,7 @@ Provides common functionality for agent nodes to eliminate code duplication.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def extract_agent_content(result: dict) -> str:
@@ -34,7 +34,9 @@ def extract_agent_content(result: dict) -> str:
     return str(last_message).strip()
 
 
-def parse_json_response(text: str, default_on_error: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def parse_json_response(
+    text: str, default_on_error: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Parse JSON from agent output with markdown cleaning."""
     if not text:
         if default_on_error:
@@ -83,9 +85,9 @@ def load_system_prompt(
 def create_history_entry(
     agent_name: str,
     prompt: str,
-    result: Dict[str, Any],
+    result: dict[str, Any],
     step: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create standardized history entry for workflow tracking."""
     return {
         "agent": agent_name,
@@ -98,9 +100,9 @@ def create_history_entry(
 def create_agent_error_state(
     agent_result_key: str,
     error: Exception,
-    state: Dict[str, Any],
+    state: dict[str, Any],
     error_step_name: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create standardized error state for agent nodes."""
     return {
         agent_result_key: {
@@ -109,7 +111,12 @@ def create_agent_error_state(
             "issues": [{"severity": "critical", "description": f"Error: {error}"}],
         },
         "history": [
-            {"agent": "System", "prompt": "Error generation", "result": {"error": str(error)}, "step": error_step_name}
+            {
+                "agent": "System",
+                "prompt": "Error generation",
+                "result": {"error": str(error)},
+                "step": error_step_name,
+            }
         ],
         "current_step": f"{error_step_name}_error",
         "error": str(error),

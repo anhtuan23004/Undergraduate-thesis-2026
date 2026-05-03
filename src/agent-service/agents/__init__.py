@@ -3,8 +3,8 @@
 from agents.factory import (
     AgentFactory,
     CompletenessAgentFactory,
-    QualityAgentFactory,
     DecisionAgentFactory,
+    QualityAgentFactory,
 )
 
 __all__ = [

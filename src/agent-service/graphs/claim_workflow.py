@@ -1,21 +1,21 @@
 """Main claim processing workflow (LangGraph)."""
 
-import structlog
 from typing import Any
 
-from langgraph.graph import StateGraph, END
+import structlog
+from agents import CompletenessAgentFactory, DecisionAgentFactory, QualityAgentFactory
+from config import settings
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, StateGraph
 
-from graphs.state import GraphState
 from graphs.routing import (
+    route_after_agent_review,
     route_after_completeness,
-    route_after_quality,
     route_after_final_review,
     route_after_human_review,
-    route_after_agent_review,
+    route_after_quality,
 )
-from agents import CompletenessAgentFactory, QualityAgentFactory, DecisionAgentFactory
-from config import settings
+from graphs.state import GraphState
 
 logger = structlog.get_logger()
 
@@ -43,8 +43,8 @@ def build_claim_workflow(
     workflow.add_node("quality_check", q_factory.create_quality_agent())
     workflow.add_node("final_decision", d_factory.create_decision_agent())
 
-    from graphs.human_review import HumanReviewNode
     from graphs.agent_review import AgentReviewNode
+    from graphs.human_review import HumanReviewNode
 
     h_node = HumanReviewNode()
     a_node = AgentReviewNode(llm_client)

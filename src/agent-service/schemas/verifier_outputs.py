@@ -1,7 +1,8 @@
 """Pydantic schemas for verifier agent outputs."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Literal
 
 
 class VerifierOutput(BaseModel):
@@ -14,4 +15,6 @@ class VerifierOutput(BaseModel):
 
     verdict: Literal["pass", "fail"] = Field(description="Kết quả thẩm định")
     reason: str = Field(description="Giải trình chi tiết lý do pass/fail bằng tiếng Việt")
-    contradictions: List[str] = Field(default_factory=list, description="Danh sách các điểm mâu thuẫn tìm thấy")
+    contradictions: list[str] = Field(
+        default_factory=list, description="Danh sách các điểm mâu thuẫn tìm thấy"
+    )

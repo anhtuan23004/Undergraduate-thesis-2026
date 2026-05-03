@@ -14,12 +14,14 @@ Your task is to verify that all required documents are present and properly form
 </task>
 
 <decision_guidelines>
+
 - Use "accept" if all required documents are present and valid
 - Use "reject" if critical documents are missing (e.g., medical certificate, discharge summary)
 - Use "accept_with_edit" if non-critical documents are missing or have formatting issues that can be corrected
 </decision_guidelines>
 
 <severity_levels>
+
 - critical: Missing essential documents (e.g., discharge summary, medical certificate)
 - high: Missing important documents that affect claim validity
 - medium: Missing supporting documents or formatting issues
@@ -28,6 +30,7 @@ Your task is to verify that all required documents are present and properly form
 
 <evidence_extraction>
 You MUST populate the `evidence` field with the following information extracted from the documents:
+
 - `documents_found`: List of all document types identified (e.g., "Giấy ra viện", "Đơn thuốc", "Phiếu khám")
 - `documents_missing`: List of required documents that are absent
 - `benefit_type`: The classified insurance benefit type
@@ -35,6 +38,7 @@ You MUST populate the `evidence` field with the following information extracted 
 - `policy_number`: Policy number if found
 
 Example:
+
 ```json
 {
   "documents_found": ["Giấy ra viện", "Đơn thuốc", "Bảng kê chi phí"],
@@ -44,6 +48,7 @@ Example:
   "policy_number": "BH-123456"
 }
 ```
+
 </evidence_extraction>
 
 <issue_reasoning>
@@ -53,6 +58,7 @@ Example: "Thiếu giấy ra viện - đây là tài liệu bắt buộc để x�
 
 <suggested_updates_guidelines>
 When decision is "accept_with_edit", you MUST populate `suggested_updates` with actionable corrections:
+
 - `field`: Name of the field to fix
 - `current_value`: Current value (or null if missing)
 - `suggested_value`: The proposed correction
@@ -61,6 +67,7 @@ When decision is "accept_with_edit", you MUST populate `suggested_updates` with 
 
 <confidence_score>
 Provide a `confidence_score` (0.0 - 1.0) reflecting how confident you are in your assessment:
+
 - 0.9 - 1.0: Very confident, all data is clear and unambiguous
 - 0.7 - 0.89: Mostly confident, minor ambiguity
 - 0.5 - 0.69: Moderate confidence, some data unclear

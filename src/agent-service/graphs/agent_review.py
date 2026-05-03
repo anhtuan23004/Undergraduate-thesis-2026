@@ -10,12 +10,13 @@ result as auto-reviewed and the workflow proceeds without human
 intervention; otherwise, it escalates to human review.
 """
 
-import structlog
-from typing import Any, Dict
+from typing import Any
 
-from config import settings
-from graphs.state import GraphState
+import structlog
 from agents.factory import VerifierAgentFactory
+from config import settings
+
+from graphs.state import GraphState
 
 logger = structlog.get_logger()
 
@@ -41,7 +42,7 @@ class AgentReviewNode:
         self.amount_threshold = settings.AGENT_REVIEW_AMOUNT_THRESHOLD
         self.confidence_threshold = settings.AGENT_REVIEW_CONFIDENCE_THRESHOLD
 
-    async def run(self, state: GraphState) -> Dict[str, Any]:
+    async def run(self, state: GraphState) -> dict[str, Any]:  # noqa: C901
         """Execute the agent review node.
 
         Examines the current agent result, checks confidence and issue
@@ -126,28 +127,30 @@ class AgentReviewNode:
             else:
                 reason = verifier_result.get("reason")
                 if has_contradictions:
-                    reason = (
-                        f"Phát hiện mâu thuẫn bởi bộ xác thực: {verifier_result.get('contradictions')}"
-                    )
+                    reason = f"Phát hiện mâu thuẫn bởi bộ xác thực: {verifier_result.get('contradictions')}"
 
                 logger.info(
                     "[Agent Review] Cross-verification failed or has contradictions",
                     stage=stage,
                     reason=reason,
                 )
-                return self._escalate(result_key, agent_result, stage, confidence, f"Rủi ro từ bộ xác thực: {reason}")
+                return self._escalate(
+                    result_key, agent_result, stage, confidence, f"Rủi ro từ bộ xác thực: {reason}"
+                )
 
         # Default fallback for low confidence
-        return self._escalate(result_key, agent_result, stage, confidence, f"Độ tin cậy ban đầu thấp ({confidence})")
+        return self._escalate(
+            result_key, agent_result, stage, confidence, f"Độ tin cậy ban đầu thấp ({confidence})"
+        )
 
     def _auto_approve(
         self,
         result_key: str,
-        agent_result: Dict[str, Any],
+        agent_result: dict[str, Any],
         stage: str,
         confidence: float,
         num_suggestions: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Mark agent result as auto-approved and return updated state.
 
         Args:
@@ -176,8 +179,13 @@ class AgentReviewNode:
         }
 
     def _escalate(
-        self, result_key: str, agent_result: Dict[str, Any], stage: str, confidence: float, reason: str
-    ) -> Dict[str, Any]:
+        self,
+        result_key: str,
+        agent_result: dict[str, Any],
+        stage: str,
+        confidence: float,
+        reason: str,
+    ) -> dict[str, Any]:
         """Escalate to human review with a detailed reason.
 
         Args:

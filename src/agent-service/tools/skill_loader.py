@@ -7,20 +7,18 @@ functions and BaseTool subclasses, with automatic kebab-case to snake_case mappi
 
 import importlib.util
 import os
-import structlog
 import sys
 import types
-import typing
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
 
+import structlog
 from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_core.tools.structured import StructuredTool
 
 logger = structlog.get_logger()
 
 # Module-level cache for loaded skills to avoid repeated file I/O
-_skill_cache: Dict[str, Tuple[List[LangChainBaseTool], str]] = {}
+_skill_cache: dict[str, tuple[list[LangChainBaseTool], str]] = {}
 
 # Strict mode for testing - fail on import errors
 STRICT_SKILL_LOADING = os.getenv("STRICT_SKILL_LOADING", "false").lower() == "true"
@@ -61,7 +59,7 @@ def _get_module_name_from_path(skill_dir: Path) -> str:
     return ".".join(module_parts) + ".scripts.tool"
 
 
-def _find_tool_in_module(module: types.ModuleType) -> Optional[LangChainBaseTool]:
+def _find_tool_in_module(module: types.ModuleType) -> LangChainBaseTool | None:
     """Search for a LangChain tool in an imported module."""
     for attr_name in dir(module):
         if attr_name.startswith("_"):
@@ -70,25 +68,17 @@ def _find_tool_in_module(module: types.ModuleType) -> Optional[LangChainBaseTool
         attr = getattr(module, attr_name)
 
         # Skip typing, modules, and built-in types
-        if isinstance(
-            attr,
-            (
-                typing._SpecialGenericAlias,
-                typing._SpecialForm,
-                types.ModuleType,
-                type,
-            ),
-        ):
+        if isinstance(attr, types.ModuleType | type):
             continue
 
         # Check for LangChain tool types
-        if isinstance(attr, (StructuredTool, LangChainBaseTool)):
+        if isinstance(attr, StructuredTool | LangChainBaseTool):
             logger.debug(f"Found LangChain tool: {attr_name}")
             return attr
     return None
 
 
-def _import_tool_from_module(skill_dir: Path) -> Optional[LangChainBaseTool]:
+def _import_tool_from_module(skill_dir: Path) -> LangChainBaseTool | None:
     """Import a tool function from a skill's scripts/tool.py."""
     tool_file = skill_dir / "scripts" / "tool.py"
     if not tool_file.exists():
@@ -123,7 +113,9 @@ def _import_tool_from_module(skill_dir: Path) -> Optional[LangChainBaseTool]:
         return None
 
 
-def _load_skills_recursive(search_dir: Path, tools: List[LangChainBaseTool], contexts: List[str]) -> None:
+def _load_skills_recursive(
+    search_dir: Path, tools: list[LangChainBaseTool], contexts: list[str]
+) -> None:
     """Helper to load skills from a given directory."""
     if not (search_dir.exists() and search_dir.is_dir()):
         return
@@ -140,7 +132,7 @@ def _load_skills_recursive(search_dir: Path, tools: List[LangChainBaseTool], con
                 contexts.append(f"### Available Tool: {skill_dir.name}\n{content}")
 
 
-def load_agent_skills(agent_name: str) -> Tuple[List[LangChainBaseTool], str]:
+def load_agent_skills(agent_name: str) -> tuple[list[LangChainBaseTool], str]:
     """Load all tools and skill contexts for a specific agent."""
     if agent_name in _skill_cache:
         return _skill_cache[agent_name]
@@ -149,8 +141,8 @@ def load_agent_skills(agent_name: str) -> Tuple[List[LangChainBaseTool], str]:
     agent_dir = skills_root / _snake_to_kebab(agent_name)
     shared_dir = skills_root / "shared"
 
-    tools: List[LangChainBaseTool] = []
-    skill_contexts_parts: List[str] = []
+    tools: list[LangChainBaseTool] = []
+    skill_contexts_parts: list[str] = []
 
     # Load specific and shared skills
     _load_skills_recursive(agent_dir, tools, skill_contexts_parts)

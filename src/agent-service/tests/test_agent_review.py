@@ -1,7 +1,8 @@
 """Tests for the AgentReviewNode logic."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from graphs.agent_review import AgentReviewNode
 
 

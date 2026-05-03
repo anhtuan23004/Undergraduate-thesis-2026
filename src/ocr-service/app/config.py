@@ -1,8 +1,5 @@
 """Application configuration module."""
 
-import os
-from typing import Optional
-
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -17,16 +14,16 @@ class Settings(BaseSettings):
 
     # Model Configuration
     GEMINI_MODEL: str = "gemini-2.5-pro"
-    GEMINI_TEMPERATURE: Optional[float] = None
-    GEMINI_TOP_P: Optional[float] = None
-    GEMINI_TOP_K: Optional[int] = None
-    GEMINI_MAX_OUTPUT_TOKENS: Optional[int] = None
+    GEMINI_TEMPERATURE: float | None = None
+    GEMINI_TOP_P: float | None = None
+    GEMINI_TOP_K: int | None = None
+    GEMINI_MAX_OUTPUT_TOKENS: int | None = None
 
     # Thinking Configuration (version-specific)
     # Gemini 2.5: -1=dynamic, 0=disabled, >0=token budget
-    GEMINI_THINKING_BUDGET: Optional[int] = None
+    GEMINI_THINKING_BUDGET: int | None = None
     # Gemini 3: minimal/low/medium/high
-    GEMINI_THINKING_LEVEL: Optional[str] = None
+    GEMINI_THINKING_LEVEL: str | None = None
 
     # Application Info
     PROJECT_NAME: str = "Gemini OCR API"

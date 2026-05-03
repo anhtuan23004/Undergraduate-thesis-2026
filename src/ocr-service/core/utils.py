@@ -3,13 +3,12 @@
 import json
 import mimetypes
 import re
-from typing import Any, Dict, Final, Optional, Union
+from typing import Any, Final
 from urllib.parse import urlparse
 
 import httpx
 from fastapi import HTTPException
 from google.genai import types
-
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -87,7 +86,7 @@ def sanitize_filename(filename: str, max_length: int = MAX_FILENAME_LENGTH) -> s
     return sanitized[:max_length]
 
 
-def validate_file_size(content_length: Optional[str], actual_size: int) -> None:
+def validate_file_size(content_length: str | None, actual_size: int) -> None:
     """Validate file size against maximum allowed.
 
     Args:
@@ -188,7 +187,7 @@ async def download_file_from_url(url: str) -> tuple[bytes, str, str]:
             ) from exc
 
 
-def parse_markdown_json(text: str) -> Union[Dict[str, Any], str]:
+def parse_markdown_json(text: str) -> dict[str, Any] | str:
     """Parse JSON string that might be wrapped in markdown code blocks.
 
     Args:
@@ -235,7 +234,7 @@ def is_gemini_3_model(model_name: str) -> bool:
     return any(pattern in model_lower for pattern in GEMINI_3_PATTERNS)
 
 
-def get_thinking_config_support() -> Dict[str, bool]:
+def get_thinking_config_support() -> dict[str, bool]:
     """Check which thinking features are supported by the installed SDK."""
     supported = {
         "thinking_level": False,
@@ -253,13 +252,13 @@ def get_thinking_config_support() -> Dict[str, bool]:
 
 
 # Cache supported features at module load time
-THINKING_SUPPORT: Final[Dict[str, bool]] = get_thinking_config_support()
+THINKING_SUPPORT: Final[dict[str, bool]] = get_thinking_config_support()
 
 
 def build_gemini_3_thinking_config(
-    thinking_level: Optional[str],
+    thinking_level: str | None,
     default_level: str,
-) -> Optional[types.ThinkingConfig]:
+) -> types.ThinkingConfig | None:
     """Build ThinkingConfig for Gemini 3.x models.
 
     Args:
@@ -291,17 +290,15 @@ def build_gemini_3_thinking_config(
         return types.ThinkingConfig(include_thoughts=True)
 
     # No support found
-    logger.warning(
-        f"ThinkingLevel not supported in current SDK version. Requested: {level}"
-    )
+    logger.warning(f"ThinkingLevel not supported in current SDK version. Requested: {level}")
     logger.info("Using default Gemini 3 thinking behavior (high)")
     return None
 
 
 def build_gemini_25_thinking_config(
-    thinking_budget: Optional[int],
+    thinking_budget: int | None,
     default_budget: int,
-) -> Optional[types.ThinkingConfig]:
+) -> types.ThinkingConfig | None:
     """Build ThinkingConfig for Gemini 2.5 models.
 
     Args:
@@ -330,11 +327,11 @@ def build_gemini_25_thinking_config(
 
 def build_thinking_config(
     model_name: str,
-    thinking_budget: Optional[int],
-    thinking_level: Optional[str],
+    thinking_budget: int | None,
+    thinking_level: str | None,
     default_thinking_budget: int,
     default_thinking_level: str,
-) -> Optional[types.ThinkingConfig]:
+) -> types.ThinkingConfig | None:
     """Build ThinkingConfig based on model version and SDK support.
 
     Args:
@@ -348,25 +345,21 @@ def build_thinking_config(
         ThinkingConfig if applicable, None otherwise.
     """
     if is_gemini_3_model(model_name):
-        return build_gemini_3_thinking_config(
-            thinking_level, default_thinking_level
-        )
-    return build_gemini_25_thinking_config(
-        thinking_budget, default_thinking_budget
-    )
+        return build_gemini_3_thinking_config(thinking_level, default_thinking_level)
+    return build_gemini_25_thinking_config(thinking_budget, default_thinking_budget)
 
 
 def build_generation_config(
     model_name: str,
-    temperature: Optional[float] = None,
-    top_p: Optional[float] = None,
-    top_k: Optional[int] = None,
-    max_output_tokens: Optional[int] = None,
-    thinking_budget: Optional[int] = None,
-    thinking_level: Optional[str] = None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    top_k: int | None = None,
+    max_output_tokens: int | None = None,
+    thinking_budget: int | None = None,
+    thinking_level: str | None = None,
     default_thinking_budget: int = -1,
     default_thinking_level: str = "low",
-) -> Optional[types.GenerateContentConfig]:
+) -> types.GenerateContentConfig | None:
     """Build GenerateContentConfig with version-specific thinking support.
 
     Args:
@@ -383,7 +376,7 @@ def build_generation_config(
     Returns:
         GenerateContentConfig if any parameters are set, None otherwise.
     """
-    config_dict: Dict[str, Any] = {}
+    config_dict: dict[str, Any] = {}
 
     # Standard generation parameters
     if temperature is not None:

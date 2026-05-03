@@ -1,0 +1,118 @@
+# ============================================
+# Pre-commit Configuration
+# ============================================
+# Install pre-commit: pip install pre-commit
+# Run: pre-commit install
+# ============================================
+
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  # General File Quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            .*\.md$
+          )
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+            .*\.md$
+          )
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Python Linting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types: [python]
+
+  # Python Formatting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff-format
+        types: [python]
+
+  # Type Checking with MyPy (skipped - untyped code)
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies:
+  #         - pydantic>=2.5.0
+  #         - types-requests
+  #         - types-redis
+  #       args: [--ignore-missing-imports, --no-strict-optional, src/agent-service]
+  #       pass_filenames: false
+
+  # Security Checks
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+        exclude: '^(.*/)?tests/'
+
+  # Dockerfile Linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: [--ignore, DL3008, --ignore, DL3013]
+
+  # Markdown Linting
+  # - repo: https://github.com/igorshubovych/markdownlint-cli
+  #   rev: v0.38.0
+  #   hooks:
+  #     - id: markdownlint
+  #       args: [--fix]
+  #       exclude: |
+  #         (?x)^(
+  #           docs/report_templates/.*
+  #         )
+
+  # YAML Formatting
+  # Note: pretty-format-yaml has compatibility issues with Python 3.13
+  # Use `ruff format` or manual formatting instead
+
+  # Docker Compose Validation
+  # Note: compose-validator repository is no longer available
+  # Use `docker compose config` manually or CI workflow for validation
+
+  # No Commits to Main/Develop
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, develop]
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

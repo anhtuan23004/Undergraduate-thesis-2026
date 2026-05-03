@@ -1,17 +1,14 @@
 """Web search tool for medical information using Tavily.
 
-This tool allowing the agent to search the web for medical information, 
+This tool allowing the agent to search the web for medical information,
 drug details, or insurance policy updates.
 """
 
 import json
-import os
-from typing import List, Dict, Any
-
-from langchain_core.tools import tool
-from tavily import TavilyClient
 
 from config import settings
+from langchain_core.tools import tool
+from tavily import TavilyClient
 
 tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
 
@@ -20,8 +17,8 @@ tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
 def web_search(query: str, max_results: int = 3) -> str:
     """Search the web for medical information as a fallback.
 
-    ONLY use this tool if internal databases (like search-medicine or check-icd) 
-    return no results or insufficient information. This tool is for finding 
+    ONLY use this tool if internal databases (like search-medicine or check-icd)
+    return no results or insufficient information. This tool is for finding
     missing medications, rare diseases, or latest insurance policies on the web.
 
     Args:
@@ -32,37 +29,31 @@ def web_search(query: str, max_results: int = 3) -> str:
         JSON string with search results.
     """
     if not tavily_client:
-        return json.dumps({
-            "status": "error",
-            "message": "TAVILY_API_KEY not configured or invalid"
-        })
+        return json.dumps(
+            {"status": "error", "message": "TAVILY_API_KEY not configured or invalid"}
+        )
 
     try:
         search_results = tavily_client.search(
-            query=query,
-            search_depth="basic",
-            max_results=max_results
+            query=query, search_depth="basic", max_results=max_results
         )
-        
+
         formatted_results = []
         for res in search_results.get("results", []):
-            formatted_results.append({
-                "title": res.get("title", ""),
-                "content": res.get("content", ""),
-                "url": res.get("url", "")
-            })
-            
-        return json.dumps({
-            "status": "success",
-            "query": query,
-            "results": formatted_results
-        }, ensure_ascii=False)
-        
+            formatted_results.append(
+                {
+                    "title": res.get("title", ""),
+                    "content": res.get("content", ""),
+                    "url": res.get("url", ""),
+                }
+            )
+
+        return json.dumps(
+            {"status": "success", "query": query, "results": formatted_results}, ensure_ascii=False
+        )
+
     except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "message": str(e)
-        })
+        return json.dumps({"status": "error", "message": str(e)})
 
 
 __all__ = ["web_search"]

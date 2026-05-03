@@ -4,13 +4,13 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from sentence_transformers import SentenceTransformer
-from huggingface_hub import login
+from huggingface_hub import login  # noqa: E402
+from sentence_transformers import SentenceTransformer  # noqa: E402
 
 BATCH_SIZE = 100
 PROGRESS_INTERVAL = 100
@@ -29,22 +29,22 @@ def _get_model() -> SentenceTransformer:
     return SentenceTransformer("AITeamVN/Vietnamese_Embedding_v2")
 
 
-def load_medicines(filepath: Path) -> List[Dict[str, Any]]:
+def load_medicines(filepath: Path) -> list[dict[str, Any]]:
     """Load medicine data from JSON file."""
     print(f"Loading medicines from {filepath}...")
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         medicines = json.load(f)
     print(f"Loaded {len(medicines)} medicine records")
     return medicines
 
 
-def generate_embeddings_batch(model: SentenceTransformer, names: List[str]) -> List[List[float]]:
+def generate_embeddings_batch(model: SentenceTransformer, names: list[str]) -> list[list[float]]:
     """Generate embeddings for a batch of medicine names."""
     embeddings = model.encode(names, convert_to_numpy=True)
     return [embedding.tolist() for embedding in embeddings]
 
 
-def process_medicines(medicines: List[Dict[str, Any]]) -> None:
+def process_medicines(medicines: list[dict[str, Any]]) -> None:
     """Process medicines and insert into MongoDB with embeddings."""
     sys.path.insert(0, str(PROJECT_ROOT / "src" / "agent-service"))
     from mongodb_client import get_medicine_collection
@@ -67,7 +67,7 @@ def process_medicines(medicines: List[Dict[str, Any]]) -> None:
         embeddings = generate_embeddings_batch(model, batch_names)
 
         documents = []
-        for medicine, embedding in zip(batch, embeddings):
+        for medicine, embedding in zip(batch, embeddings, strict=False):
             doc = medicine.copy()
             doc["search_vector"] = embedding
             documents.append(doc)

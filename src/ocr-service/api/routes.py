@@ -1,12 +1,11 @@
 """API routes for the OCR service."""
 
-from typing import Any, Optional
-
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from typing import Any
 
 from app.config import settings
 from core.ocr_engine import GeminiConfigError, GeminiOCRService
 from core.utils import download_file_from_url
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -15,7 +14,7 @@ health_router = APIRouter()
 ocr_router = APIRouter(prefix=f"{settings.API_PREFIX}/ocr", tags=["ocr"])
 
 
-def get_ocr_service(api_key: Optional[str] = Form(None)) -> GeminiOCRService:
+def get_ocr_service(api_key: str | None = Form(None)) -> GeminiOCRService:
     """Get OCR service instance with optional API key override."""
     try:
         return GeminiOCRService(api_key=api_key)
@@ -24,8 +23,8 @@ def get_ocr_service(api_key: Optional[str] = Form(None)) -> GeminiOCRService:
 
 
 async def get_file_content(
-    file: Optional[UploadFile],
-    file_url: Optional[str],
+    file: UploadFile | None,
+    file_url: str | None,
     operation: str,
 ) -> tuple[bytes, str, str]:
     """Get file content from upload or URL.
@@ -87,16 +86,16 @@ async def health_check() -> dict[str, str]:
 
 @ocr_router.post("/raw")
 async def ocr_raw(
-    file: Optional[UploadFile] = File(None),
-    file_url: Optional[str] = Form(None),
-    prompt: Optional[str] = Form(None),
-    model_name: Optional[str] = Form(None),
-    temperature: Optional[float] = Form(None),
-    top_p: Optional[float] = Form(None),
-    top_k: Optional[int] = Form(None),
-    max_output_tokens: Optional[int] = Form(None),
-    thinking_budget: Optional[int] = Form(None),
-    thinking_level: Optional[str] = Form(None),
+    file: UploadFile | None = File(None),
+    file_url: str | None = Form(None),
+    prompt: str | None = Form(None),
+    model_name: str | None = Form(None),
+    temperature: float | None = Form(None),
+    top_p: float | None = Form(None),
+    top_k: int | None = Form(None),
+    max_output_tokens: int | None = Form(None),
+    thinking_budget: int | None = Form(None),
+    thinking_level: str | None = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
 ) -> str:
     """Extract raw text from images/PDFs.
@@ -104,9 +103,7 @@ async def ocr_raw(
     Provide either 'file' (upload) or 'file_url'.
     """
     try:
-        file_bytes, file_name, mime_type = await get_file_content(
-            file, file_url, "ocr_raw"
-        )
+        file_bytes, file_name, mime_type = await get_file_content(file, file_url, "ocr_raw")
         return service.parse_raw(
             file_bytes=file_bytes,
             file_name=file_name,
@@ -126,16 +123,16 @@ async def ocr_raw(
 
 @ocr_router.post("/fields")
 async def ocr_fields(
-    file: Optional[UploadFile] = File(None),
-    file_url: Optional[str] = Form(None),
-    prompt: Optional[str] = Form(None),
-    model_name: Optional[str] = Form(None),
-    temperature: Optional[float] = Form(None),
-    top_p: Optional[float] = Form(None),
-    top_k: Optional[int] = Form(None),
-    max_output_tokens: Optional[int] = Form(None),
-    thinking_budget: Optional[int] = Form(None),
-    thinking_level: Optional[str] = Form(None),
+    file: UploadFile | None = File(None),
+    file_url: str | None = Form(None),
+    prompt: str | None = Form(None),
+    model_name: str | None = Form(None),
+    temperature: float | None = Form(None),
+    top_p: float | None = Form(None),
+    top_k: int | None = Form(None),
+    max_output_tokens: int | None = Form(None),
+    thinking_budget: int | None = Form(None),
+    thinking_level: str | None = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
 ) -> Any:
     """Extract structured fields (JSON) from images/PDFs.
@@ -143,9 +140,7 @@ async def ocr_fields(
     Provide either 'file' (upload) or 'file_url'.
     """
     try:
-        file_bytes, file_name, mime_type = await get_file_content(
-            file, file_url, "ocr_fields"
-        )
+        file_bytes, file_name, mime_type = await get_file_content(file, file_url, "ocr_fields")
         return service.parse_fields(
             file_bytes=file_bytes,
             file_name=file_name,
@@ -165,16 +160,16 @@ async def ocr_fields(
 
 @ocr_router.post("/document")
 async def ocr_document(
-    file: Optional[UploadFile] = File(None),
-    file_url: Optional[str] = Form(None),
-    prompt: Optional[str] = Form(None),
-    model_name: Optional[str] = Form(None),
-    temperature: Optional[float] = Form(None),
-    top_p: Optional[float] = Form(None),
-    top_k: Optional[int] = Form(None),
-    max_output_tokens: Optional[int] = Form(None),
-    thinking_budget: Optional[int] = Form(None),
-    thinking_level: Optional[str] = Form(None),
+    file: UploadFile | None = File(None),
+    file_url: str | None = Form(None),
+    prompt: str | None = Form(None),
+    model_name: str | None = Form(None),
+    temperature: float | None = Form(None),
+    top_p: float | None = Form(None),
+    top_k: int | None = Form(None),
+    max_output_tokens: int | None = Form(None),
+    thinking_budget: int | None = Form(None),
+    thinking_level: str | None = Form(None),
     service: GeminiOCRService = Depends(get_ocr_service),
 ) -> Any:
     """Extract document structure (JSON) from images/PDFs.
@@ -182,9 +177,7 @@ async def ocr_document(
     Provide either 'file' (upload) or 'file_url'.
     """
     try:
-        file_bytes, file_name, mime_type = await get_file_content(
-            file, file_url, "ocr_document"
-        )
+        file_bytes, file_name, mime_type = await get_file_content(file, file_url, "ocr_document")
         return service.parse_document(
             file_bytes=file_bytes,
             file_name=file_name,
