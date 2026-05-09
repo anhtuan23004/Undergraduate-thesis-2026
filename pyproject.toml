@@ -8,7 +8,7 @@ license = {text = "MIT"}
 authors = [
     {name = "Undergraduate Thesis Project"}
 ]
-keywords = ["insurance", "claims", "ai", "agentic", "langgraph", "rag", "ocr"]
+keywords = ["insurance", "claims", "ai", "agentic", "langgraph", "ocr"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Healthcare Industry",
@@ -71,7 +71,7 @@ include = ["src/", "tests/", "README.md", "AGENTS.md"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["src/agent-service/tests", "src/rag-service/tests", "src/ocr-service/tests"]
+testpaths = ["src/agent-service/tests", "src/ocr-service/tests"]
 addopts = "-v --tb=short"
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -111,14 +111,6 @@ exclude = [
     "src/agent-service/skills/.*/SKILL\\.md",
 ]
 
-[[tool.mypy.overrides]]
-module = "pymilvus.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "milvus_lite.*"
-ignore_missing_imports = true
-
 [tool.coverage.run]
 source = ["src/"]
 omit = [
@@ -153,26 +145,6 @@ agent-service = [
     "tavily-python>=0.3.3",
     "streamlit>=1.28.0",
 ]
-
-rag-service = [
-    "fastapi>=0.109.0",
-    "uvicorn[standard]>=0.27.0",
-    "pydantic>=2.9.0",
-    "pydantic-settings>=2.1.0",
-    "pymilvus==2.5.6",
-    "marshmallow>=3.18.0",
-    "google-generativeai>=0.7.0",
-    "rank-bm25==0.2.2",
-    "jieba==0.42.1",
-    "nltk==3.8.1",
-    "scikit-learn==1.4.0",
-    "motor>=3.3.2",
-    "pymongo>=4.12,<4.16",
-    "structlog==24.1.0",
-    "numpy==1.26.3",
-    "httpx>=0.28.1",
-]
-
 ocr-service = [
     "google-genai>=1.51.0",
     "fastapi>=0.109.0",
@@ -180,13 +152,4 @@ ocr-service = [
     "python-multipart>=0.0.9",
     "httpx>=0.23.0",
     "pydantic-settings>=2.0.0",
-]
-
-dev = [
-    "pytest>=7.4.4",
-    "pytest-asyncio>=0.21.1",
-    "pytest-cov>=4.1.0",
-    "ruff>=0.1.0",
-    "mypy>=1.8.0",
-    "pre-commit>=3.6.0",
 ]
