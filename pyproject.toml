@@ -31,6 +31,7 @@ dependencies = [
     "motor>=3.3.2",
     "pymongo>=4.6.1",
     "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
     "structlog>=24.1.0",
     "requests>=2.31.0",
     "langfuse>=2.0.0",
@@ -47,6 +48,10 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.8.0",
     "pre-commit>=3.6.0",
+]
+eval = [
+    "scikit-learn>=1.4.0",
+    "numpy>=1.26.0",
 ]
 
 [project.urls]
@@ -142,8 +147,10 @@ agent-service = [
     "langfuse>=0.12.0",
     "motor>=3.3.2",
     "pymongo>=4.6.1",
+    "python-multipart>=0.0.9",
     "structlog>=24.1.0",
     "requests>=2.31.0",
+    "tavily-python>=0.3.3",
     "streamlit>=1.28.0",
 ]
 

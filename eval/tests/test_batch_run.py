@@ -1,0 +1,141 @@
+from eval.batch_run import (
+    extract_routing_path,
+    initialize_history,
+    save_history,
+    save_result,
+    update_history,
+    workflow_response_to_result,
+)
+from eval.runner import load_results, write_agent_suggestions
+
+
+def test_workflow_response_to_result_normalizes_final_decision_and_outputs():
+    response = {
+        "claim_id": "CLAIM-001",
+        "agent_1_result": {"decision": "accept"},
+        "agent_2_result": {"decision": "accept"},
+        "final_result": {"decision": "approve"},
+        "current_step": "completed_decision_agent",
+        "pending_human_review": True,
+        "paused": True,
+        "history": [
+            {"agent": "CompletenessAgent", "step": "completeness_agent"},
+            {"agent": "QualityAgent", "step": "quality_agent"},
+            {"agent": "DecisionAgent", "step": "decision_agent"},
+        ],
+    }
+
+    result = workflow_response_to_result(response, latency_ms=123.4)
+
+    assert result.claim_id == "CLAIM-001"
+    assert result.final_decision == "accept"
+    assert result.agent_outputs["CompletenessAgent"] == {"decision": "accept"}
+    assert result.routing_path == ["completeness_check", "quality_check", "final_decision"]
+    assert result.human_reviewed is True
+
+
+def test_workflow_response_marks_missing_final_decision_as_needs_review_when_paused():
+    response = {
+        "claim_id": "CLAIM-002",
+        "current_step": "completed_quality_agent",
+        "pending_human_review": True,
+        "history": [{"agent": "QualityAgent", "step": "quality_agent"}],
+    }
+
+    result = workflow_response_to_result(response, latency_ms=50)
+
+    assert result.final_decision == "needs_review"
+    assert result.routing_path == ["quality_check"]
+
+
+def test_extract_routing_path_adds_pause_node_once():
+    path = extract_routing_path(
+        history=[
+            {"step": "completeness_agent"},
+            {"step": "quality_agent"},
+        ],
+        current_step="completed_quality_agent",
+        pause_at="human_review",
+    )
+
+    assert path == ["completeness_check", "quality_check", "human_review"]
+
+
+def test_history_tracks_claim_states(tmp_path):
+    history = {"claims": {}}
+    claims = [
+        {
+            "claim_id": "CLAIM-001",
+            "file_name": "a.pdf",
+            "file_path": "data/a.pdf",
+            "category_code": "OP_ILL",
+        }
+    ]
+
+    initialize_history(history, claims)
+    update_history(history, claims[0], "completed", final_decision="accept")
+    output = tmp_path / "history.json"
+    save_history(output, history)
+
+    assert history["claims"]["CLAIM-001"]["status"] == "completed"
+    assert history["claims"]["CLAIM-001"]["final_decision"] == "accept"
+    assert history["summary"]["completed"] == 1
+    assert output.exists()
+
+
+def test_completed_history_clears_previous_error():
+    claim = {
+        "claim_id": "CLAIM-001",
+        "file_name": "a.pdf",
+        "file_path": "data/a.pdf",
+        "category_code": "OP_ILL",
+    }
+    history = {"claims": {}}
+
+    update_history(history, claim, "failed", error="old error")
+    update_history(history, claim, "completed", final_decision="accept")
+
+    assert history["claims"]["CLAIM-001"]["status"] == "completed"
+    assert "error" not in history["claims"]["CLAIM-001"]
+
+
+def test_result_is_saved_per_claim_file(tmp_path):
+    result = workflow_response_to_result(
+        {
+            "claim_id": "CLAIM-001",
+            "final_result": {"decision": "approve"},
+            "history": [],
+        },
+        latency_ms=10,
+    )
+
+    output = save_result(tmp_path, result)
+    loaded = load_results(tmp_path)
+
+    assert output == tmp_path / "CLAIM-001.json"
+    assert loaded[0].claim_id == "CLAIM-001"
+    assert loaded[0].final_decision == "accept"
+
+
+def test_suggestions_are_saved_per_claim(tmp_path):
+    result = workflow_response_to_result(
+        {
+            "claim_id": "CLAIM-001",
+            "final_result": {"decision": "approve"},
+            "history": [],
+        },
+        latency_ms=10,
+    )
+    results_dir = tmp_path / "claims"
+    suggestions_dir = tmp_path / "suggestions"
+    output = tmp_path / "agent_suggestions.json"
+    save_result(results_dir, result)
+
+    write_agent_suggestions(
+        results_dir,
+        output,
+        suggestions_dir=suggestions_dir,
+    )
+
+    assert output.exists()
+    assert (suggestions_dir / "CLAIM-001.json").exists()

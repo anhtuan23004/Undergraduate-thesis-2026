@@ -1,0 +1,4970 @@
+{
+  "metadata": {
+    "total_claims": 100,
+    "generated_at": "2026-05-09T13:27:29.115914",
+    "source": "data/dataset/documents",
+    "categories": {
+      "OP_ILL": 47,
+      "IP_ILL": 15,
+      "OP_ACC": 10,
+      "IP_ACC": 7,
+      "OP_MAT": 15,
+      "IP_MAT": 6
+    },
+    "complexity_distribution": {
+      "simple": 83,
+      "ambiguous": 17,
+      "complex": 0
+    },
+    "labeling_mode": "fake_ground_truth_for_metric_smoke_test",
+    "fake_label_source": "eval/results/suggestions/*.json",
+    "fake_label_count": 10,
+    "fake_label_warning": "Temporary labels generated from agent outputs; do not use as final thesis ground truth."
+  },
+  "claims": [
+    {
+      "claim_id": "CLM-OP_ILL-0001",
+      "policy_number": "",
+      "patient_name": "Dương Duy Dư",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Dương Duy Dư.pdf",
+      "file_name": "Dương Duy Dư.pdf",
+      "document_date": null,
+      "expected_decision": "accept",
+      "expected_missing_docs": [
+        "ICD_MISSING"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "ICD_MISSING"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "quality_check",
+        "agent_review",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "quality_check",
+        "agent_review",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0002",
+      "policy_number": "",
+      "patient_name": "GO HEUNGKWANG",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/GO_HEUNGKWANG.pdf",
+      "file_name": "GO_HEUNGKWANG.pdf",
+      "document_date": null,
+      "expected_decision": "accept",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [
+        "E11.9",
+        "E78.5",
+        "I10"
+      ],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [
+        "completeness_check",
+        "quality_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "quality_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0003",
+      "policy_number": "",
+      "patient_name": "HONG SEUNGSOO",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/HONG SEUNGSOO.pdf",
+      "file_name": "HONG SEUNGSOO.pdf",
+      "document_date": null,
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "MISSING_ACCIDENT_REPORT"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "MISSING_ACCIDENT_REPORT"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0004",
+      "policy_number": "",
+      "patient_name": "HUỲNH CẨM TÚ 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/HUỲNH CẨM TÚ 2.pdf",
+      "file_name": "HUỲNH CẨM TÚ 2.pdf",
+      "document_date": null,
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "ICD_MISMATCH",
+        "ICD_MISSING",
+        "SUPPLEMENT_DRUG"
+      ],
+      "expected_icd_codes": [
+        "B18.0"
+      ],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "ICD_MISMATCH",
+        "ICD_MISSING",
+        "SUPPLEMENT_DRUG"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "quality_check",
+        "agent_review",
+        "agent_review_escalated_quality",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label. Smoke-test adjustment: expected_decision intentionally differs from agent output.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "quality_check",
+        "agent_review",
+        "agent_review_escalated_quality",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0005",
+      "policy_number": "",
+      "patient_name": "Huỳnh Thế Vinh 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Huỳnh Thế Vinh 2.pdf",
+      "file_name": "Huỳnh Thế Vinh 2.pdf",
+      "document_date": null,
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "MISSING_DOC"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "MISSING_DOC"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0006",
+      "policy_number": "",
+      "patient_name": "Hồ sơ Ngoại trú mẫu 1",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Hồ sơ Ngoại trú mẫu 1.pdf",
+      "file_name": "Hồ sơ Ngoại trú mẫu 1.pdf",
+      "document_date": null,
+      "expected_decision": "accept",
+      "expected_missing_docs": [
+        "ICD_MISSING"
+      ],
+      "expected_icd_codes": [
+        "K92"
+      ],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [
+        "completeness_check",
+        "quality_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label. Smoke-test adjustment: expected_quality_issues intentionally differs from agent output.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "quality_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0007",
+      "policy_number": "",
+      "patient_name": "Jung Jin Hyeok Khám ngày 24 08 2025",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Jung Jin Hyeok_Khám ngày 24.08.2025.pdf",
+      "file_name": "Jung Jin Hyeok_Khám ngày 24.08.2025.pdf",
+      "document_date": "24.08.2025",
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "DIAGNOSIS_MISMATCH",
+        "MISSING_DOC"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "DIAGNOSIS_MISMATCH",
+        "MISSING_DOC"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0008",
+      "policy_number": "",
+      "patient_name": "Kang Min Soo",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Kang_Min_Soo.pdf",
+      "file_name": "Kang_Min_Soo.pdf",
+      "document_date": null,
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "DIAGNOSIS_MISMATCH",
+        "MISSING_DOC",
+        "MISSING_SIGNATURE"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "DIAGNOSIS_MISMATCH",
+        "MISSING_DOC",
+        "MISSING_SIGNATURE"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0009",
+      "policy_number": "",
+      "patient_name": "Lê Hồ Minh Nhật 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Hồ Minh Nhật 2.pdf",
+      "file_name": "Lê Hồ Minh Nhật 2.pdf",
+      "document_date": null,
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "MISSING_DOC"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "MISSING_DOC"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0010",
+      "policy_number": "",
+      "patient_name": "Lê Hồ Minh Nhật",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Hồ Minh Nhật.pdf",
+      "file_name": "Lê Hồ Minh Nhật.pdf",
+      "document_date": null,
+      "expected_decision": "reject",
+      "expected_missing_docs": [
+        "MISSING_DOC"
+      ],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [
+        "MISSING_DOC"
+      ],
+      "expected_routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "final",
+      "expert_notes": "FAKE_LABEL_FOR_METRIC_SMOKE_TEST: generated from agent suggestion; replace with manual reviewer label.",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [
+        "completeness_check",
+        "final_decision",
+        "human_review"
+      ],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0011",
+      "policy_number": "",
+      "patient_name": "Lê Hồng Cúc 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Hồng Cúc 2.pdf",
+      "file_name": "Lê Hồng Cúc 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0012",
+      "policy_number": "",
+      "patient_name": "Lê Khải Anh 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Khải Anh 2.pdf",
+      "file_name": "Lê Khải Anh 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0013",
+      "policy_number": "",
+      "patient_name": "Lê Khải Anh",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Khải Anh.pdf",
+      "file_name": "Lê Khải Anh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0014",
+      "policy_number": "",
+      "patient_name": "Lê Khải Minh",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Khải Minh.pdf",
+      "file_name": "Lê Khải Minh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0015",
+      "policy_number": "",
+      "patient_name": "Lê Nguyễn Quỳnh Vy",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Nguyễn Quỳnh Vy.pdf",
+      "file_name": "Lê Nguyễn Quỳnh Vy.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0016",
+      "policy_number": "",
+      "patient_name": "Lê Thành Hiệp",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Thành Hiệp.pdf",
+      "file_name": "Lê Thành Hiệp.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0017",
+      "policy_number": "",
+      "patient_name": "Lê Thành Đạt",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Thành Đạt.pdf",
+      "file_name": "Lê Thành Đạt.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0018",
+      "policy_number": "",
+      "patient_name": "Lê Văn Thành",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lê Văn Thành.pdf",
+      "file_name": "Lê Văn Thành.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0019",
+      "policy_number": "",
+      "patient_name": "Lưu Thị Thuỳ Dung",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Lưu Thị Thuỳ Dung.pdf",
+      "file_name": "Lưu Thị Thuỳ Dung.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0020",
+      "policy_number": "",
+      "patient_name": "NGUYỄN PHẠM HOÀNG DUY",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/NGUYỄN PHẠM HOÀNG DUY.pdf",
+      "file_name": "NGUYỄN PHẠM HOÀNG DUY.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0021",
+      "policy_number": "",
+      "patient_name": "Nguyễn Cao Cường",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Cao Cường.pdf",
+      "file_name": "Nguyễn Cao Cường.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0022",
+      "policy_number": "",
+      "patient_name": "Nguyễn Ngọc Minh Anh",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Ngọc Minh Anh.pdf",
+      "file_name": "Nguyễn Ngọc Minh Anh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0023",
+      "policy_number": "",
+      "patient_name": "Nguyễn Quang Tùng",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Quang Tùng.pdf",
+      "file_name": "Nguyễn Quang Tùng.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0024",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Hồng Thắm",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Thị Hồng Thắm.pdf",
+      "file_name": "Nguyễn Thị Hồng Thắm.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0025",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Mỹ Hằng",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Thị Mỹ Hằng.pdf",
+      "file_name": "Nguyễn Thị Mỹ Hằng.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0026",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Thảo",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Thị Thảo.pdf",
+      "file_name": "Nguyễn Thị Thảo.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0027",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Trúc Mai 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Thị Trúc Mai 2.pdf",
+      "file_name": "Nguyễn Thị Trúc Mai 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0028",
+      "policy_number": "",
+      "patient_name": "Nguyễn Trọng Hùng",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Trọng Hùng.pdf",
+      "file_name": "Nguyễn Trọng Hùng.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0029",
+      "policy_number": "",
+      "patient_name": "Nguyễn Tuấn Anh",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Tuấn Anh.pdf",
+      "file_name": "Nguyễn Tuấn Anh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0030",
+      "policy_number": "",
+      "patient_name": "Nguyễn Vũ Hoàng Duy",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Nguyễn Vũ Hoàng Duy.pdf",
+      "file_name": "Nguyễn Vũ Hoàng Duy.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0031",
+      "policy_number": "",
+      "patient_name": "PHẠM THỊ THUÝ NGA",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/PHẠM THỊ THUÝ NGA.pdf",
+      "file_name": "PHẠM THỊ THUÝ NGA.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0032",
+      "policy_number": "",
+      "patient_name": "Phan Thị Kim Chi",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Phan Thị Kim Chi.pdf",
+      "file_name": "Phan Thị Kim Chi.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0033",
+      "policy_number": "",
+      "patient_name": "Phan Trinh Nữ",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Phan Trinh Nữ.pdf",
+      "file_name": "Phan Trinh Nữ.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0034",
+      "policy_number": "",
+      "patient_name": "Phạm Thu Hà",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Phạm Thu Hà.pdf",
+      "file_name": "Phạm Thu Hà.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0035",
+      "policy_number": "",
+      "patient_name": "Phạm Văn Đông",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Phạm Văn Đông.pdf",
+      "file_name": "Phạm Văn Đông.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0036",
+      "policy_number": "",
+      "patient_name": "Quyên   Crawl trên mạng giống demo của Medcat",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Quyên - Crawl trên mạng giống demo của Medcat.pdf",
+      "file_name": "Quyên - Crawl trên mạng giống demo của Medcat.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0037",
+      "policy_number": "",
+      "patient_name": "TRỊNH VĂN THỊNH",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/TRỊNH VĂN THỊNH.pdf",
+      "file_name": "TRỊNH VĂN THỊNH.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0038",
+      "policy_number": "",
+      "patient_name": "Trần Hữu Nhân 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Trần Hữu Nhân 2.pdf",
+      "file_name": "Trần Hữu Nhân 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0039",
+      "policy_number": "",
+      "patient_name": "Trần Hữu Nhân",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Trần Hữu Nhân.pdf",
+      "file_name": "Trần Hữu Nhân.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0040",
+      "policy_number": "",
+      "patient_name": "Trần Nhật Minh",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Trần Nhật Minh.pdf",
+      "file_name": "Trần Nhật Minh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0041",
+      "policy_number": "",
+      "patient_name": "Tạ Bảo Ngọc",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Tạ Bảo Ngọc.pdf",
+      "file_name": "Tạ Bảo Ngọc.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0042",
+      "policy_number": "",
+      "patient_name": "Vũ Thị Hồng Phương",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Vũ Thị Hồng Phương.pdf",
+      "file_name": "Vũ Thị Hồng Phương.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0043",
+      "policy_number": "",
+      "patient_name": "phạm phúc lâm 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/phạm phúc lâm 2.pdf",
+      "file_name": "phạm phúc lâm 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0044",
+      "policy_number": "",
+      "patient_name": "ĐINH THỊ XUÂN SƠN 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/ĐINH THỊ XUÂN SƠN 2.pdf",
+      "file_name": "ĐINH THỊ XUÂN SƠN 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0045",
+      "policy_number": "",
+      "patient_name": "Đinh Thị Phương Anh 2",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Đinh Thị Phương Anh 2.pdf",
+      "file_name": "Đinh Thị Phương Anh 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0046",
+      "policy_number": "",
+      "patient_name": "Đào Thị Liên",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Đào Thị Liên.pdf",
+      "file_name": "Đào Thị Liên.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ILL-0047",
+      "policy_number": "",
+      "patient_name": "Đặng Thiên Phúc",
+      "category": "outpatient_illness",
+      "category_code": "OP_ILL",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Đặng Thiên Phúc.pdf",
+      "file_name": "Đặng Thiên Phúc.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0001",
+      "policy_number": "",
+      "patient_name": "Bùi Thị Hồng Hạnh",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Bùi Thị Hồng Hạnh.pdf",
+      "file_name": "Bùi Thị Hồng Hạnh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0002",
+      "policy_number": "",
+      "patient_name": "Bản ko che   Bùi Hà Tuệ Anh",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Bản ko che - Bùi Hà Tuệ Anh.pdf",
+      "file_name": "Bản ko che - Bùi Hà Tuệ Anh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0003",
+      "policy_number": "",
+      "patient_name": "HS bảo lãnh Nguyễn Thúy An",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/HS bảo lãnh Nguyễn Thúy An.pdf",
+      "file_name": "HS bảo lãnh Nguyễn Thúy An.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0004",
+      "policy_number": "",
+      "patient_name": "HUỲNH VĂN BÉ",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/HUỲNH VĂN BÉ.pdf",
+      "file_name": "HUỲNH VĂN BÉ.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0005",
+      "policy_number": "",
+      "patient_name": "HUỲNH VĂN NHÂN",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/HUỲNH VĂN NHÂN.pdf",
+      "file_name": "HUỲNH VĂN NHÂN.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0006",
+      "policy_number": "",
+      "patient_name": "HỒ THỊ THANH THUỶ",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/HỒ THỊ THANH THUỶ.pdf",
+      "file_name": "HỒ THỊ THANH THUỶ.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0007",
+      "policy_number": "",
+      "patient_name": "Hồ sơ nội trú mẫu 1   Bùi Hà Tuệ Anh",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Hồ sơ nội trú mẫu 1 - Bùi Hà Tuệ Anh.pdf",
+      "file_name": "Hồ sơ nội trú mẫu 1 - Bùi Hà Tuệ Anh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0008",
+      "policy_number": "",
+      "patient_name": "MAI HIẾU DŨNG",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/MAI HIẾU DŨNG.pdf",
+      "file_name": "MAI HIẾU DŨNG.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0009",
+      "policy_number": "",
+      "patient_name": "NGUYỄN TRẦN GIA BẢO 2",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/NGUYỄN TRẦN GIA BẢO 2.pdf",
+      "file_name": "NGUYỄN TRẦN GIA BẢO 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0010",
+      "policy_number": "",
+      "patient_name": "Nguyễn Mai Lâm",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Nguyễn Mai Lâm.pdf",
+      "file_name": "Nguyễn Mai Lâm.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0011",
+      "policy_number": "",
+      "patient_name": "Nguyễn Quốc Lĩnh",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Nguyễn Quốc Lĩnh.pdf",
+      "file_name": "Nguyễn Quốc Lĩnh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0012",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Thoa",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Nguyễn Thị Thoa.pdf",
+      "file_name": "Nguyễn Thị Thoa.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0013",
+      "policy_number": "",
+      "patient_name": "Nguyễn Văn Thông",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Nguyễn Văn Thông.pdf",
+      "file_name": "Nguyễn Văn Thông.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0014",
+      "policy_number": "",
+      "patient_name": "Ngô Thị Ngọc Hân",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Ngô Thị Ngọc Hân.pdf",
+      "file_name": "Ngô Thị Ngọc Hân.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ILL-0015",
+      "policy_number": "",
+      "patient_name": "Phạm Anh Tuấn",
+      "category": "inpatient_illness",
+      "category_code": "IP_ILL",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Phạm Anh Tuấn.pdf",
+      "file_name": "Phạm Anh Tuấn.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0001",
+      "policy_number": "",
+      "patient_name": "Bùi Hồ Hải Dương",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Bùi Hồ Hải Dương.pdf",
+      "file_name": "Bùi Hồ Hải Dương.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0002",
+      "policy_number": "",
+      "patient_name": "CAO YILIN 06 12 25",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/CAO YILIN 06.12.25.pdf",
+      "file_name": "CAO YILIN 06.12.25.pdf",
+      "document_date": "06.12.25",
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0003",
+      "policy_number": "",
+      "patient_name": "NGUYỄN ĐỨC NHÂN",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/NGUYỄN ĐỨC NHÂN.pdf",
+      "file_name": "NGUYỄN ĐỨC NHÂN.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0004",
+      "policy_number": "",
+      "patient_name": "Nguyễn Hoàng Huy",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Nguyễn Hoàng Huy.pdf",
+      "file_name": "Nguyễn Hoàng Huy.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0005",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Thuỳ Trang",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Nguyễn Thị Thuỳ Trang.pdf",
+      "file_name": "Nguyễn Thị Thuỳ Trang.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0006",
+      "policy_number": "",
+      "patient_name": "Nguyễn Trung Kiên",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Nguyễn Trung Kiên.pdf",
+      "file_name": "Nguyễn Trung Kiên.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0007",
+      "policy_number": "",
+      "patient_name": "TRẦN THÀNH CÔNG",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/TRẦN THÀNH CÔNG.pdf",
+      "file_name": "TRẦN THÀNH CÔNG.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0008",
+      "policy_number": "",
+      "patient_name": "Trương Công Anh Tuấn",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Trương Công Anh Tuấn.pdf",
+      "file_name": "Trương Công Anh Tuấn.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0009",
+      "policy_number": "",
+      "patient_name": "Trần Thị Ngọc Lam",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Trần Thị Ngọc Lam.pdf",
+      "file_name": "Trần Thị Ngọc Lam.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_ACC-0010",
+      "policy_number": "",
+      "patient_name": "Vũ Văn Nhất",
+      "category": "outpatient_accident",
+      "category_code": "OP_ACC",
+      "is_inpatient": false,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do tai nạn/Vũ Văn Nhất.pdf",
+      "file_name": "Vũ Văn Nhất.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0001",
+      "policy_number": "",
+      "patient_name": "LÊ THỊ HẠNH",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/LÊ THỊ HẠNH.pdf",
+      "file_name": "LÊ THỊ HẠNH.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0002",
+      "policy_number": "",
+      "patient_name": "Lê Nguyễn Hoàng Long",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/Lê Nguyễn Hoàng Long.pdf",
+      "file_name": "Lê Nguyễn Hoàng Long.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0003",
+      "policy_number": "",
+      "patient_name": "NGUYỄN THÀNH ĐẠT",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/NGUYỄN THÀNH ĐẠT.pdf",
+      "file_name": "NGUYỄN THÀNH ĐẠT.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0004",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Ánh Tuyết",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/Nguyễn Thị Ánh Tuyết.pdf",
+      "file_name": "Nguyễn Thị Ánh Tuyết.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0005",
+      "policy_number": "",
+      "patient_name": "Pham dinh doanh",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/Pham dinh doanh.pdf",
+      "file_name": "Pham dinh doanh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0006",
+      "policy_number": "",
+      "patient_name": "TRẦN THỊ MAI PHƯƠNG",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/TRẦN THỊ MAI PHƯƠNG.pdf",
+      "file_name": "TRẦN THỊ MAI PHƯƠNG.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_ACC-0007",
+      "policy_number": "",
+      "patient_name": "Vũ Ngọc Dương",
+      "category": "inpatient_accident",
+      "category_code": "IP_ACC",
+      "is_inpatient": true,
+      "is_accident": true,
+      "is_maternity": false,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/Vũ Ngọc Dương.pdf",
+      "file_name": "Vũ Ngọc Dương.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "ambiguous",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0001",
+      "policy_number": "",
+      "patient_name": "Bùi Thị Thuỷ",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Bùi Thị Thuỷ.pdf",
+      "file_name": "Bùi Thị Thuỷ.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0002",
+      "policy_number": "",
+      "patient_name": "Huỳnh Minh Tuệ",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Huỳnh Minh Tuệ.pdf",
+      "file_name": "Huỳnh Minh Tuệ.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0003",
+      "policy_number": "",
+      "patient_name": "NGUYỄN NGỌC THANH VÂN",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/NGUYỄN NGỌC THANH VÂN.pdf",
+      "file_name": "NGUYỄN NGỌC THANH VÂN.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0004",
+      "policy_number": "",
+      "patient_name": "Nguyễn Huy Huỳnh Mai",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Nguyễn Huy Huỳnh Mai.pdf",
+      "file_name": "Nguyễn Huy Huỳnh Mai.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0005",
+      "policy_number": "",
+      "patient_name": "Nguyễn Lê Minh Hiếu",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Nguyễn Lê Minh Hiếu.pdf",
+      "file_name": "Nguyễn Lê Minh Hiếu.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0006",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Thanh Thuý",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Nguyễn Thị Thanh Thuý.pdf",
+      "file_name": "Nguyễn Thị Thanh Thuý.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0007",
+      "policy_number": "",
+      "patient_name": "PHẠM THỊ MỸ ANH",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/PHẠM THỊ MỸ ANH.pdf",
+      "file_name": "PHẠM THỊ MỸ ANH.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0008",
+      "policy_number": "",
+      "patient_name": "PHẠM THỊ THUÝ NGA",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/PHẠM THỊ THUÝ NGA.pdf",
+      "file_name": "PHẠM THỊ THUÝ NGA.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0009",
+      "policy_number": "",
+      "patient_name": "Phạm Thị Mỹ Anh 2",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Phạm Thị Mỹ Anh 2.pdf",
+      "file_name": "Phạm Thị Mỹ Anh 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0010",
+      "policy_number": "",
+      "patient_name": "Phạm Thị Tú Trinh 2",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Phạm Thị Tú Trinh 2.pdf",
+      "file_name": "Phạm Thị Tú Trinh 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0011",
+      "policy_number": "",
+      "patient_name": "TRẦN THỊ LỆ XUÂN",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/TRẦN THỊ LỆ XUÂN.pdf",
+      "file_name": "TRẦN THỊ LỆ XUÂN.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0012",
+      "policy_number": "",
+      "patient_name": "Trần Thị Kim Như",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Trần Thị Kim Như.pdf",
+      "file_name": "Trần Thị Kim Như.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0013",
+      "policy_number": "",
+      "patient_name": "Võ Thị Hồng Nhựt",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Võ Thị Hồng Nhựt.pdf",
+      "file_name": "Võ Thị Hồng Nhựt.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0014",
+      "policy_number": "",
+      "patient_name": "Đặng Gia Linh",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Đặng Gia Linh.pdf",
+      "file_name": "Đặng Gia Linh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-OP_MAT-0015",
+      "policy_number": "",
+      "patient_name": "Đỗ Hiền Oanh",
+      "category": "outpatient_maternity",
+      "category_code": "OP_MAT",
+      "is_inpatient": false,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú THAI SẢN/Đỗ Hiền Oanh.pdf",
+      "file_name": "Đỗ Hiền Oanh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_MAT-0001",
+      "policy_number": "",
+      "patient_name": "DƯƠNG THỊ NHI",
+      "category": "inpatient_maternity",
+      "category_code": "IP_MAT",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú THAI SẢN/DƯƠNG THỊ NHI.pdf",
+      "file_name": "DƯƠNG THỊ NHI.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_MAT-0002",
+      "policy_number": "",
+      "patient_name": "LÊ THỊ HỒNG VY lần 1",
+      "category": "inpatient_maternity",
+      "category_code": "IP_MAT",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú THAI SẢN/LÊ THỊ HỒNG VY_lần 1.pdf",
+      "file_name": "LÊ THỊ HỒNG VY_lần 1.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_MAT-0003",
+      "policy_number": "",
+      "patient_name": "LÊ THỊ HỒNG VY lần 2",
+      "category": "inpatient_maternity",
+      "category_code": "IP_MAT",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú THAI SẢN/LÊ THỊ HỒNG VY_lần 2.pdf",
+      "file_name": "LÊ THỊ HỒNG VY_lần 2.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_MAT-0004",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Nhơn",
+      "category": "inpatient_maternity",
+      "category_code": "IP_MAT",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú THAI SẢN/Nguyễn Thị Nhơn.pdf",
+      "file_name": "Nguyễn Thị Nhơn.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_MAT-0005",
+      "policy_number": "",
+      "patient_name": "Nguyễn Thị Phương Thanh",
+      "category": "inpatient_maternity",
+      "category_code": "IP_MAT",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú THAI SẢN/Nguyễn Thị Phương Thanh.pdf",
+      "file_name": "Nguyễn Thị Phương Thanh.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    },
+    {
+      "claim_id": "CLM-IP_MAT-0006",
+      "policy_number": "",
+      "patient_name": "nguyen ngoc kim ngan thaisan",
+      "category": "inpatient_maternity",
+      "category_code": "IP_MAT",
+      "is_inpatient": true,
+      "is_accident": false,
+      "is_maternity": true,
+      "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú THAI SẢN/nguyen_ngoc_kim_ngan_thaisan.pdf",
+      "file_name": "nguyen_ngoc_kim_ngan_thaisan.pdf",
+      "document_date": null,
+      "expected_decision": "",
+      "expected_missing_docs": [],
+      "expected_icd_codes": [],
+      "expected_exclusions": [],
+      "expected_quality_issues": [],
+      "expected_routing_path": [],
+      "expected_tools_by_agent": {
+        "CompletenessAgent": [
+          "classify-benefit",
+          "check-required-docs",
+          "validate-consistency"
+        ],
+        "QualityAgent": [
+          "check-icd",
+          "check-exclusion",
+          "validate-medication",
+          "search-medicine",
+          "web-search"
+        ],
+        "DecisionAgent": [
+          "aggregate-issues"
+        ]
+      },
+      "complexity": "simple",
+      "label_status": "unlabeled",
+      "expert_notes": "",
+      "ocr_available": true,
+      "langfuse_trace_id": "",
+      "agent_1_result": {},
+      "agent_2_result": {},
+      "final_result": {},
+      "routing_path": [],
+      "human_override": false,
+      "processing_time_ms": 0,
+      "token_count": 0
+    }
+  ]
+}
