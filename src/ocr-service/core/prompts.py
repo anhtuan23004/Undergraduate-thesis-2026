@@ -1,6 +1,6 @@
 from typing import Optional
 
-from schemas import ExtractionSchema
+from schemas import ClassificationSchema, ExtractionSchema
 
 # 2. PROMPT TEMPLATES
 
@@ -62,40 +62,6 @@ Convert all extracted values to the correct data type:
 </strict_type_coercion>
 """
 
-TEMPLATE_PHASE2_EXTRACTION_BATCH = """<role>You are an expert Document Intelligence System.</role>
-
-<task>
-You have been provided a document containing {num_segments} separate segments of type `{document_code}`. Extract the required fields for EACH segment.
-</task>
-
-<document_schema>
-{schema_description}
-</document_schema>
-
-<guidelines>
-1. Match the document to the corresponding keys.
-{field_extraction_rule}
-3. If a field_key or its corresponding value is not found in the document, its value MUST be null.
-4. If a field includes "Hint", treat it as semantic guidance for what to find that value.
-5. IGNORE all watermarks and background patterns (e.g., IP addresses, faint repeated text).
-6. ONLY use stamps to determine payment status or to verify the medical facility if printed text is missing.
-7. MUST check the label immediately preceding the value to accurately identify the data field.
-</guidelines>
-
-<strict_type_coercion>
-Convert all extracted values to the correct data type:
-- string: Plain text, no conversion needed.
-- date: Convert to ISO 8601 format "YYYY-MM-DD". Example: "10/03/2026" → "2026-03-10".
-- number: A pure numeric value. Strip all currency symbols, units, and thousand separators. Example: "1.500.000 VNĐ" → 1500000, "2,5" → 2.5. Must be a JSON number, NOT a string.
-- boolean: Must be JSON true or false. Convert: "Có"/"Yes"/"X" → true, "Không"/"No"/ empty → false.
-- array: A JSON array of objects. Each object must follow the child_schema structure with exact field_keys.
-</strict_type_coercion>
-
-<output_requirements>
-Return exactly a JSON array containing EXACTLY {num_segments} objects, extracted in the exact order the segments appear in the file.
-</output_requirements>
-"""
-
 
 # 3. PROMPT BUILDER CLASS
 class PromptBuilder:
@@ -112,7 +78,7 @@ class PromptBuilder:
     @classmethod
     def build_phase1_prompt(
         cls,
-        extraction_schemas: list["ExtractionSchema"] | None = None,
+        extraction_schemas: list["ExtractionSchema | ClassificationSchema"] | None = None,
         extract_all_documents: bool = False,
     ) -> str:
         """Generates a prompt for Phase 1: Segmentation and Classification."""
@@ -143,9 +109,8 @@ class PromptBuilder:
         cls,
         schema: Optional["ExtractionSchema"],
         extract_all_fields: bool = False,
-        num_segments: int = 1,
     ) -> str:
-        """Generates a prompt for Phase 2: Extraction for single or multiple segments."""
+        """Generates a prompt for Phase 2 per-document extraction."""
         if schema:
             schema_lines = [
                 f'- document_code: "{schema.document_code}" | Name: {schema.document_name}',
@@ -176,21 +141,15 @@ class PromptBuilder:
             )
             document_code = "unknown"
 
-        if extract_all_fields:
+        if schema is None:
+            field_rule = "2. Extract all visible fields and tables into the generic unknown-document structure."
+        elif extract_all_fields:
             field_rule = "2. Extract ALL fields (everything) from each document segment"
         else:
             field_rule = "2. Extract ONLY the fields defined in that document's schema."
 
-        if num_segments > 1:
-            return TEMPLATE_PHASE2_EXTRACTION_BATCH.format(
-                num_segments=num_segments,
-                document_code=document_code,
-                schema_description=schema_description,
-                field_extraction_rule=field_rule,
-            )
-        else:
-            return TEMPLATE_PHASE2_EXTRACTION.format(
-                document_code=document_code,
-                schema_description=schema_description,
-                field_extraction_rule=field_rule,
-            )
+        return TEMPLATE_PHASE2_EXTRACTION.format(
+            document_code=document_code,
+            schema_description=schema_description,
+            field_extraction_rule=field_rule,
+        )

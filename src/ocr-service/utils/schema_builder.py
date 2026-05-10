@@ -1,6 +1,6 @@
 from typing import Any
 
-from schemas import ExtractionSchema, FieldSchema
+from schemas import ClassificationSchema, ExtractionSchema, FieldSchema
 
 # ============================================================================
 # Schema Builder Utilities
@@ -142,7 +142,7 @@ def _build_unknown_document_extracted_data_schema(
 
 
 def build_phase1_response_schema(
-    extraction_schemas: list[ExtractionSchema] | None = None,
+    extraction_schemas: list[ExtractionSchema | ClassificationSchema] | None = None,
     extract_all_documents: bool = False,
 ) -> dict[str, Any]:
     """Build a JSON Schema object for Phase 1: Segmentation."""
@@ -226,15 +226,4 @@ def build_phase2_response_schema(
         "properties": combined_fields,
         "required": required_keys,
         "additionalProperties": extract_all_fields if not is_unknown else True,
-    }
-
-
-def build_phase2_batch_response_schema(
-    schema: ExtractionSchema | None,
-    extract_all_fields: bool = False,
-) -> dict[str, Any]:
-    """Build a JSON Schema array for Phase 2 batch extraction."""
-    return {
-        "type": "array",
-        "items": build_phase2_response_schema(schema, extract_all_fields),
     }

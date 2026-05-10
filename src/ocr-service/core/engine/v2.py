@@ -3,13 +3,12 @@
 import concurrent.futures
 from typing import Any
 
-from schemas import ExtractionSchema
+from schemas import ClassificationSchema, ClassifySegmentDocument, ExtractionSchema
 from utils.gemini import parse_markdown_json
 from utils.logging import get_logger
 from utils.pdf import slice_pdf_multiple_ranges
 from utils.schema_builder import (
     build_phase1_response_schema,
-    build_phase2_batch_response_schema,
     build_phase2_response_schema,
 )
 
@@ -68,7 +67,7 @@ class OCRServiceV2(BaseGeminiEngine):
         file_bytes: bytes,
         file_name: str,
         mime_type: str,
-        extraction_schemas: list[ExtractionSchema] | None = None,
+        extraction_schemas: list[ExtractionSchema | ClassificationSchema] | None = None,
         extract_all_documents: bool = False,
         model_name: str | None = None,
         temperature: float | None = None,
@@ -133,7 +132,7 @@ class OCRServiceV2(BaseGeminiEngine):
         file_bytes: bytes,
         file_name: str,
         mime_type: str,
-        extraction_schemas: list[ExtractionSchema] | None = None,
+        extraction_schemas: list[ExtractionSchema | ClassificationSchema] | None = None,
         extract_all_documents: bool = False,
         model_name: str | None = None,
         temperature: float | None = None,
@@ -183,7 +182,6 @@ class OCRServiceV2(BaseGeminiEngine):
         mime_type: str,
         schema: ExtractionSchema | None,
         extract_all_fields: bool = False,
-        num_segments: int = 1,
         model_name: str | None = None,
         temperature: float | None = None,
         top_p: float | None = None,
@@ -215,13 +213,8 @@ class OCRServiceV2(BaseGeminiEngine):
         prompt = PromptBuilder.build_phase2_prompt(
             schema,
             extract_all_fields,
-            num_segments,
         )
-        response_json_schema = (
-            build_phase2_batch_response_schema(schema, extract_all_fields)
-            if num_segments > 1
-            else build_phase2_response_schema(schema, extract_all_fields)
-        )
+        response_json_schema = build_phase2_response_schema(schema, extract_all_fields)
 
         text, usage_info = self._call_model(
             document_part,
@@ -239,33 +232,20 @@ class OCRServiceV2(BaseGeminiEngine):
         self._log_usage(usage_info, "_extract_segment")
 
         result = parse_markdown_json(text)
-        if num_segments > 1:
-            if not isinstance(result, list):
-                logger.warning(
-                    f"Expected list from batch extraction but got {type(result)}. Wrapping in list."
-                )
-                result = [result] if isinstance(result, dict) else []
-
-            if len(result) < num_segments:
-                result.extend([{} for _ in range(num_segments - len(result))])
-            elif len(result) > num_segments:
-                result = result[:num_segments]
-            return result, usage_info
-
         if not isinstance(result, dict):
             logger.warning(f"Phase 2 extraction returned non-dict: {type(result)}")
             result = {"extracted_data": text}
 
         return result, usage_info
 
-    def parse_with_schema_v2(  # noqa: C901
+    def extract_classified_documents(
         self,
         file_bytes: bytes,
         file_name: str,
         mime_type: str,
+        documents: list[ClassifySegmentDocument],
         extraction_schemas: list[ExtractionSchema],
         extract_all_fields: bool = False,
-        extract_all_documents: bool = False,
         model_name: str | None = None,
         temperature: float | None = None,
         top_p: float | None = None,
@@ -274,98 +254,44 @@ class OCRServiceV2(BaseGeminiEngine):
         thinking_budget: int | None = None,
         thinking_level: str | None = None,
     ) -> dict[str, Any]:
-        """Run 2-stage schema-driven extraction (V2: Per-document slice and extract).
-
-        Phase 1: Classify and identify document boundaries.
-        Phase 2: Slice PDF based on boundaries (per segment) and extract in parallel.
-        """
-        total_input_tokens = 0
-        total_output_tokens = 0
-
-        # Phase 1: Classification and Segmentation
-        logger.info(f"Phase 1: Segmenting document {file_name}")
-        segmentation_res, phase1_usage = self._classify_and_segment(
-            file_bytes,
-            file_name,
-            mime_type,
-            extraction_schemas,
-            extract_all_documents,
-            model_name,
-            temperature,
-            top_p,
-            top_k,
-            max_output_tokens,
-            thinking_budget,
-            thinking_level,
-        )
-        total_input_tokens += phase1_usage.get("input_tokens", 0)
-        total_output_tokens += phase1_usage.get("output_tokens", 0)
-
-        if not isinstance(segmentation_res, dict):
-            logger.warning("Phase 1 failed or returned unexpected format. Marking file as invalid.")
-            return {"documents": []}
-
-        docs = segmentation_res.get("documents", [])
-        if not isinstance(docs, list):
-            logger.warning("Phase 1 documents is not a list. Returning empty document list.")
-            return {"documents": []}
-
-        if not docs:
-            return {"documents": []}
-
-        # Prepare schemas map
+        """Extract data from already-classified document segments."""
         schema_map = {s.document_code: s for s in extraction_schemas}
-
-        def process_doc(doc: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
-            doc_code = doc.get("document_code", "unknown")
-            schema = schema_map.get(doc_code)
-
-            is_pdf = mime_type.lower() == "application/pdf"
-            start_page = doc.get("start_page", 1)
-            end_page = doc.get("end_page", 1)
-
-            chunk_bytes = file_bytes
-            if is_pdf:
-                chunk_bytes = slice_pdf_multiple_ranges(file_bytes, [(start_page, end_page)])
-
-            logger.info(f"Phase 2: Extracting {doc_code} block (Pages {start_page}-{end_page})")
-
-            # WHY: Upgrade model to gemini-2.5-pro for claim_form documents
-            # because they require higher accuracy for complex field extraction
-            doc_model = (
-                "gemini-2.5-pro"
-                if doc_code == "claim_form" and model_name != "gemini-2.5-pro"
-                else model_name
-            )
-            if doc_model == "gemini-2.5-pro" and model_name != "gemini-2.5-pro":
-                logger.info(f"Upgrading model to 'gemini-2.5-pro' for {doc_code} in Stage 2")
-
-            extracted_res, phase2_usage = self._extract_segment(
-                chunk_bytes,
-                file_name,
-                mime_type,
-                schema,
-                extract_all_fields,
-                model_name=doc_model,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                max_output_tokens=max_output_tokens,
-                thinking_budget=thinking_budget,
-                thinking_level=thinking_level,
-            )
-
-            doc["extracted_data"] = extracted_res if isinstance(extracted_res, dict) else {}
-            return doc, phase2_usage
+        high_accuracy_codes = _parse_config_csv(settings.OCR_HIGH_ACCURACY_DOCUMENT_CODES)
 
         logger.info(
-            f"Phase 2: Starting parallel extraction for {len(docs)} documents "
+            f"Phase 2: Starting parallel extraction for {len(documents)} documents "
             f"(max_workers={settings.GEMINI_MAX_CONCURRENT_EXTRACTIONS})"
         )
+
+        extracted_documents = []
+        total_input_tokens = 0
+        total_output_tokens = 0
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=settings.GEMINI_MAX_CONCURRENT_EXTRACTIONS
         ) as executor:
-            for _, usage in executor.map(process_doc, docs):
+            futures = [
+                executor.submit(
+                    self._extract_classified_document,
+                    doc,
+                    file_bytes,
+                    file_name,
+                    mime_type,
+                    schema_map,
+                    high_accuracy_codes,
+                    extract_all_fields,
+                    model_name,
+                    temperature,
+                    top_p,
+                    top_k,
+                    max_output_tokens,
+                    thinking_budget,
+                    thinking_level,
+                )
+                for doc in documents
+            ]
+            for future in futures:
+                extracted_doc, usage = future.result()
+                extracted_documents.append(extracted_doc)
                 total_input_tokens += usage.get("input_tokens", 0)
                 total_output_tokens += usage.get("output_tokens", 0)
 
@@ -375,4 +301,86 @@ class OCRServiceV2(BaseGeminiEngine):
             f"Output: {total_output_tokens:,}, Total: {total_tokens:,}"
         )
 
-        return {"documents": docs}
+        return {"documents": extracted_documents}
+
+    def _extract_classified_document(
+        self,
+        doc: ClassifySegmentDocument,
+        file_bytes: bytes,
+        file_name: str,
+        mime_type: str,
+        schema_map: dict[str, ExtractionSchema],
+        high_accuracy_codes: set[str],
+        extract_all_fields: bool,
+        model_name: str | None,
+        temperature: float | None,
+        top_p: float | None,
+        top_k: int | None,
+        max_output_tokens: int | None,
+        thinking_budget: int | None,
+        thinking_level: str | None,
+    ) -> tuple[dict[str, Any], dict[str, int]]:
+        doc_data = doc.model_dump(exclude_none=True)
+        doc_code = doc.document_code
+        schema = schema_map.get(doc_code)
+        start_page, end_page = _normalize_page_range(doc_data)
+
+        chunk_bytes = file_bytes
+        if mime_type.lower() == "application/pdf":
+            chunk_bytes = slice_pdf_multiple_ranges(file_bytes, [(start_page, end_page)])
+
+        logger.info(f"Phase 2: Extracting {doc_code} block (Pages {start_page}-{end_page})")
+        doc_model = _resolve_phase2_model(doc_code, high_accuracy_codes, model_name)
+        extracted_res, phase2_usage = self._extract_segment(
+            chunk_bytes,
+            file_name,
+            mime_type,
+            schema,
+            extract_all_fields,
+            model_name=doc_model,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_output_tokens=max_output_tokens,
+            thinking_budget=thinking_budget,
+            thinking_level=thinking_level,
+        )
+
+        doc_data["extracted_data"] = extracted_res if isinstance(extracted_res, dict) else {}
+        return doc_data, phase2_usage
+
+
+def _normalize_page_range(doc: dict[str, Any]) -> tuple[int, int]:
+    """Normalize model-provided page range for per-document extraction."""
+    start_page = _coerce_positive_int(doc.get("start_page"), 1)
+    end_page = _coerce_positive_int(doc.get("end_page"), start_page)
+    if end_page < start_page:
+        logger.warning(
+            f"Invalid page range {start_page}-{end_page}; using start page for both bounds."
+        )
+        end_page = start_page
+    return start_page, end_page
+
+
+def _coerce_positive_int(value: Any, default: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
+def _parse_config_csv(value: str) -> set[str]:
+    return {item.strip() for item in value.split(",") if item.strip()}
+
+
+def _resolve_phase2_model(
+    doc_code: str,
+    high_accuracy_codes: set[str],
+    requested_model: str | None,
+) -> str | None:
+    high_accuracy_model = settings.OCR_HIGH_ACCURACY_MODEL
+    if doc_code in high_accuracy_codes and requested_model != high_accuracy_model:
+        logger.info(f"Using high-accuracy model '{high_accuracy_model}' for {doc_code} in Phase 2")
+        return high_accuracy_model
+    return requested_model

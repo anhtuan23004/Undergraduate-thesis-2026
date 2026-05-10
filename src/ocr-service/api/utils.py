@@ -86,24 +86,39 @@ def validate_model_response(
         ) from e
 
 
-def parse_schema_list(raw: str, schema_model: Callable[[Any], Any]) -> list[Any]:
-    """Parse a JSON form field into a list of schema models."""
+def parse_json_list(raw: str, field_name: str) -> list[Any]:
+    """Parse a JSON form field into a list."""
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError:
         raise HTTPException(
             status_code=400,
-            detail="extraction_schemas must be valid JSON",
+            detail=f"{field_name} must be valid JSON",
         ) from None
 
     if not isinstance(payload, list):
         raise HTTPException(
             status_code=400,
-            detail="extraction_schemas must be a JSON array",
+            detail=f"{field_name} must be a JSON array",
         )
 
+    return payload
+
+
+def parse_schema_list(raw: str, schema_model: Callable[[Any], Any]) -> list[Any]:
+    """Parse a JSON form field into a list of schema models."""
+    return parse_model_list(raw, "extraction_schemas", schema_model)
+
+
+def parse_model_list(
+    raw: str,
+    field_name: str,
+    model: Callable[[Any], Any],
+) -> list[Any]:
+    """Parse a JSON form field into a list of Pydantic-compatible models."""
+    payload = parse_json_list(raw, field_name)
     try:
-        return [schema_model(item) for item in payload]
+        return [model(item) for item in payload]
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors()) from e
 
