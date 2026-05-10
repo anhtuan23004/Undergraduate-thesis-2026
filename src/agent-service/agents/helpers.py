@@ -1,68 +1,17 @@
-"""Shared utility functions for agent modules.
+"""Shared utility functions for agent modules."""
 
-Provides common functionality for agent nodes to eliminate code duplication.
-"""
-
-import json
 from pathlib import Path
 from typing import Any
 
+from agents.output_parsing import extract_agent_content, parse_json_response
 
-def extract_agent_content(result: dict) -> str:
-    """Extract textual content from LangChain agent response."""
-    messages = result.get("messages", [])
-    if not messages:
-        return ""
-
-    last_message = messages[-1]
-    if not hasattr(last_message, "content"):
-        return str(last_message).strip()
-
-    content = last_message.content
-    if isinstance(content, list):
-        parts = []
-        for block in content:
-            if isinstance(block, dict):
-                parts.append(block.get("text", ""))
-            elif isinstance(block, str):
-                parts.append(block)
-        return "".join(parts).strip()
-
-    if isinstance(content, str):
-        return content.strip()
-
-    return str(last_message).strip()
-
-
-def parse_json_response(
-    text: str, default_on_error: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Parse JSON from agent output with markdown cleaning."""
-    if not text:
-        if default_on_error:
-            return default_on_error
-        return {
-            "decision": "reject",
-            "rejection_reason": "No response from agent",
-            "issues_summary": [],
-        }
-
-    cleaned = text
-    if "```json" in cleaned:
-        cleaned = cleaned.split("```json")[-1].split("```")[0].strip()
-    elif cleaned.startswith("```"):
-        cleaned = cleaned.strip("`").strip()
-
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        if default_on_error:
-            return default_on_error
-        return {
-            "decision": "reject",
-            "rejection_reason": "Could not parse agent response",
-            "issues_summary": [],
-        }
+__all__ = [
+    "create_agent_error_state",
+    "create_history_entry",
+    "extract_agent_content",
+    "load_system_prompt",
+    "parse_json_response",
+]
 
 
 def load_system_prompt(

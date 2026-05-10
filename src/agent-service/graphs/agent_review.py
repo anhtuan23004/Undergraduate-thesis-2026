@@ -16,9 +16,22 @@ import structlog
 from agents.factory import VerifierAgentFactory
 from config import settings
 
+from graphs.constants import (
+    SEVERITY_REVIEW_REQUIRED,
+    STAGE_COMPLETENESS,
+    STAGE_NONE,
+    STAGE_QUALITY,
+    STATUS_RUNNING,
+    STATUS_WAITING_HUMAN,
+)
 from graphs.state import GraphState
 
 logger = structlog.get_logger()
+
+REASON_HARD_CONSTRAINTS_FAILED = "hard_constraints_failed"
+REASON_VERIFIER_CONTRADICTIONS = "verifier_contradictions"
+REASON_VERIFIER_FAILED = "verifier_failed"
+REASON_LOW_CONFIDENCE = "low_confidence"
 
 
 class AgentReviewNode:
@@ -55,17 +68,13 @@ class AgentReviewNode:
         Returns:
             Dictionary with updated agent result and history.
         """
-        current_step = state.get("current_step", "")
-
-        # WHY: Determine which agent result to review based on the stage.
-        if "completeness" in current_step:
+        stage = self._review_stage(state)
+        if stage == STAGE_COMPLETENESS:
             agent_result = state.get("agent_1_result") or {}
             result_key = "agent_1_result"
-            stage = "completeness"
         else:
             agent_result = state.get("agent_2_result") or {}
             result_key = "agent_2_result"
-            stage = "quality"
 
         confidence = agent_result.get("confidence_score", 0.0)
         issues = agent_result.get("issues", []) or []
@@ -75,19 +84,10 @@ class AgentReviewNode:
         evidence = agent_result.get("evidence") or {}
         total_amount = evidence.get("total_claim_amount") or 0
 
-        # WHY: OCR may extract amounts as strings like "5,000,000" or "5.000.000".
-        # We must normalise to a numeric type for comparison.
-        if isinstance(total_amount, str):
-            try:
-                total_amount = float(total_amount.replace(",", "").replace(".", ""))
-            except (ValueError, AttributeError):
-                # WHY: Unparseable amount is treated as high-risk.
-                total_amount = float("inf")
+        total_amount = self._parse_claim_amount(total_amount)
 
         has_high_risk_issues = any(
-            i.get("severity") in ("critical", "high", "medium")
-            for i in issues
-            if isinstance(i, dict)
+            i.get("severity") in SEVERITY_REVIEW_REQUIRED for i in issues if isinstance(i, dict)
         )
 
         # Preliminary check: Hard constraints
@@ -105,7 +105,14 @@ class AgentReviewNode:
                 reason += "Không có đề xuất nào để xác thực. "
 
             logger.info("[Agent Review] Hard constraints failed, escalating", reason=reason)
-            return self._escalate(result_key, agent_result, stage, confidence, reason)
+            return self._escalate(
+                result_key,
+                agent_result,
+                stage,
+                confidence,
+                REASON_HARD_CONSTRAINTS_FAILED,
+                reason,
+            )
 
         # WHY: 2. Confidence & Cross-Verification
         # If confident, call the VerifierAgent to double-check.
@@ -126,8 +133,10 @@ class AgentReviewNode:
                 )
             else:
                 reason = verifier_result.get("reason")
+                reason_code = REASON_VERIFIER_FAILED
                 if has_contradictions:
                     reason = f"Phát hiện mâu thuẫn bởi bộ xác thực: {verifier_result.get('contradictions')}"
+                    reason_code = REASON_VERIFIER_CONTRADICTIONS
 
                 logger.info(
                     "[Agent Review] Cross-verification failed or has contradictions",
@@ -135,13 +144,37 @@ class AgentReviewNode:
                     reason=reason,
                 )
                 return self._escalate(
-                    result_key, agent_result, stage, confidence, f"Rủi ro từ bộ xác thực: {reason}"
+                    result_key,
+                    agent_result,
+                    stage,
+                    confidence,
+                    reason_code,
+                    f"Rủi ro từ bộ xác thực: {reason}",
                 )
 
         # Default fallback for low confidence
         return self._escalate(
-            result_key, agent_result, stage, confidence, f"Độ tin cậy ban đầu thấp ({confidence})"
+            result_key,
+            agent_result,
+            stage,
+            confidence,
+            REASON_LOW_CONFIDENCE,
+            f"Độ tin cậy ban đầu thấp ({confidence})",
         )
+
+    @staticmethod
+    def _parse_claim_amount(value: Any) -> float:
+        """Normalize OCR-extracted claim amount for threshold comparison."""
+        if isinstance(value, int | float):
+            return float(value)
+
+        if isinstance(value, str):
+            try:
+                return float(value.replace(",", "").replace(".", ""))
+            except ValueError:
+                return float("inf")
+
+        return 0.0
 
     def _auto_approve(
         self,
@@ -167,6 +200,9 @@ class AgentReviewNode:
         return {
             result_key: updated_result,
             "current_step": f"agent_reviewed_{stage}",
+            "active_stage": STAGE_QUALITY if stage == STAGE_COMPLETENESS else STAGE_NONE,
+            "review_stage": STAGE_NONE,
+            "workflow_status": STATUS_RUNNING,
             "history": [
                 {
                     "step": "agent_review",
@@ -184,6 +220,7 @@ class AgentReviewNode:
         agent_result: dict[str, Any],
         stage: str,
         confidence: float,
+        reason_code: str,
         reason: str,
     ) -> dict[str, Any]:
         """Escalate to human review with a detailed reason.
@@ -193,6 +230,7 @@ class AgentReviewNode:
             agent_result: The original agent result dict.
             stage: Current workflow stage ('completeness' or 'quality').
             confidence: Agent's confidence score at the time of escalation.
+            reason_code: Machine-readable reason for tests, metrics, and routing.
             reason: Human-readable explanation of why escalation is required.
 
         Returns:
@@ -205,6 +243,9 @@ class AgentReviewNode:
         return {
             result_key: updated_result,
             "current_step": f"agent_review_escalated_{stage}",
+            "active_stage": STAGE_NONE,
+            "review_stage": stage,
+            "workflow_status": STATUS_WAITING_HUMAN,
             "pending_human_review": True,
             "history": [
                 {
@@ -212,7 +253,19 @@ class AgentReviewNode:
                     "stage": stage,
                     "auto_reviewed": False,
                     "confidence": confidence,
+                    "escalation_reason_code": reason_code,
                     "escalation_reason": reason,
                 }
             ],
         }
+
+    @staticmethod
+    def _review_stage(state: GraphState) -> str:
+        explicit_stage = state.get("review_stage")
+        if explicit_stage and explicit_stage != STAGE_NONE:
+            return explicit_stage
+
+        current_step = state.get("current_step", "")
+        if STAGE_COMPLETENESS in current_step:
+            return STAGE_COMPLETENESS
+        return STAGE_QUALITY

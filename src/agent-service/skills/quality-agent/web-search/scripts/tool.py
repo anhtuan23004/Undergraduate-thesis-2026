@@ -10,7 +10,12 @@ from config import settings
 from langchain_core.tools import tool
 from tavily import TavilyClient
 
-tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
+
+def _get_tavily_client() -> TavilyClient | None:
+    """Create Tavily client only when the optional API key is configured."""
+    if not settings.TAVILY_API_KEY:
+        return None
+    return TavilyClient(api_key=settings.TAVILY_API_KEY)
 
 
 @tool("web-search")
@@ -28,7 +33,8 @@ def web_search(query: str, max_results: int = 3) -> str:
     Returns:
         JSON string with search results.
     """
-    if not tavily_client:
+    tavily_client = _get_tavily_client()
+    if tavily_client is None:
         return json.dumps(
             {"status": "error", "message": "TAVILY_API_KEY not configured or invalid"}
         )

@@ -1,23 +1,34 @@
 """Agent Factory for creating skill-based LangGraph agents."""
 
-import asyncio
-import json
 from collections.abc import Callable
-from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from mongodb_client import get_collection
+from graphs.constants import (
+    STAGE_COMPLETENESS,
+    STAGE_FINAL,
+    STAGE_NONE,
+    STAGE_QUALITY,
+    STATUS_RUNNING,
+)
 from schemas.agent_outputs import AssessmentOutput, FinalDecisionOutput
 from schemas.verifier_outputs import VerifierOutput
 from tools.skill_loader import load_agent_skills
 
+from agents.audit import save_agent_audit_log
 from agents.helpers import (
     create_agent_error_state,
     create_history_entry,
-    extract_agent_content,
     load_system_prompt,
-    parse_json_response,
+)
+from agents.output_parsing import extract_agent_content, parse_json_response
+from agents.prompt_builders import (
+    build_base_prompt,
+    build_completeness_prompt,
+    build_decision_prompt,
+    build_quality_prompt,
+    build_schema_output_instruction,
+    build_verifier_prompt,
 )
 
 logger = structlog.get_logger()
@@ -42,18 +53,7 @@ class AgentFactory:
         system_prompt = load_system_prompt(instructions_name, skill_contexts)
 
         if schema_class:
-            # WHY: Exclude internal fields (like is_auto_reviewed) from the LLM prompt
-            # to prevent hallucination of system-level flags.
-            schema_dict = schema_class.model_json_schema()
-            if "properties" in schema_dict:
-                schema_dict["properties"].pop("is_auto_reviewed", None)
-
-            schema_json = json.dumps(schema_dict, ensure_ascii=False)
-            system_prompt += (
-                f"\n\n<output_format>\n"
-                f"Bạn phải trả về kết quả tuân thủ chính xác lược đồ JSON sau:\n"
-                f"{schema_json}\n</output_format>"
-            )
+            system_prompt += build_schema_output_instruction(schema_class)
 
         async def agent_node(state: dict) -> dict:
             logger.info(f"Executing agent node: {agent_name}")
@@ -87,29 +87,20 @@ class AgentFactory:
                     step=agent_skill_name,
                 )
 
-                try:
-
-                    def _save_audit():
-                        audit_col = get_collection("audit_logs")
-                        audit_col.insert_one(
-                            {
-                                "run_id": state.get("run_id"),
-                                "claim_id": state.get("claim_id"),
-                                "step_name": agent_skill_name,
-                                "agent_name": agent_name,
-                                "result_json": parsed_result,
-                                "timestamp": datetime.now(UTC),
-                            }
-                        )
-
-                    await asyncio.to_thread(_save_audit)
-                except Exception as db_e:
-                    logger.warning(f"Failed to save audit log: {db_e}")
+                await save_agent_audit_log(
+                    state=state,
+                    step_name=agent_skill_name,
+                    agent_name=agent_name,
+                    result=parsed_result,
+                )
 
                 return {
                     output_state_key: parsed_result,
                     "history": [history_entry],
                     "current_step": f"completed_{agent_skill_name}",
+                    "active_stage": _active_stage_after_agent(agent_skill_name),
+                    "review_stage": _review_stage_after_agent(agent_skill_name, parsed_result),
+                    "workflow_status": STATUS_RUNNING,
                 }
             except Exception as e:
                 logger.error(f"Error in {agent_name}", error=str(e))
@@ -124,37 +115,34 @@ class AgentFactory:
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
         """Build prompt using state data. Override in subclasses."""
-        claim_id = state.get("claim_id", "N/A")
-        policy_number = state.get("policy_number", "N/A")
-        return f"Process claim {claim_id} for policy {policy_number}"
+        return build_base_prompt(state, agent_name)
+
+
+def _active_stage_after_agent(agent_skill_name: str) -> str:
+    if agent_skill_name == "completeness_agent":
+        return STAGE_COMPLETENESS
+    if agent_skill_name == "quality_agent":
+        return STAGE_QUALITY
+    if agent_skill_name == "decision_agent":
+        return STAGE_FINAL
+    return STAGE_NONE
+
+
+def _review_stage_after_agent(agent_skill_name: str, result: dict[str, Any]) -> str:
+    if result.get("decision") != "accept_with_edit":
+        return STAGE_NONE
+    if agent_skill_name == "completeness_agent":
+        return STAGE_COMPLETENESS
+    if agent_skill_name == "quality_agent":
+        return STAGE_QUALITY
+    return STAGE_NONE
 
 
 class CompletenessAgentFactory(AgentFactory):
     """Factory for creating the Completeness Check Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        claim_id = state.get("claim_id", "N/A")
-        policy_number = state.get("policy_number", "N/A")
-        input_file = state.get("input_file", "N/A")
-        extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
-        history_list = state.get("history", [])[-2:]
-        history_summary = (
-            "\n".join(
-                [
-                    f"- Bước {h.get('step', 'unknown')} ({h.get('agent', 'System')}): Đã xử lý"
-                    for h in history_list
-                ]
-            )
-            if history_list
-            else "Chưa có"
-        )
-
-        return (
-            f"Kiểm toán tính đầy đủ của hồ sơ bảo hiểm {claim_id}. Số hợp đồng: {policy_number}\n"
-            f"Tài liệu đầu vào: {input_file}\n\n"
-            f"<extracted_documents>\n{extracted}\n</extracted_documents>\n\n"
-            f"<history_summary>\n{history_summary}\n</history_summary>\n"
-        )
+        return build_completeness_prompt(state, agent_name)
 
     def create_completeness_agent(self) -> Callable:
         return self.create_agent_with_skills(
@@ -170,26 +158,7 @@ class QualityAgentFactory(AgentFactory):
     """Factory for creating the Medical Quality Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        claim_id = state.get("claim_id", "N/A")
-        policy_number = state.get("policy_number", "N/A")
-        extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
-        history_list = state.get("history", [])[-2:]
-        history_summary = (
-            "\n".join(
-                [
-                    f"- Bước {h.get('step', 'unknown')} ({h.get('agent', 'System')}): Đã xử lý"
-                    for h in history_list
-                ]
-            )
-            if history_list
-            else "Chưa có"
-        )
-
-        return (
-            f"Xác minh chất lượng y tế cho hồ sơ {claim_id}. Số hợp đồng: {policy_number}\n\n"
-            f"<extracted_documents>\n{extracted}\n</extracted_documents>\n\n"
-            f"<history_summary>\n{history_summary}\n</history_summary>\n"
-        )
+        return build_quality_prompt(state, agent_name)
 
     def create_quality_agent(self) -> Callable:
         return self.create_agent_with_skills(
@@ -205,20 +174,7 @@ class DecisionAgentFactory(AgentFactory):
     """Factory for creating the Final Decision Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        claim_id = state.get("claim_id", "N/A")
-        policy_number = state.get("policy_number", "N/A")
-        completeness = json.dumps(state.get("agent_1_result", {}), indent=2, ensure_ascii=False)
-        quality = json.dumps(state.get("agent_2_result", {}), indent=2, ensure_ascii=False)
-        human_review = json.dumps(
-            state.get("human_review_result", {}), indent=2, ensure_ascii=False
-        )
-
-        return (
-            f"Đưa ra quyết định cuối cùng cho hồ sơ {claim_id}. Số hợp đồng: {policy_number}\n\n"
-            f"<completeness_result>\n{completeness}\n</completeness_result>\n\n"
-            f"<quality_result>\n{quality}\n</quality_result>\n\n"
-            f"<human_review_result>\n{human_review}\n</human_review_result>\n"
-        )
+        return build_decision_prompt(state, agent_name)
 
     def create_decision_agent(self) -> Callable:
         return self.create_agent_with_skills(
@@ -234,29 +190,7 @@ class VerifierAgentFactory(AgentFactory):
     """Factory for creating the Skeptical Verifier Agent."""
 
     def _build_prompt_from_state(self, state: dict, agent_name: str) -> str:
-        claim_id = state.get("claim_id", "N/A")
-        input_file = state.get("input_file", "N/A")
-        current_step = state.get("current_step", "")
-
-        # WHY: Determine which assessment to verify.
-        if "completeness" in current_step:
-            primary_assessment = state.get("agent_1_result", {})
-        else:
-            primary_assessment = state.get("agent_2_result", {})
-
-        evidence = primary_assessment.get("evidence", {})
-        extracted = json.dumps(state.get("extracted_documents", {}), indent=2, ensure_ascii=False)
-
-        primary_json = json.dumps(primary_assessment, indent=2, ensure_ascii=False)
-        evidence_json = json.dumps(evidence, indent=2, ensure_ascii=False)
-
-        return (
-            f"Thẩm định chéo kết quả đánh giá cho hồ sơ {claim_id}.\n"
-            f"Tài liệu gốc: {input_file}\n\n"
-            f"<primary_assessment>\n{primary_json}\n</primary_assessment>\n\n"
-            f"<extracted_evidence>\n{evidence_json}\n</extracted_evidence>\n\n"
-            f"<extracted_documents>\n{extracted}\n</extracted_documents>\n"
-        )
+        return build_verifier_prompt(state, agent_name)
 
     def create_verifier_agent(self) -> Callable:
         return self.create_agent_with_skills(

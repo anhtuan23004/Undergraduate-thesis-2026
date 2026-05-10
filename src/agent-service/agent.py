@@ -1,6 +1,7 @@
 """LLM client for LangGraph with async support and Langfuse tracing."""
 
 import os
+from typing import Any
 
 import structlog
 from config import settings
@@ -10,60 +11,101 @@ from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 logger = structlog.get_logger()
+_OTEL_DETACH_PATCHED = False
+_LANGFUSE_CLIENT_READY = False
 
 
-class LangfuseCallbackHandler(BaseCallbackHandler):
-    """Custom Langfuse callback handler for tracing."""
+def _configure_langfuse_env() -> None:
+    """Expose Langfuse settings through the env names expected by the SDK."""
+    env_values = {
+        "LANGFUSE_PUBLIC_KEY": settings.LANGFUSE_PUBLIC_KEY,
+        "LANGFUSE_SECRET_KEY": settings.LANGFUSE_SECRET_KEY,
+        "LANGFUSE_HOST": settings.LANGFUSE_HOST,
+    }
+    for key, value in env_values.items():
+        if value:
+            os.environ.setdefault(key, value)
 
-    def __init__(self, trace_name: str):
-        self.trace_name = trace_name
-        self._handler = None
 
-    async def setup(self):
-        """Setup Langfuse handler lazily."""
-        if self._handler is None and settings.LANGFUSE_ENABLED:
-            if settings.LANGFUSE_PUBLIC_KEY:
-                os.environ.setdefault("LANGFUSE_PUBLIC_KEY", settings.LANGFUSE_PUBLIC_KEY)
-            if settings.LANGFUSE_SECRET_KEY:
-                os.environ.setdefault("LANGFUSE_SECRET_KEY", settings.LANGFUSE_SECRET_KEY)
-            if settings.LANGFUSE_HOST:
-                os.environ.setdefault("LANGFUSE_HOST", settings.LANGFUSE_HOST)
+def _patch_opentelemetry_detach_for_async_langfuse() -> None:
+    """Suppress expected context detach noise from Langfuse in async LangGraph runs."""
+    global _OTEL_DETACH_PATCHED
+    if _OTEL_DETACH_PATCHED:
+        return
 
+    try:
+        from opentelemetry import context as otel_context
+
+        runtime_context = otel_context._RUNTIME_CONTEXT
+
+        def safe_detach(token):
             try:
-                from langfuse import Langfuse
-                from langfuse.langchain import CallbackHandler
-
-                langfuse_client = Langfuse(
-                    public_key=settings.LANGFUSE_PUBLIC_KEY,
-                    secret_key=settings.LANGFUSE_SECRET_KEY,
-                    host=settings.LANGFUSE_HOST,
-                )
-                try:
-                    self._handler = CallbackHandler(langfuse=langfuse_client)
-                except TypeError:
-                    self._handler = CallbackHandler()
-
-                logger.info("Langfuse callback handler initialized", trace_name=self.trace_name)
-            except ImportError:
-                logger.warning("Langfuse is enabled but package is not installed.")
+                runtime_context.detach(token)
+            except ValueError:
+                pass
             except Exception as exc:
-                logger.warning("Langfuse callback disabled due to init error", error=str(exc))
+                logger.debug("Ignored OpenTelemetry context detach error", error=str(exc))
 
-    @property
-    def handler(self) -> BaseCallbackHandler | None:
-        return self._handler
+        otel_context.detach = safe_detach
+        _OTEL_DETACH_PATCHED = True
+    except Exception as exc:
+        logger.debug("Could not patch OpenTelemetry context detach", error=str(exc))
 
-    async def on_agent_action(self, action, *args, **kwargs):
-        if self._handler and hasattr(self._handler, "on_agent_action"):
-            await self._handler.on_agent_action(action, *args, **kwargs)
 
-    async def on_tool_start(self, serialized, input_str, *args, **kwargs):
-        if self._handler and hasattr(self._handler, "on_tool_start"):
-            await self._handler.on_tool_start(serialized, input_str, *args, **kwargs)
+def _create_langfuse_callback(trace_name: str) -> BaseCallbackHandler | None:
+    """Create a Langfuse LangChain callback when tracing is enabled."""
+    if not settings.LANGFUSE_ENABLED:
+        return None
 
-    async def on_tool_end(self, output, *args, **kwargs):
-        if self._handler and hasattr(self._handler, "on_tool_end"):
-            await self._handler.on_tool_end(output, *args, **kwargs)
+    try:
+        from langfuse.langchain import CallbackHandler
+
+        _ensure_langfuse_client()
+        logger.info("Langfuse callback handler initialized", trace_name=trace_name)
+        return CallbackHandler(public_key=settings.LANGFUSE_PUBLIC_KEY or None)
+    except ImportError:
+        logger.warning("Langfuse is enabled but package is not installed.")
+    except Exception as exc:
+        logger.warning("Langfuse callback disabled due to init error", error=str(exc))
+    return None
+
+
+def _ensure_langfuse_client() -> None:
+    """Initialize the Langfuse SDK once so CallbackHandler can resolve the client."""
+    global _LANGFUSE_CLIENT_READY
+    if _LANGFUSE_CLIENT_READY:
+        return
+
+    from langfuse import Langfuse
+
+    _configure_langfuse_env()
+    _patch_opentelemetry_detach_for_async_langfuse()
+    Langfuse(
+        public_key=settings.LANGFUSE_PUBLIC_KEY or None,
+        secret_key=settings.LANGFUSE_SECRET_KEY or None,
+        host=settings.LANGFUSE_HOST,
+        tracing_enabled=True,
+    )
+    _LANGFUSE_CLIENT_READY = True
+
+
+def _build_agent_config(
+    trace_name: str,
+    metadata: dict[str, Any] | None,
+    callbacks: list[BaseCallbackHandler],
+) -> dict[str, Any]:
+    """Build LangChain config with stable trace metadata."""
+    config: dict[str, Any] = {
+        "run_name": trace_name,
+        "metadata": {
+            "langfuse_tags": ["agent-service", "langgraph"],
+            "trace_name": trace_name,
+            **(metadata or {}),
+        },
+    }
+    if callbacks:
+        config["callbacks"] = callbacks
+    return config
 
 
 class LangGraphLLMClient:
@@ -84,15 +126,12 @@ class LangGraphLLMClient:
         tools: list[LangChainBaseTool],
         system_prompt: str,
         trace_name: str = "agent_invocation",
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> dict:
         """Invoke agent asynchronously without blocking event loop."""
-        langfuse_callback = LangfuseCallbackHandler(trace_name)
-        await langfuse_callback.setup()
-
         callbacks = []
-        if langfuse_callback.handler:
-            callbacks.append(langfuse_callback.handler)
+        if langfuse_callback := _create_langfuse_callback(trace_name):
+            callbacks.append(langfuse_callback)
 
         agent = create_agent(
             model=self._llm,
@@ -101,13 +140,9 @@ class LangGraphLLMClient:
         )
 
         try:
-            config = {"run_name": trace_name}
-            if callbacks:
-                config["callbacks"] = callbacks
-
             result = await agent.ainvoke(
                 {"messages": [{"role": "user", "content": prompt}]},
-                config=config,
+                config=_build_agent_config(trace_name, metadata, callbacks),
             )
             return result
         except Exception as e:
