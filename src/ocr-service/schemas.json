@@ -1,0 +1,1297 @@
+{
+  "extraction_schemas": [
+    {
+      "document_code": "accident_report",
+      "document_name": "Bản tường trình tai nạn sinh hoạt/giao thông (Không công an)",
+      "fields": [
+        {
+          "field_key": "insured_name",
+          "field_name": "Họ và tên của người được bảo hiểm",
+          "data_type": "string"
+        },
+        {
+          "field_key": "is_insured_signed",
+          "field_name": "Chữ ký của NĐBH hoặc đại diện NĐBH",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_authority_confirmation",
+          "field_name": "Xác nhận của chính quyền địa phương/công ty",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "dental_record",
+      "document_name": "Phiếu điều trị răng / Sổ khám nha khoa",
+      "fields": [
+        {
+          "field_key": "facility_name",
+          "field_name": "Tên cơ sở y tế (CSYT)",
+          "data_type": "string"
+        },
+        {
+          "field_key": "visit_date",
+          "field_name": "Ngày khám bệnh",
+          "data_type": "date"
+        },
+        {
+          "field_key": "is_doctor_signed",
+          "field_name": "Chữ kí của Bác sĩ / Trưởng khoa",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_facility_stamp",
+          "field_name": "Đóng dấu của Cơ sở y tế",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "dental_treatment_details",
+          "field_name": "Chi tiết quá trình điều trị răng (số răng)",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "timesheet",
+      "document_name": "Bản chấm công / Xác nhận ngày nghỉ",
+      "fields": [
+        {
+          "field_key": "is_hr_signed",
+          "field_name": "Chữ ký của bộ phận nhân sự",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_company_stamp",
+          "field_name": "Có dấu mộc đỏ của Đơn vị được bảo hiểm",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "medical_indication_slip",
+      "document_name": "Phiếu chỉ định",
+      "fields": [
+        {
+          "field_key": "indicated_services",
+          "field_name": "Danh sách dịch vụ chỉ định",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "service_name",
+              "field_name": "Tên dịch vụ"
+            },
+            {
+              "data_type": "number",
+              "field_key": "quantity",
+              "field_name": "Số lượng"
+            }
+          ]
+        },
+        {
+          "field_key": "has_doctor_signature",
+          "field_name": "Có chữ ký bác sĩ chỉ định",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "indication_date",
+          "field_name": "Ngày chỉ định",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "lab_test_result",
+      "document_name": "Phiếu kết quả xét nghiệm",
+      "fields": [
+        {
+          "field_key": "lab_test_items",
+          "field_name": "Chi tiết các chỉ số xét nghiệm",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "test_name",
+              "field_name": "Tên xét nghiệm/Chỉ số"
+            },
+            {
+              "data_type": "string",
+              "field_key": "result_value",
+              "field_name": "Kết quả"
+            },
+            {
+              "data_type": "string",
+              "field_key": "unit",
+              "field_name": "Đơn vị tính"
+            },
+            {
+              "data_type": "string",
+              "field_key": "reference_range",
+              "field_name": "Trị số bình thường (CSBT)"
+            },
+            {
+              "data_type": "boolean",
+              "field_key": "is_abnormal",
+              "field_name": "Bất thường (Cờ đánh dấu)"
+            }
+          ]
+        },
+        {
+          "field_key": "has_technician_signature",
+          "field_name": "Có chữ ký bác sĩ thực hiện/KTV",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "test_result_date",
+          "field_name": "Ngày có kết quả",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "diagnostic_imaging_result",
+      "document_name": "Kết quả chẩn đoán hình ảnh",
+      "fields": [
+        {
+          "field_key": "has_technician_signature",
+          "field_name": "Có chữ ký bác sĩ thực hiện/KTV",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "imaging_conclusion",
+          "field_name": "Kết luận",
+          "data_type": "string"
+        },
+        {
+          "field_key": "imaging_description",
+          "field_name": "Mô tả kết quả (Đoạn văn)",
+          "data_type": "string"
+        },
+        {
+          "field_key": "imaging_service_name",
+          "field_name": "Tên dịch vụ chụp/siêu âm",
+          "data_type": "string"
+        },
+        {
+          "field_key": "test_result_date",
+          "field_name": "Ngày có kết quả",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "medical_report",
+      "document_name": "Báo cáo y tế",
+      "fields": [
+        {
+          "field_key": "encounter_date",
+          "field_name": "Ngày khám bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "medical_record_number",
+          "field_name": "Số hồ sơ/ Mã bệnh nhân",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_address",
+          "field_name": "Địa chỉ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_gender",
+          "field_name": "Giới tính",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_dob_or_age",
+          "field_name": "Ngày sinh/ tuổi",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "treatment_plan",
+          "field_name": "Hướng giải quyết",
+          "data_type": "string"
+        },
+        {
+          "field_key": "icd_code",
+          "field_name": "Mã ICD",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "outpatient_medical_record",
+      "document_name": "Phiếu khám bệnh",
+      "fields": [
+        {
+          "field_key": "encounter_date",
+          "field_name": "Ngày khám bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "treatment_plan",
+          "field_name": "Hướng giải quyết",
+          "data_type": "string"
+        },
+        {
+          "field_key": "icd_code",
+          "field_name": "Mã ICD",
+          "data_type": "string"
+        },
+        {
+          "field_key": "medical_record_number",
+          "field_name": "Số hồ sơ/ Mã bệnh nhân",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_address",
+          "field_name": "Địa chỉ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_gender",
+          "field_name": "Giới tính",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_dob_or_age",
+          "field_name": "Ngày sinh/ tuổi",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "personal_accident_report",
+      "document_name": "Bản tường trình tai nạn",
+      "fields": [
+        {
+          "field_key": "has_reporter_signature",
+          "field_name": "Có chữ ký người làm đơn",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "report_date",
+          "field_name": "Ngày làm đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "accident_description",
+          "field_name": "Tóm tắt sự vụ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "accident_location",
+          "field_name": "Nơi xảy ra tai nạn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "accident_date",
+          "field_name": "Ngày xảy ra tai nạn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "reporter_name",
+          "field_name": "Họ và tên người làm đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "claim_form",
+      "document_name": "Giấy yêu cầu bồi thường",
+      "fields": [
+        {
+          "field_key": "has_hr_signature",
+          "field_name": "Có chữ ký của Đơn vị được bảo hiểm",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_company_stamp",
+          "field_name": "Có dấu mộc đỏ của Đơn vị được bảo hiểm",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_insured_signature",
+          "field_name": "Có chữ ký của Người được bảo hiểm",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "discharge_date",
+          "field_name": "Ra viện lúc",
+          "data_type": "string"
+        },
+        {
+          "field_key": "admission_date",
+          "field_name": "Vào viện lúc",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "total_claimed_amount",
+          "field_name": "Chi phí y tế được yêu cầu",
+          "data_type": "number"
+        },
+        {
+          "field_key": "diagnosis_or_cause",
+          "field_name": "Chẩn đoán bệnh/ Nguyên nhân tai nạn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "incident_date",
+          "field_name": "Ngày khám bệnh/ ngày xảy ra tai nạn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "beneficiary_name",
+          "field_name": "Người thụ hưởng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "bank_name",
+          "field_name": "Tên ngân hàng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "bank_account_number",
+          "field_name": "Số tài khoản",
+          "data_type": "string"
+        },
+        {
+          "field_key": "email_address",
+          "field_name": "Email",
+          "data_type": "string"
+        },
+        {
+          "field_key": "job_title",
+          "field_name": "Chức danh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "employee_id",
+          "field_name": "Mã số nhân viên",
+          "data_type": "string"
+        },
+        {
+          "field_key": "employee_name",
+          "field_name": "Tên nhân viên",
+          "data_type": "string"
+        },
+        {
+          "field_key": "phone_number",
+          "field_name": "Số điện thoại",
+          "data_type": "string"
+        },
+        {
+          "field_key": "insurance_plan",
+          "field_name": "Mức bảo hiểm",
+          "data_type": "string"
+        },
+        {
+          "field_key": "date_of_birth",
+          "field_name": "Ngày sinh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "insured_person_name",
+          "field_name": "Tên người được bảo hiểm",
+          "data_type": "string"
+        },
+        {
+          "field_key": "policy_number",
+          "field_name": "Số hợp đồng bảo hiểm",
+          "data_type": "string"
+        },
+        {
+          "field_key": "policy_holder",
+          "field_name": "Chủ hợp đồng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "claimant_expense_statement",
+      "document_name": "Bảng kê chi phí (Bệnh nhân tự lập)",
+      "fields": [
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "expense_line_items",
+          "field_name": "Chi tiết các đầu mục chi phí",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "item_description",
+              "field_name": "Nội dung chi phí / Tên dịch vụ"
+            },
+            {
+              "data_type": "string",
+              "field_key": "invoice_receipt_date",
+              "field_name": "Ngày cấp hóa đơn (Nếu có)"
+            },
+            {
+              "data_type": "string",
+              "field_key": "quantity",
+              "field_name": "Số lượng"
+            },
+            {
+              "data_type": "number",
+              "field_key": "amount",
+              "field_name": "Thành tiền / Số tiền"
+            }
+          ]
+        },
+        {
+          "field_key": "is_paid_stamped",
+          "field_name": "Có mộc ĐÃ THU TIỀN / ĐÃ XUẤT HÓA ĐƠN",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "total_billing_amount",
+          "field_name": "Tổng số tiền tổng cộng",
+          "data_type": "number"
+        },
+        {
+          "field_key": "billing_date",
+          "field_name": "Ngày lập bảng kê / Ngày xuất phiếu",
+          "data_type": "date"
+        },
+        {
+          "field_key": "medical_record_number",
+          "field_name": "Mã số bệnh án",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "currency_code",
+          "field_name": "Loại tiền tệ (Đơn vị)",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "vat_invoice",
+      "document_name": "Hóa đơn GTGT",
+      "fields": [
+        {
+          "field_key": "invoice_line_items",
+          "field_name": "Chi tiết bảng hóa đơn",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "item_name",
+              "field_name": "Tên hàng hóa, dịch vụ"
+            },
+            {
+              "data_type": "string",
+              "field_key": "unit",
+              "field_name": "Đơn vị tính"
+            },
+            {
+              "data_type": "number",
+              "field_key": "quantity",
+              "field_name": "Số lượng"
+            },
+            {
+              "data_type": "number",
+              "field_key": "unit_price",
+              "field_name": "Đơn giá"
+            },
+            {
+              "data_type": "number",
+              "field_key": "amount",
+              "field_name": "Thành tiền"
+            }
+          ]
+        },
+        {
+          "field_key": "has_converter_signature",
+          "field_name": "Có chữ ký người chuyển đổi",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_buyer_signature",
+          "field_name": "Có chữ ký người mua",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_seller_signature",
+          "field_name": "Có chữ ký người bán",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "invoice_lookup_link",
+          "field_name": "Link tra cứu hóa đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "total_invoice_amount",
+          "field_name": "Tổng tiền thanh toán",
+          "data_type": "number"
+        },
+        {
+          "field_key": "invoice_date",
+          "field_name": "Ngày tạo hóa đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "invoice_serial",
+          "field_name": "Ký hiệu hóa đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "buyer_company",
+          "field_name": "Tên đơn vị mua hàng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "buyer_name",
+          "field_name": "Họ và tên người mua hàng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "seller_name",
+          "field_name": "Tên đơn vị bán hàng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "invoice_lookup_code",
+          "field_name": "Mã tra cứu hóa đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "invoice_number",
+          "field_name": "Số hóa đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "currency_code",
+          "field_name": "Loại tiền tệ (Đơn vị)",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "discharge_summary",
+      "document_name": "Giấy ra viện",
+      "fields": [
+        {
+          "field_key": "discharge_date",
+          "field_name": "Ra viện lúc",
+          "data_type": "string"
+        },
+        {
+          "field_key": "admission_date",
+          "field_name": "Vào viện lúc",
+          "data_type": "string"
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "has_healthcare_facility_stamp",
+          "field_name": "Có dấu bệnh viện",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "has_authorized_signature",
+          "field_name": "Có chữ ký trưởng khoa/ giám đốc",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "discharge_sign_date",
+          "field_name": "Ngày ký giấy ra viện",
+          "data_type": "string"
+        },
+        {
+          "field_key": "parents_name",
+          "field_name": "Họ tên Bố/ Mẹ (Ghi chú)",
+          "data_type": "string"
+        },
+        {
+          "field_key": "treatment_method",
+          "field_name": "Phương pháp điều trị",
+          "data_type": "string"
+        },
+        {
+          "field_key": "health_insurance_number",
+          "field_name": "Mã số BHXH/ Thẻ BHYT số",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_age",
+          "field_name": "Tuổi",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_gender",
+          "field_name": "Giới tính",
+          "data_type": "string"
+        },
+        {
+          "field_key": "date_of_birth",
+          "field_name": "Ngày sinh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "medical_record_number",
+          "field_name": "Số hồ sơ/ Mã bệnh nhân",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "prescription",
+      "document_name": "Đơn thuốc",
+      "fields": [
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "prescribed_medications",
+          "field_name": "Chi tiết đơn thuốc",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "medication_name",
+              "field_name": "Tên thuốc"
+            },
+            {
+              "data_type": "string",
+              "field_key": "unit",
+              "field_name": "Đơn vị tính"
+            },
+            {
+              "data_type": "number",
+              "field_key": "quantity",
+              "field_name": "Số lượng"
+            },
+            {
+              "data_type": "string",
+              "field_key": "usage_instruction",
+              "field_name": "Cách dùng"
+            }
+          ]
+        },
+        {
+          "field_key": "has_physician_signature",
+          "field_name": "Có chữ ký của bác sĩ",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "prescription_date",
+          "field_name": "Ngày kê đơn/ngày khám",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "department_name",
+          "field_name": "Khoa khám bệnh/ phòng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "prescription_code",
+          "field_name": "Mã đơn thuốc",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_age",
+          "field_name": "Tuổi",
+          "data_type": "string"
+        },
+        {
+          "field_key": "national_id",
+          "field_name": "CMND/ số căn cước",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_object_type",
+          "field_name": "Đối tượng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_address",
+          "field_name": "Địa chỉ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_gender",
+          "field_name": "Giới tính",
+          "data_type": "string"
+        },
+        {
+          "field_key": "date_of_birth",
+          "field_name": "Ngày sinh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "hospital_billing_statement",
+      "document_name": "Bảng kê viện phí",
+      "fields": [
+        {
+          "field_key": "hospital_billing_items",
+          "field_name": "Nội dung các trường trong bảng",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "item_description",
+              "field_name": "Nội dung"
+            },
+            {
+              "data_type": "string",
+              "field_key": "unit",
+              "field_name": "Đơn vị tính"
+            },
+            {
+              "data_type": "number",
+              "field_key": "quantity",
+              "field_name": "Số lượng"
+            },
+            {
+              "data_type": "number",
+              "field_key": "unit_price",
+              "field_name": "Đơn giá"
+            },
+            {
+              "data_type": "number",
+              "field_key": "total_amount",
+              "field_name": "Thành tiền"
+            },
+            {
+              "data_type": "number",
+              "field_key": "health_insurance_cover",
+              "field_name": "BHYT thanh toán (Nếu có)"
+            },
+            {
+              "data_type": "number",
+              "field_key": "patient_pay",
+              "field_name": "Người bệnh trả (Nếu có)"
+            }
+          ]
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "has_cashier_signature",
+          "field_name": "Có chữ ký của người thu tiền",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_paid_stamp",
+          "field_name": "Có dấu đỏ xác nhận đã trả tiền",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "discount_amount",
+          "field_name": "Tiền chiết khấu / Miễn giảm",
+          "data_type": "number"
+        },
+        {
+          "field_key": "patient_co_payment",
+          "field_name": "Đồng chi trả / Bệnh nhân tự trả",
+          "data_type": "number"
+        },
+        {
+          "field_key": "health_insurance_paid_amount",
+          "field_name": "Quỹ BHYT thanh toán",
+          "data_type": "number"
+        },
+        {
+          "field_key": "total_medical_expense",
+          "field_name": "Tổng tiền khám chữa bệnh",
+          "data_type": "number"
+        },
+        {
+          "field_key": "billing_receipt_date",
+          "field_name": "Ngày biên lai / Ngày khám",
+          "data_type": "string"
+        },
+        {
+          "field_key": "date_of_birth",
+          "field_name": "Ngày sinh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "currency_code",
+          "field_name": "Loại tiền tệ (Đơn vị)",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "medical_receipt",
+      "document_name": "Biên lai thu tiền",
+      "fields": [
+        {
+          "field_key": "receipt_line_items",
+          "field_name": "Toàn bộ thông tin trong bảng",
+          "data_type": "array",
+          "child_schema": [
+            {
+              "data_type": "string",
+              "field_key": "item_description",
+              "field_name": "Nội dung / Tên dịch vụ, thuốc"
+            },
+            {
+              "data_type": "string",
+              "field_key": "unit",
+              "field_name": "Đơn vị tính"
+            },
+            {
+              "data_type": "number",
+              "field_key": "quantity",
+              "field_name": "Số lượng"
+            },
+            {
+              "data_type": "number",
+              "field_key": "unit_price",
+              "field_name": "Đơn giá / Giá DV"
+            },
+            {
+              "data_type": "number",
+              "field_key": "health_insurance_cover",
+              "field_name": "BHYT trả (Nếu có)"
+            },
+            {
+              "data_type": "number",
+              "field_key": "total_amount",
+              "field_name": "Thành tiền"
+            }
+          ]
+        },
+        {
+          "field_key": "healthcare_facility_name",
+          "field_name": "Tên cơ sở y tế",
+          "data_type": "string"
+        },
+        {
+          "field_key": "total_receipt_amount",
+          "field_name": "Tổng tiền",
+          "data_type": "number"
+        },
+        {
+          "field_key": "receipt_date",
+          "field_name": "Ngày xuất biên lai",
+          "data_type": "string"
+        },
+        {
+          "field_key": "receipt_number",
+          "field_name": "Số biên lai / Hóa đơn",
+          "data_type": "string"
+        },
+        {
+          "field_key": "has_healthcare_facility_stamp",
+          "field_name": "Có dấu bệnh viện",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_payer_signature",
+          "field_name": "Có chữ ký của người nộp tiền",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "has_cashier_signature",
+          "field_name": "Có chữ ký của người thu tiền",
+          "data_type": "boolean"
+        },
+        {
+          "field_key": "department_name",
+          "field_name": "Khoa khám bệnh/ phòng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "clinical_diagnosis",
+          "field_name": "Chẩn đoán",
+          "data_type": "string"
+        },
+        {
+          "field_key": "national_id",
+          "field_name": "CMND/ số căn cước",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_object_type",
+          "field_name": "Đối tượng",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_address",
+          "field_name": "Địa chỉ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_gender",
+          "field_name": "Giới tính",
+          "data_type": "string"
+        },
+        {
+          "field_key": "date_of_birth",
+          "field_name": "Ngày sinh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "patient_name",
+          "field_name": "Họ tên người bệnh",
+          "data_type": "string"
+        },
+        {
+          "field_key": "medical_record_number",
+          "field_name": "Số hồ sơ/ Mã bệnh nhân",
+          "data_type": "string"
+        },
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        },
+        {
+          "field_key": "currency_code",
+          "field_name": "Loại tiền tệ (Đơn vị)",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "lab_test_order",
+      "document_name": "Phiếu chỉ định và kết quả cận lâm sàng",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "long_term_treatment",
+      "document_name": "Phiếu điều trị nhiều ngày (vật lý trị liệu, châm cứu)",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "surgery_certificate",
+      "document_name": "Giấy chứng nhận phẫu thuật",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "hospital_transfer_paper",
+      "document_name": "Giấy chuyển viện / Giấy chuyển tuyến",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "work_accident_report",
+      "document_name": "Biên bản tai nạn lao động",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "police_report",
+      "document_name": "Biên bản kết luận điều tra của Công an",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "police_extra_docs",
+      "document_name": "Chứng từ công an khác (Khám nghiệm, sơ đồ...)",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "driving_license_vehicle_reg",
+      "document_name": "Giấy phép lái xe và Giấy tờ xe",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "alcohol_test_result",
+      "document_name": "Kết quả xét nghiệm nồng độ cồn",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "social_insurance_leave",
+      "document_name": "Giấy nghỉ hưởng BHXH",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "payslip",
+      "document_name": "Phiếu tính lương / Ủy nhiệm chi",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "labor_contract",
+      "document_name": "Hợp đồng lao động / Quyết định tăng lương",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    },
+    {
+      "document_code": "bank_statement",
+      "document_name": "Sao kê lương ngân hàng",
+      "fields": [
+        {
+          "field_key": "document_title",
+          "field_name": "Loại chứng từ",
+          "data_type": "string"
+        }
+      ]
+    }
+  ]
+}

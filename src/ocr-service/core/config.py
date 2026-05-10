@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # V2 Pipeline Configuration
     GEMINI_MAX_INLINE_IN_BYTES: int = 104857600  # 100MB threshold for inline vs Files API
     GEMINI_MAX_CONCURRENT_EXTRACTIONS: int = 3  # Max concurrent extractions in 2-stage pipeline
+    OCR_EXTRACT_ALL_DOCUMENTS: bool = True  # Allow unknown documents in v2 classify/extract
+    OCR_HIGH_ACCURACY_DOCUMENT_CODES: str = "claim_form"
+    OCR_HIGH_ACCURACY_MODEL: str = "gemini-2.5-pro"
 
     # Application Info
     PROJECT_NAME: str = "Gemini OCR API"

@@ -27,14 +27,6 @@ DOCUMENT_PROMPT: Final[
 DEFAULT_FIELDS_USER_PROMPT: Final[str] = "Extract key fields and return JSON."
 DEFAULT_DOCUMENT_USER_PROMPT: Final[str] = "Extract document structure as JSON."
 
-MAX_DISPLAY_NAME_LENGTH: Final[int] = 150
-
-
-class GeminiConfigError(Exception):
-    """Exception raised for Gemini configuration errors."""
-
-    pass
-
 
 class OCRServiceV1(BaseGeminiEngine):
     """V1 OCR engine methods."""

@@ -1,0 +1,20 @@
+services:
+  gemini-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aicycle-ocr-engine:latest
+    container_name: aicycle-ocr-engine
+    ports:
+      - "${PORT:-8091}:8091"
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:${PORT:-8091}/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3

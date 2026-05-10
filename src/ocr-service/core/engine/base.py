@@ -15,24 +15,6 @@ from core.config import settings
 
 logger = get_logger(__name__)
 
-# Prompt templates
-RAW_TEXT_PROMPT: Final[str] = (
-    "You are an OCR engine. Read the document and output the raw text,\n"
-    "preserving natural reading order as much as possible.\n"
-)
-
-FIELDS_PROMPT: Final[str] = (
-    "Extract key fields from the document. If not specified otherwise,\n"
-    "return a concise JSON object with clearly named keys."
-)
-
-DOCUMENT_PROMPT: Final[
-    str
-] = "Analyze the document structure and return a structured JSON representation of its content."
-
-DEFAULT_FIELDS_USER_PROMPT: Final[str] = "Extract key fields and return JSON."
-DEFAULT_DOCUMENT_USER_PROMPT: Final[str] = "Extract document structure as JSON."
-
 MAX_DISPLAY_NAME_LENGTH: Final[int] = 150
 
 
