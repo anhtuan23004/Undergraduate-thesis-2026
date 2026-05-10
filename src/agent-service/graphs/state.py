@@ -6,7 +6,10 @@ including all fields needed for agent communication and state management.
 """
 
 import operator
-from typing import Annotated, TypedDict
+from typing import Annotated, Literal, TypedDict
+
+WorkflowStage = Literal["completeness", "quality", "final", "none"]
+WorkflowStatus = Literal["running", "paused", "waiting_human", "completed", "error"]
 
 
 class GraphState(TypedDict):
@@ -61,6 +64,15 @@ class GraphState(TypedDict):
 
     current_step: str
     """Current step in the workflow (for tracking progress)."""
+
+    active_stage: WorkflowStage
+    """Current automated workflow stage."""
+
+    review_stage: WorkflowStage
+    """Stage that currently needs agent or human review."""
+
+    workflow_status: WorkflowStatus
+    """Machine-readable workflow lifecycle status."""
 
     should_continue: bool
     """Flag indicating whether the workflow should continue or halt."""

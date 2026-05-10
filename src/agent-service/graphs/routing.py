@@ -1,5 +1,18 @@
 """Routing functions for the multi-agent workflow graph."""
 
+from graphs.constants import (
+    AGENT_REVIEW,
+    COMPLETENESS_CHECK,
+    END,
+    FINAL_DECISION,
+    HUMAN_REVIEW,
+    QUALITY_CHECK,
+    SEVERITY_ESCALATION,
+    STAGE_COMPLETENESS,
+    STAGE_FINAL,
+    STAGE_NONE,
+    STAGE_QUALITY,
+)
 from graphs.state import GraphState
 
 
@@ -18,7 +31,7 @@ def _get_decision_from_result(result: dict) -> str:
 
     issues = result.get("issues", []) or []
     has_critical_or_high = any(
-        i.get("severity") in ("critical", "high") for i in issues if isinstance(i, dict)
+        i.get("severity") in SEVERITY_ESCALATION for i in issues if isinstance(i, dict)
     )
     return "reject" if has_critical_or_high else "accept_with_edit"
 
@@ -31,11 +44,11 @@ def route_after_completeness(state: GraphState) -> str:
     decision = _get_decision_from_result(result)
 
     routing_map = {
-        "accept": "quality_check",
-        "reject": "final_decision",
-        "accept_with_edit": "agent_review",
+        "accept": QUALITY_CHECK,
+        "reject": FINAL_DECISION,
+        "accept_with_edit": AGENT_REVIEW,
     }
-    return routing_map.get(decision, "final_decision")
+    return routing_map.get(decision, FINAL_DECISION)
 
 
 def route_after_quality(state: GraphState) -> str:
@@ -46,11 +59,11 @@ def route_after_quality(state: GraphState) -> str:
     decision = _get_decision_from_result(result)
 
     routing_map = {
-        "accept": "final_decision",
-        "reject": "final_decision",
-        "accept_with_edit": "agent_review",
+        "accept": FINAL_DECISION,
+        "reject": FINAL_DECISION,
+        "accept_with_edit": AGENT_REVIEW,
     }
-    return routing_map.get(decision, "final_decision")
+    return routing_map.get(decision, FINAL_DECISION)
 
 
 def route_after_agent_review(state: GraphState) -> str:
@@ -77,40 +90,33 @@ def route_after_agent_review(state: GraphState) -> str:
     # WHY: The agent_review node updates the corresponding agent result
     # with is_auto_reviewed=True when it is confident. We check that flag
     # to decide whether a human still needs to intervene.
-    current_step = state.get("current_step", "")
-
-    # Determine which agent result to inspect based on the stage.
-    if "completeness" in current_step:
+    review_stage = _review_stage_from_state(state)
+    if review_stage == STAGE_COMPLETENESS:
         result = state.get("agent_1_result") or {}
-        next_stage = "quality_check"
+        next_stage = QUALITY_CHECK
     else:
         result = state.get("agent_2_result") or {}
-        next_stage = "final_decision"
+        next_stage = FINAL_DECISION
 
     is_auto_reviewed = result.get("is_auto_reviewed", False)
     if is_auto_reviewed:
         return next_stage
 
-    return "human_review"
+    return HUMAN_REVIEW
 
 
 def route_after_final_review(state: GraphState) -> str:
     """Route from final decision node.
 
-    The Agent has provided a comprehensive recommendation. We now force
-    human intervention for the ultimate sign-off.
+    The DecisionAgent has provided a comprehensive recommendation. We now
+    force human intervention for the ultimate sign-off. The DecisionAgent
+    schema only allows ``approve`` or ``reject``, so all paths lead to
+    ``human_review``.
     """
-    final_result = state.get("final_result")
-
-    if final_result:
-        decision = final_result.get("decision", final_result.get("status"))
-        # WHY: If the agent suggests an edit to the claim data, we loop back.
-        if decision == "edit":
-            return "quality_check"
-
-    # WHY: By default, ALL final results (approve/reject/accept) must
-    # go through human review for final sign-off before completion.
-    return "human_review"
+    # WHY: FinalDecisionOutput.decision is Literal["approve", "reject"].
+    # No "edit" branch exists for the final agent — all results require
+    # human sign-off before the workflow can complete.
+    return HUMAN_REVIEW
 
 
 def _get_human_decision(state: GraphState) -> str:
@@ -134,39 +140,55 @@ def route_after_completeness_review(state: GraphState) -> str:
     """Route from completeness review stage."""
     decision = _get_human_decision(state)
     routing_map = {
-        "approve": "quality_check",
-        "reject": "final_decision",
-        "edit": "completeness_check",
+        "approve": QUALITY_CHECK,
+        "reject": FINAL_DECISION,
+        "edit": COMPLETENESS_CHECK,
     }
-    return routing_map.get(decision, "final_decision")
+    return routing_map.get(decision, FINAL_DECISION)
 
 
 def route_after_quality_review(state: GraphState) -> str:
     """Route from quality review stage."""
     decision = _get_human_decision(state)
     routing_map = {
-        "approve": "final_decision",
-        "reject": "final_decision",
-        "edit": "quality_check",
+        "approve": FINAL_DECISION,
+        "reject": FINAL_DECISION,
+        "edit": QUALITY_CHECK,
     }
-    return routing_map.get(decision, "final_decision")
+    return routing_map.get(decision, FINAL_DECISION)
 
 
 def route_after_human_review(state: GraphState) -> str:
     """Main router from human review node to the next appropriate node based on stage."""
     result = state.get("human_review_result", {}) or {}
-    stage = result.get("stage")
+    stage = result.get("stage") or _review_stage_from_state(state)
 
-    if stage == "completeness":
+    if stage == STAGE_COMPLETENESS:
         return route_after_completeness_review(state)
-    elif stage == "quality":
+    elif stage == STAGE_QUALITY:
         return route_after_quality_review(state)
 
     # WHY: If stage is None or 'final', it's the ultimate approval/rejection.
     # An 'approve' or 'reject' decision at this point ends the workflow.
     decision = _get_human_decision(state)
     if decision in ("approve", "reject"):
-        return "end"
+        return END
 
     # If the human still wants an edit at the final stage, loop back to quality.
-    return "quality_check"
+    return QUALITY_CHECK
+
+
+def _review_stage_from_state(state: GraphState) -> str:
+    """Return explicit review stage with legacy current_step fallback."""
+    explicit_stage = state.get("review_stage")
+    if explicit_stage and explicit_stage != STAGE_NONE:
+        return explicit_stage
+
+    current_step = state.get("current_step", "")
+    if STAGE_COMPLETENESS in current_step:
+        return STAGE_COMPLETENESS
+    if STAGE_QUALITY in current_step:
+        return STAGE_QUALITY
+    if STAGE_FINAL in current_step or state.get("final_result"):
+        return STAGE_FINAL
+    return STAGE_QUALITY

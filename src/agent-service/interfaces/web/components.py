@@ -149,8 +149,15 @@ def get_ui_state(state_data: dict | None) -> UIState:
     """Map graph state into one of the four UI states."""
     if not state_data:
         return UIState.PROCESSING
+    workflow_status = str(state_data.get("workflow_status") or "").lower()
     if state_data.get("error"):
         return UIState.ERROR
+    if workflow_status == "error":
+        return UIState.ERROR
+    if workflow_status == "waiting_human":
+        return UIState.WAITING_FOR_HUMAN
+    if workflow_status == "completed":
+        return UIState.COMPLETED
     if state_data.get("final_result"):
         return UIState.COMPLETED
     if state_data.get("pending_human_review"):
@@ -440,6 +447,9 @@ def _render_issue_details(issues: list[dict]) -> None:
 
 def _compute_timeline_status(state_data: dict) -> dict[str, StepStatus]:  # noqa: C901
     out = dict.fromkeys(STEP_ORDER, StepStatus.PENDING)
+    active_stage = str(state_data.get("active_stage") or "").lower()
+    review_stage = str(state_data.get("review_stage") or "").lower()
+    workflow_status = str(state_data.get("workflow_status") or "").lower()
 
     if state_data.get("agent_1_result"):
         out["completeness"] = StepStatus.DONE
@@ -470,15 +480,23 @@ def _compute_timeline_status(state_data: dict) -> dict[str, StepStatus]:  # noqa
         if a1_result.get("is_auto_reviewed") is not None:
             out["agent_review"] = StepStatus.DONE
 
-    if state_data.get("pending_human_review"):
+    if workflow_status == "waiting_human" or state_data.get("pending_human_review"):
         out["human_review"] = StepStatus.WAITING
         if state_data.get("agent_2_result"):
             out["quality"] = StepStatus.DONE
         elif state_data.get("agent_1_result"):
             out["completeness"] = StepStatus.DONE
+        if review_stage in {"completeness", "quality"}:
+            out["agent_review"] = StepStatus.DONE
         return out
 
-    if "quality" in current_step:
+    if active_stage == "quality":
+        out["quality"] = StepStatus.ACTIVE
+    elif active_stage == "final":
+        out["final_decision"] = StepStatus.ACTIVE
+    elif active_stage == "completeness":
+        out["completeness"] = StepStatus.ACTIVE
+    elif "quality" in current_step:
         out["quality"] = StepStatus.ACTIVE
     elif "final" in current_step or "decision" in current_step:
         out["final_decision"] = StepStatus.ACTIVE

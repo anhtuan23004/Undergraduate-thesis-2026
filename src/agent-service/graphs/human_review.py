@@ -13,6 +13,7 @@ from typing import Any
 
 import structlog
 
+from graphs.constants import STAGE_NONE, STAGE_QUALITY, STATUS_RUNNING
 from graphs.state import GraphState
 
 logger = structlog.get_logger()
@@ -61,6 +62,9 @@ class HumanReviewNode:
 
         return {
             "current_step": "human_review_complete",
+            "active_stage": STAGE_QUALITY if decision == "edit" else STAGE_NONE,
+            "review_stage": STAGE_NONE,
+            "workflow_status": STATUS_RUNNING,
             "pending_human_review": False,
             "history": [{"step": "human_review", "decision": decision, "resumed": True}],
         }

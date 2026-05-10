@@ -6,8 +6,17 @@ import structlog
 from agents import CompletenessAgentFactory, DecisionAgentFactory, QualityAgentFactory
 from config import settings
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import END, StateGraph
+from langgraph.graph import END as LANGGRAPH_END
+from langgraph.graph import StateGraph
 
+from graphs.constants import (
+    AGENT_REVIEW,
+    COMPLETENESS_CHECK,
+    END,
+    FINAL_DECISION,
+    HUMAN_REVIEW,
+    QUALITY_CHECK,
+)
 from graphs.routing import (
     route_after_agent_review,
     route_after_completeness,
@@ -39,74 +48,74 @@ def build_claim_workflow(
 
     workflow = StateGraph(GraphState)
 
-    workflow.add_node("completeness_check", c_factory.create_completeness_agent())
-    workflow.add_node("quality_check", q_factory.create_quality_agent())
-    workflow.add_node("final_decision", d_factory.create_decision_agent())
+    workflow.add_node(COMPLETENESS_CHECK, c_factory.create_completeness_agent())
+    workflow.add_node(QUALITY_CHECK, q_factory.create_quality_agent())
+    workflow.add_node(FINAL_DECISION, d_factory.create_decision_agent())
 
     from graphs.agent_review import AgentReviewNode
     from graphs.human_review import HumanReviewNode
 
     h_node = HumanReviewNode()
     a_node = AgentReviewNode(llm_client)
-    workflow.add_node("human_review", h_node.run)
-    workflow.add_node("agent_review", a_node.run)
+    workflow.add_node(HUMAN_REVIEW, h_node.run)
+    workflow.add_node(AGENT_REVIEW, a_node.run)
 
-    workflow.set_entry_point("completeness_check")
+    workflow.set_entry_point(COMPLETENESS_CHECK)
 
     workflow.add_conditional_edges(
-        "completeness_check",
+        COMPLETENESS_CHECK,
         route_after_completeness,
         {
-            "quality_check": "quality_check",
-            "final_decision": "final_decision",
-            "agent_review": "agent_review",
+            QUALITY_CHECK: QUALITY_CHECK,
+            FINAL_DECISION: FINAL_DECISION,
+            AGENT_REVIEW: AGENT_REVIEW,
         },
     )
 
     workflow.add_conditional_edges(
-        "quality_check",
+        QUALITY_CHECK,
         route_after_quality,
         {
-            "final_decision": "final_decision",
-            "agent_review": "agent_review",
+            FINAL_DECISION: FINAL_DECISION,
+            AGENT_REVIEW: AGENT_REVIEW,
         },
     )
 
     workflow.add_conditional_edges(
-        "agent_review",
+        AGENT_REVIEW,
         route_after_agent_review,
         {
-            "quality_check": "quality_check",
-            "final_decision": "final_decision",
-            "human_review": "human_review",
+            QUALITY_CHECK: QUALITY_CHECK,
+            FINAL_DECISION: FINAL_DECISION,
+            HUMAN_REVIEW: HUMAN_REVIEW,
         },
     )
 
     workflow.add_conditional_edges(
-        "final_decision",
+        FINAL_DECISION,
         route_after_final_review,
         {
-            "quality_check": "quality_check",
-            "human_review": "human_review",
+            QUALITY_CHECK: QUALITY_CHECK,
+            HUMAN_REVIEW: HUMAN_REVIEW,
         },
     )
 
     workflow.add_conditional_edges(
-        "human_review",
+        HUMAN_REVIEW,
         route_after_human_review,
         {
-            "completeness_check": "completeness_check",
-            "quality_check": "quality_check",
-            "final_decision": "final_decision",
-            "end": END,
+            COMPLETENESS_CHECK: COMPLETENESS_CHECK,
+            QUALITY_CHECK: QUALITY_CHECK,
+            FINAL_DECISION: FINAL_DECISION,
+            END: LANGGRAPH_END,
         },
     )
 
     memory = checkpointer or MemorySaver()
 
-    interrupts = ["human_review"]
+    interrupts = [HUMAN_REVIEW]
     if settings.PAUSE_AT_EACH_STAGE:
-        interrupts.extend(["quality_check", "final_decision"])
+        interrupts.extend([QUALITY_CHECK, FINAL_DECISION])
 
     return workflow.compile(
         checkpointer=memory,
