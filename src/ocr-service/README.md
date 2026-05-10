@@ -227,6 +227,15 @@ If a selector does not match any registry entry, the API returns `422`.
 
 ### 1. Classify and Segment
 
+### With `uv` (recommended)
+
+```bash
+cd src/ocr-service
+PYTHONPATH=. uv run uvicorn main:app --reload --port 8001
+```
+
+### With `pip`
+
 ```bash
 curl -X POST "http://localhost:8091/api/v2/ocr/classify-segment" \
   -H "Content-Type: application/json" \
