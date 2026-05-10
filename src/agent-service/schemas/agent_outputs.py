@@ -4,13 +4,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+# WHY: Single source of truth for severity values, shared with graphs/constants.py.
+SeverityLevel = Literal["critical", "high", "medium", "low"]
+
 
 class Issue(BaseModel):
     """Represents a single issue found during assessment."""
 
-    severity: Literal["critical", "high", "medium", "low"] = Field(
-        description="Mức độ nghiêm trọng của vấn đề"
-    )
+    severity: SeverityLevel = Field(description="Mức độ nghiêm trọng của vấn đề")
     code: str = Field(description="Mã lỗi (VD: MISSING_DOC, INVALID_ICD)")
     description: str = Field(description="Mô tả chi tiết vấn đề bằng tiếng Việt")
     reason: str = Field(default="", description="Lý do tại sao đây là vấn đề (giải trình)")
@@ -113,9 +114,7 @@ class IssueSummary(BaseModel):
         description="Phân loại nhóm vấn đề"
     )
     count: int = Field(description="Số lượng lỗi trong nhóm này")
-    severity: Literal["critical", "high", "medium", "low"] = Field(
-        description="Mức độ nghiêm trọng lớn nhất trong nhóm"
-    )
+    severity: SeverityLevel = Field(description="Mức độ nghiêm trọng lớn nhất trong nhóm")
 
 
 class FinalDecisionOutput(BaseModel):
@@ -134,3 +133,14 @@ class FinalDecisionOutput(BaseModel):
     message: str = Field(
         description="Giải thích rõ ràng bằng tiếng Việt về lý do đưa ra quyết định"
     )
+
+
+class HumanReviewResult(BaseModel):
+    """Typed model for human review results injected into graph state."""
+
+    decision: Literal["approve", "reject", "edit"] = Field(
+        description="Quyết định của thẩm định viên"
+    )
+    notes: str | None = Field(default=None, description="Ghi chú thẩm định")
+    stage: str | None = Field(default=None, description="Giai đoạn đang thẩm định")
+    reviewed_at: str | None = Field(default=None, description="Thời điểm thẩm định (ISO)")
