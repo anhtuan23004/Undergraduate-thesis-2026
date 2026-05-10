@@ -1,9 +1,11 @@
 """Status and health check API routes."""
 
 from config import settings
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from services.graph_service import get_graph
+from services.workflow_state import build_workflow_response, extract_pause_state
 
-from .helpers import _extract_pause_state, _get_graph
+from .errors import workflow_error
 
 router = APIRouter(prefix="", tags=["status"])
 
@@ -21,32 +23,24 @@ async def get_workflow_status(run_id: str) -> dict:
     Raises:
         HTTPException: If the workflow run is not found.
     """
-    graph = await _get_graph()
+    graph = await get_graph()
     config = {"configurable": {"thread_id": run_id}}
 
     state = await graph.aget_state(config)
 
     if not state or not state.values:
-        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+        raise workflow_error(404, f"Run {run_id} not found", endpoint="/workflows/status")
 
-    values = state.values
-    is_pending, is_paused, pause_at = _extract_pause_state(state)
+    values = {**state.values, "run_id": state.values.get("run_id") or run_id}
+    is_pending, is_paused, pause_at = extract_pause_state(state)
 
-    return {
-        "run_id": run_id,
-        "claim_id": values.get("claim_id"),
-        "extracted_documents": values.get("extracted_documents"),
-        "current_step": values.get("current_step"),
-        "pending_human_review": is_pending,
-        "paused": is_paused,
-        "pause_at": pause_at,
-        "agent_1_result": values.get("agent_1_result"),
-        "agent_2_result": values.get("agent_2_result"),
-        "human_review_result": values.get("human_review_result"),
-        "final_result": values.get("final_result"),
-        "history": values.get("history", []),
-        "error": values.get("error"),
-    }
+    return build_workflow_response(
+        values,
+        is_pending,
+        is_paused,
+        pause_at,
+        include_human_review=True,
+    )
 
 
 @router.get("/health")
