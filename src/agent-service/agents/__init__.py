@@ -5,6 +5,7 @@ from agents.factory import (
     CompletenessAgentFactory,
     DecisionAgentFactory,
     QualityAgentFactory,
+    VerifierAgentFactory,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "CompletenessAgentFactory",
     "QualityAgentFactory",
     "DecisionAgentFactory",
+    "VerifierAgentFactory",
 ]
