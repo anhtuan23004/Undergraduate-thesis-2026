@@ -1,10 +1,14 @@
-"""LangGraph workflow definitions.
+"""LangGraph workflow definitions."""
 
-Contains multi-agent graph builders, routing logic, and state definitions
-for the insurance claim processing pipeline.
-"""
-
-from graphs.claim_workflow import build_claim_workflow
 from graphs.state import GraphState
 
-__all__ = ["build_claim_workflow", "GraphState"]
+__all__ = ["GraphState", "build_claim_workflow"]
+
+
+def __getattr__(name: str):
+    """Lazily expose workflow builder without creating import cycles."""
+    if name == "build_claim_workflow":
+        from graphs.claim_workflow import build_claim_workflow
+
+        return build_claim_workflow
+    raise AttributeError(name)
