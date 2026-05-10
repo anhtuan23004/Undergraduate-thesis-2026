@@ -4,6 +4,7 @@ import asyncio
 import mimetypes
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 
 import requests
 import structlog
@@ -17,15 +18,16 @@ logger = structlog.get_logger(__name__)
 def run_ocr_document(file_path: str) -> dict:
     """Run OCR service document extraction for a file path."""
     endpoint = f"{settings.OCR_SERVICE_URL}/api/v1/ocr/document"
+    resolved_file_path = _resolve_input_file_path(file_path)
 
-    if not os.path.exists(file_path):
+    if not os.path.exists(resolved_file_path):
         raise HTTPException(status_code=400, detail=f"Input file not found: {file_path}")
 
-    mime_type, _ = mimetypes.guess_type(file_path)
+    mime_type, _ = mimetypes.guess_type(resolved_file_path)
     mime_type = mime_type or "application/octet-stream"
 
-    with open(file_path, "rb") as f:
-        files = {"file": (os.path.basename(file_path), f, mime_type)}
+    with open(resolved_file_path, "rb") as f:
+        files = {"file": (os.path.basename(resolved_file_path), f, mime_type)}
         response = requests.post(endpoint, files=files, timeout=settings.OCR_TIMEOUT)
         response.raise_for_status()
         result = response.json()
@@ -33,6 +35,23 @@ def run_ocr_document(file_path: str) -> dict:
     if isinstance(result, dict):
         return result
     return {"data": result}
+
+
+def _resolve_input_file_path(file_path: str) -> str:
+    """Resolve workflow input paths and restrict them to UPLOADS_DIR."""
+    upload_dir = Path(settings.UPLOADS_DIR).expanduser().resolve()
+    candidate = Path(file_path).expanduser()
+    resolved = (
+        candidate.resolve() if candidate.is_absolute() else (upload_dir / candidate).resolve()
+    )
+
+    if resolved != upload_dir and upload_dir not in resolved.parents:
+        raise HTTPException(
+            status_code=400,
+            detail="Input file must be inside UPLOADS_DIR",
+        )
+
+    return str(resolved)
 
 
 def save_ocr_result(

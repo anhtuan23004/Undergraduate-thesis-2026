@@ -13,8 +13,8 @@ class ClaimRequest(BaseModel):
     input_file: str = Field(
         ...,
         description=(
-            "Path to input document (relative to UPLOADS_DIR). "
-            "Must not contain path traversal sequences (../)."
+            "Path to input document. Relative paths are resolved under UPLOADS_DIR; "
+            "absolute paths must also point inside UPLOADS_DIR."
         ),
     )
     file_hash: str | None = Field(None, description="SHA-256 hash of the document")

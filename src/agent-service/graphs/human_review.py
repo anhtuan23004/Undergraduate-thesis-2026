@@ -13,7 +13,12 @@ from typing import Any
 
 import structlog
 
-from graphs.constants import STAGE_NONE, STAGE_QUALITY, STATUS_RUNNING
+from graphs.constants import (
+    STAGE_COMPLETENESS,
+    STAGE_NONE,
+    STAGE_QUALITY,
+    STATUS_RUNNING,
+)
 from graphs.state import GraphState
 
 logger = structlog.get_logger()
@@ -53,6 +58,7 @@ class HumanReviewNode:
         """
         human_review_result = state.get("human_review_result", {})
         decision = human_review_result.get("decision", "pending")
+        review_stage = human_review_result.get("stage") or state.get("review_stage")
 
         logger.info(
             "[Human Review] Resuming with decision",
@@ -62,9 +68,18 @@ class HumanReviewNode:
 
         return {
             "current_step": "human_review_complete",
-            "active_stage": STAGE_QUALITY if decision == "edit" else STAGE_NONE,
+            "active_stage": _active_stage_after_human_review(decision, review_stage),
             "review_stage": STAGE_NONE,
             "workflow_status": STATUS_RUNNING,
             "pending_human_review": False,
             "history": [{"step": "human_review", "decision": decision, "resumed": True}],
         }
+
+
+def _active_stage_after_human_review(decision: str, review_stage: str | None) -> str:
+    """Return the next active stage implied by a human review decision."""
+    if decision != "edit":
+        return STAGE_NONE
+    if review_stage == STAGE_COMPLETENESS:
+        return STAGE_COMPLETENESS
+    return STAGE_QUALITY

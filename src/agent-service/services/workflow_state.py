@@ -3,6 +3,7 @@
 from typing import Any
 
 from graphs.constants import (
+    HUMAN_REVIEW,
     STAGE_COMPLETENESS,
     STAGE_FINAL,
     STAGE_NONE,
@@ -18,12 +19,15 @@ from graphs.state import GraphState
 
 def extract_pause_state(snapshot: Any) -> tuple[bool, bool, str | None]:
     """Compute pause flags from graph snapshot."""
+    if snapshot is None:
+        return False, False, None
+
     next_nodes = list(snapshot.next or [])
     if not next_nodes:
         return False, False, None
 
-    if "human_review" in next_nodes:
-        return True, True, "human_review"
+    if HUMAN_REVIEW in next_nodes:
+        return True, True, HUMAN_REVIEW
 
     return False, True, next_nodes[0]
 
