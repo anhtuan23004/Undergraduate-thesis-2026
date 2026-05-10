@@ -4,7 +4,7 @@ import logging
 import sys
 from typing import Final
 
-from app.config import settings
+from core.config import settings
 
 LOG_FORMAT: Final[str] = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
