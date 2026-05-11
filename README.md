@@ -1,458 +1,305 @@
 # Agentic AI Insurance Claims Processing System
 
-A multi-service system for automated health insurance claim processing using LangGraph multi-agent architecture.
+Hệ thống xử lý hồ sơ bồi thường bảo hiểm sức khỏe bằng kiến trúc multi-agent. Dịch vụ OCR trích xuất dữ liệu từ tài liệu y tế, Agent Service điều phối LangGraph workflow gồm kiểm tra đầy đủ, kiểm tra chất lượng y tế, tự thẩm định bằng verifier, human-in-the-loop và kết luận cuối cùng.
 
-## Table of Contents
+## Mục Lục
 
-- [Overview](#overview)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [API Documentation](#api-documentation)
-- [Local Development](#local-development)
-- [Web UI](#web-ui)
-- [Project Structure](#project-structure)
-- [Troubleshooting](#troubleshooting)
+- [Concept](#concept)
+- [Kiến Trúc](#kiến-trúc)
+- [Cài Đặt Chuẩn Trong Phạm Vi Khóa Luận](#cài-đặt-chuẩn-trong-phạm-vi-khóa-luận)
+- [Cài Đặt Nhanh Bằng Docker Compose](#cài-đặt-nhanh-bằng-docker-compose)
+- [Cấu Hình Chuẩn Tối Thiểu](#cấu-hình-chuẩn-tối-thiểu)
+- [Vận Hành](#vận-hành)
+- [Phát Triển Local](#phát-triển-local)
+- [Tài Liệu Trong Repo](#tài-liệu-trong-repo)
 
-## Overview
+## Concept
 
-This system automates insurance claim processing through three specialized AI agents:
+Hệ thống được tách thành các service rõ boundary:
 
-| Agent | Role |
-|-------|------|
-| **Completeness Agent** | Verifies document completeness and required fields |
-| **Quality Agent** | Validates medical quality (ICD codes, medications, exclusions) |
-| **Decision Agent** | Makes final claim approval/rejection decisions |
+| Thành phần | Vai trò |
+| --- | --- |
+| **OCR Service** | Nhận PDF/ảnh, chạy Gemini OCR, phân loại/chia trang tài liệu, trích xuất dữ liệu có cấu trúc |
+| **Agent Service** | FastAPI service điều phối LangGraph workflow, gọi OCR, chạy agent, lưu checkpoint, expose API/SSE |
+| **MongoDB** | Lưu LangGraph checkpoints, OCR audit/cache, agent audit logs |
+| **Redis** | Hạ tầng cache/queue dùng bởi stack kèm theo và cấu hình service |
+| **Langfuse** | Observability/tracing tùy chọn cho LLM calls |
+| **Streamlit UI** | Giao diện vận hành: upload hồ sơ, theo dõi tiến trình, human review |
+| **Evaluation Toolkit** | Batch evaluation, label UI, metrics cho bộ hồ sơ test |
 
-The system includes a **human-in-the-loop** workflow that pauses for human review when needed.
+Workflow nghiệp vụ chính:
 
-## Features
+1. Upload tài liệu vào Agent Service.
+2. OCR phase 1 phân loại/chia đoạn tài liệu.
+3. Completeness Agent kiểm tra chứng từ bắt buộc.
+4. OCR phase 2 trích xuất dữ liệu chi tiết khi hồ sơ đủ điều kiện.
+5. Quality Agent kiểm tra ICD, thuốc, điều khoản loại trừ.
+6. Agent Review dùng verifier + ràng buộc cứng để quyết định tự duyệt hay chuyển human review.
+7. Human reviewer approve/reject/edit khi workflow pause.
+8. Decision Agent tổng hợp kết luận cuối cùng.
 
-- Multi-agent workflow using LangGraph
-- Document OCR processing via Google Gemini Vision
-- Hybrid search (BM25 + Vector) for medical knowledge
-- Human review interface with workflow resumption
-- SSE streaming for real-time status updates
-- MongoDB persistence for workflow state
-- Web UI for claim management
+## Kiến Trúc
 
-## Prerequisites
+```mermaid
+flowchart LR
+    UI["Streamlit UI<br/>operator console"] -->|"upload / run-stream / resume"| AgentAPI["Agent Service<br/>FastAPI :8003"]
 
-### Required
+    AgentAPI --> Graph["LangGraph Workflow"]
+    Graph --> Completeness["Completeness Agent"]
+    Graph --> OCR2["OCR Phase 2"]
+    Graph --> Quality["Quality Agent"]
+    Graph --> Review["Agent Review + Verifier"]
+    Graph --> Human["Human Review Interrupt"]
+    Graph --> Decision["Decision Agent"]
 
-- **Docker** (version 20.10+) - [Install Guide](https://docs.docker.com/get-docker/)
-- **Docker Compose** (version 2.0+) - Usually included with Docker Desktop
+    AgentAPI --> OCR["OCR Service<br/>FastAPI :8001"]
+    OCR --> Gemini["Google Gemini"]
 
-### API Keys
-
-| Service | Required? | How to Get |
-|----------|------------|------------|
-| Google Gemini API | **Yes** | [Google AI Studio](https://makersuite.google.com/app/apikey) |
-| OpenAI API | Optional | [OpenAI Platform](https://platform.openai.com/api-keys) |
-| HuggingFace Token | Optional | [Hugging Face Settings](https://huggingface.co/settings/tokens) |
-
-## Quick Start
-
-### Step 1: Clone the Repository
-
-```bash
-git clone <repository-url>
-cd Undergraduate-thesis
+    AgentAPI --> Mongo["MongoDB<br/>checkpoints/cache/audit"]
+    AgentAPI -. optional .-> Langfuse["Langfuse"]
 ```
 
-### Step 2: Set Up Environment Variables
+Chi tiết logic theo module nằm ở [src/agent-service/docs/README.md](src/agent-service/docs/README.md).
 
-Copy the example environment file and add your API keys:
+## Cài Đặt Chuẩn Trong Phạm Vi Khóa Luận
+
+Trong phạm vi khóa luận, mục tiêu là một cấu hình chạy ổn định, dễ tái lập, có ranh giới service rõ ràng và tránh các cấu hình nguy hiểm thường gặp. Cách tổ chức dưới đây phục vụ demo, đánh giá và vận hành thử đáng tin cậy.
+
+### 1. Tách runtime khỏi dữ liệu
+
+- App containers phải stateless: `ocr-service`, `agent-service`, `streamlit UI` nếu dùng.
+- Dữ liệu bền vững đặt ở managed services hoặc volume được backup:
+  - MongoDB cho checkpoints, OCR cache/audit.
+  - Object storage hoặc persistent volume cho upload nếu cần giữ file lâu dài.
+  - Langfuse/Postgres/ClickHouse/MinIO nếu bật observability self-hosted.
+
+### 2. Chỉ public các endpoint cần thiết
+
+Khuyến nghị public qua reverse proxy/API gateway:
+
+| Public? | Service | Ghi chú |
+| --- | --- | --- |
+| Yes | Streamlit UI hoặc frontend riêng | Đặt authentication trước UI |
+| Yes/Private | Agent API | Chỉ mở nếu có client backend gọi trực tiếp; nên bảo vệ bằng auth/network policy |
+| No | OCR Service | Chỉ Agent Service gọi nội bộ |
+| No | MongoDB, Redis, Langfuse internals | Không expose Internet |
+| Optional | Langfuse Web | Chỉ mở qua SSO/VPN/basic auth |
+
+### 3. Cấu hình qua secret manager
+
+Không hard-code secret trong image hoặc commit `.env`.
+
+Các secret/cấu hình nhạy cảm:
+
+- `GEMINI_API_KEY`
+- `MONGODB_URL`
+- `MONGO_ROOT_PASSWORD`
+- `LANGFUSE_SECRET_KEY`
+- `NEXTAUTH_SECRET`, `SALT`, `ENCRYPTION_KEY`
+- `POSTGRES_PASSWORD`, `CLICKHOUSE_PASSWORD`, `MINIO_ROOT_PASSWORD`
+- API keys phụ trợ như `TAVILY_API_KEY`, `OPENAI_API_KEY` nếu bật tool tương ứng.
+
+### 4. Cấu hình chạy nghiêm ngặt
+
+Cấu hình chuẩn nên chạy:
+
+- `DEBUG=false`
+- `ALLOWED_ORIGINS` là danh sách domain cụ thể, không dùng `*`
+- `LANGFUSE_ENABLED=true` nếu cần trace LLM
+- MongoDB có timeout rõ ràng
+- Upload giới hạn bằng `MAX_UPLOAD_SIZE_MB`
+- OCR v2 pipeline cố định `OCR_V2_PIPELINE=two_phase_gated`
+
+Agent Service có startup validation khi `DEBUG=false`: thiếu `GEMINI_API_KEY`, `MONGODB_URL`, `OCR_SERVICE_URL` hoặc wildcard CORS sẽ fail sớm.
+
+### 5. Health check và rollout
+
+Trước khi nhận traffic:
+
+```bash
+curl http://<agent-host>/health
+curl http://<ocr-host>/health
+```
+
+Trước khi demo hoặc chạy batch evaluation nên có:
+
+- readiness/liveness probe cho Agent/OCR.
+- structured logs được ship về log backend.
+- alert cho OCR timeout, Gemini/API quota, MongoDB connectivity.
+- backup/retention policy cho MongoDB và Langfuse data.
+- migration/runbook cho thay đổi schema prompt/tool quan trọng.
+
+## Cài Đặt Nhanh Bằng Docker Compose
+
+### 1. Chuẩn bị `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set your `GEMINI_API_KEY`:
+Sửa ít nhất:
 
-```bash
-# Required
-GEMINI_API_KEY=your_actual_gemini_api_key_here
-
-# Optional - for additional features
-OPENAI_API_KEY=
-HF_TOKEN=
+```env
+GEMINI_API_KEY=your_gemini_api_key
+DEBUG=false
+ALLOWED_ORIGINS=http://localhost:8501
 ```
 
-### Step 3: Start All Services
+Nếu chạy demo cho hội đồng hoặc chia sẻ máy chủ, đổi toàn bộ password mặc định trong `.env.example`.
+
+### 2. Start stack
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-This will:
+Root compose sẽ build:
 
-- Build the OCR and Agent service Docker images
-- Start MongoDB and Mongo Express (from `infrastructure/mongodb/`)
-- Start Langfuse services (optional, from `infrastructure/langfuse/`)
-- Start OCR service on port `8001`
-- Start Agent service on port `8003`
+- `ocr-service`: container port `8000`, host port `8001`
+- `agent-service`: container port `8000`, host port `8003`
 
-**Total services: 10** (2 app services + 8 infrastructure services)
+Và include hạ tầng:
 
-### Step 4: Verify Services Are Running
+- MongoDB/Mongo Express từ [infrastructure/mongodb](infrastructure/mongodb/README.md)
+- Langfuse stack từ [infrastructure/langfuse](infrastructure/langfuse/README.md)
 
-Check that all services are healthy:
+### 3. Kiểm tra
 
 ```bash
-docker-compose ps
-```
-
-You should see all services marked as `Up` or `healthy`.
-
-Test the health endpoints:
-
-```bash
-# OCR Service
+docker compose ps
 curl http://localhost:8001/health
-
-# Agent Service
 curl http://localhost:8003/health
 ```
 
-### Step 5: Access Services
+Endpoint thường dùng:
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Agent API | <http://localhost:8003/docs> | API Documentation (Swagger) |
-| Agent Health | <http://localhost:8003/health> | Service Health Check |
-| OCR Health | <http://localhost:8001/health> | OCR Service Health Check |
-| Mongo Express | <http://localhost:8081> | MongoDB Web UI |
-| Langfuse Web | <http://localhost:3000> | Observability Dashboard (optional) |
+| URL | Mục đích |
+| --- | --- |
+| <http://localhost:8003/docs> | Swagger của Agent API |
+| <http://localhost:8003/health> | Agent health |
+| <http://localhost:8001/health> | OCR health |
+| <http://localhost:8081> | Mongo Express, chỉ dùng local/demo nội bộ |
+| <http://localhost:3000> | Langfuse Web nếu bật |
 
-### Step 6: Run the Web UI (Optional)
+## Cấu Hình Chuẩn Tối Thiểu
+
+Ví dụ `.env` tối thiểu cho một lần chạy chuẩn trong phạm vi khóa luận:
+
+```env
+DEBUG=false
+LOG_LEVEL=INFO
+
+GEMINI_API_KEY=<secret>
+GEMINI_MODEL=gemini-2.5-pro
+
+MONGODB_URL=mongodb://<user>:<password>@mongodb:27017/claims?authSource=admin
+MONGODB_DB=claims
+MONGODB_CONNECT_TIMEOUT_MS=5000
+MONGODB_SERVER_SELECTION_TIMEOUT_MS=5000
+MONGODB_SOCKET_TIMEOUT_MS=20000
+
+OCR_SERVICE_URL=http://ocr-service:8000
+OCR_API_VERSION=v2
+OCR_V2_PIPELINE=two_phase_gated
+OCR_TIMEOUT=120
+OUTBOUND_HTTP_CONNECT_TIMEOUT=10
+OUTBOUND_HTTP_READ_TIMEOUT=30
+
+UPLOADS_DIR=/app/uploads
+MAX_UPLOAD_SIZE_MB=20
+ALLOWED_ORIGINS=https://claims.example.com
+
+LANGFUSE_ENABLED=false
+LANGFUSE_HOST=https://langfuse.example.com
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+```
+
+Nếu dùng Langfuse self-hosted, đọc thêm [infrastructure/langfuse/README.md](infrastructure/langfuse/README.md) để thay `NEXTAUTH_SECRET`, `SALT`, `ENCRYPTION_KEY`, database/object storage credentials và public URL.
+
+## Vận Hành
+
+### Agent API chính
+
+| Method | Endpoint | Mục đích |
+| --- | --- | --- |
+| `POST` | `/api/v1/workflows/upload` | Upload tài liệu, nhận `file_path` và `file_hash` |
+| `POST` | `/api/v1/workflows/run` | Chạy workflow và trả kết quả khi graph dừng/kết thúc |
+| `POST` | `/api/v1/workflows/run-stream` | Chạy workflow với SSE progress |
+| `GET` | `/api/v1/workflows/status/{run_id}` | Lấy trạng thái checkpoint |
+| `POST` | `/api/v1/workflows/resume/{run_id}` | Resume sau human review |
+| `POST` | `/api/v1/workflows/continue/{run_id}` | Continue pause không phải human review |
+| `GET` | `/api/v1/workflows/stream/{run_id}` | Stream workflow đã tồn tại |
+
+### UI vận hành
 
 ```bash
-cd src/agent-service
-streamlit run interfaces/web/app.py
-```
-
-Then open <http://localhost:8501> in your browser.
-
-## Architecture
-
-### System Components
-
-```
-┌─────────────────┐
-│   User / Claim  │
-│   Submission    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   OCR Service   │ ◄── Gemini Vision API
-│  (Text Extract) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│          Agent Service                │
-│  ┌─────────────────────────────────┐  │
-│  │      LangGraph Workflow        │  │
-│  │                               │  │
-│  │  Completeness ──► Quality     │  │
-│  │       │            │           │  │
-│  │       └────┬───────┘           │  │
-│  │            ▼                   │  │
-│  │        Decision                │  │
-│  └─────────────────────────────────┘  │
-└────────┬──────────────────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│     MongoDB     │
-│  (State Store)  │
-└─────────────────┘
-```
-
-### Multi-Agent Workflow
-
-```
-completeness_check → (route) → quality_check → (route) → final_decision
-        ↓                    ↓                ↓
-  agent_review        agent_review       human_review (interrupt)
-        ↓                    ↓
-        human_review        human_review
-```
-
-## API Documentation
-
-### Agent Service Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/workflows/run` | Start new claim workflow |
-| POST | `/api/v1/workflows/run-stream` | Start with SSE streaming |
-| POST | `/api/v1/workflows/resume/{run_id}` | Resume after human review |
-| POST | `/api/v1/workflows/continue/{run_id}` | Continue after pause |
-| GET | `/api/v1/workflows/status/{run_id}` | Get workflow status |
-| GET | `/api/v1/workflows/stream/{run_id}` | Stream existing workflow |
-
-### OCR Service Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/ocr/raw` | Extract raw text from document |
-| POST | `/api/v1/ocr/fields` | Extract specific fields from document |
-
-### Interactive API Docs
-
-Visit <http://localhost:8003/docs> to see the full interactive API documentation powered by Swagger UI.
-
-## Local Development
-
-### Installing Dependencies with `uv`
-
-The project uses `uv` dependency groups defined in `pyproject.toml`. After cloning, you can install dependencies with:
-
-```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv | sh
-
-# Install ALL dependencies
-uv sync
-
-# Install only specific service dependencies
-uv sync --group agent-service
-uv sync --group ocr-service
-
-# Install with dev dependencies (includes testing tools)
-uv sync --all-extras
-```
-
-**Dependency Groups Available:**
-
-| Group | Description |
-|--------|-------------|
-| `agent-service` | LangGraph, MongoDB, LangChain dependencies |
-| `ocr-service` | Google Gemini API, FastAPI dependencies |
-| `rag-service` | RAG/Hybrid search dependencies |
-| `dev` | Testing, linting, type checking tools |
-
-### Running Services Locally (Without Docker)
-
-After installing dependencies, run services directly:
-
-```bash
-# OCR Service
-cd src/ocr-service
-uv run uvicorn api.main:app --reload --port 8001
-
-# Agent Service
-cd src/agent-service
-uv run uvicorn main:app --reload --port 8003
-
-# Streamlit Web UI
 cd src/agent-service
 uv run streamlit run interfaces/web/app.py
 ```
 
-### Starting Specific Infrastructure Services
+Mở <http://localhost:8501> và cấu hình API URL trỏ tới Agent Service. Xem thêm [src/agent-service/interfaces/web/README.md](src/agent-service/interfaces/web/README.md).
 
-If you only need certain infrastructure services (not all), you can run them from their subdirectories:
-
-```bash
-# Start only MongoDB and Mongo Express
-cd infrastructure/mongodb
-docker-compose -f docker-compose-mongodb.yml up -d
-
-# Start only Langfuse services
-cd infrastructure/langfuse
-docker-compose -f docker-compose.langfuse.yml up -d
-```
-
-### Running Services Without Docker
-
-For development, you can run services directly with Python:
-
-#### 1. Start Infrastructure Only
+### Evaluation
 
 ```bash
-# Start just MongoDB
-docker-compose up -d mongodb mongo-express
+uv run python -m eval run --skip-existing --build-suggestions
+uv run python -m eval metrics --multi-results eval/results/claims
 ```
 
-#### 2. Run OCR Service
+Xem [eval/README.md](eval/README.md).
+
+## Phát Triển Local
+
+### Cài dependency
+
+```bash
+uv sync --all-extras
+```
+
+### Chạy từng service không dùng Docker
+
+OCR standalone mặc định dùng port `8091`:
 
 ```bash
 cd src/ocr-service
-pip install -r requirements.txt
-uvicorn api.main:app --reload --port 8001
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8091
 ```
 
-#### 3. Run Agent Service
+Agent Service:
 
 ```bash
 cd src/agent-service
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8003
+OCR_SERVICE_URL=http://localhost:8091 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8003
 ```
 
-## Project Structure
-
-```
-Undergraduate-thesis/
-├── docker-compose.yml           # Main orchestration file
-├── .env.example                # Environment variables template
-├── README.md                   # This file
-│
-├── src/
-│   ├── ocr-service/            # Document OCR processing
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   └── api/
-│   │       └── main.py
-│   │
-│   └── agent-service/          # Multi-agent workflow
-│       ├── Dockerfile
-│       ├── requirements.txt
-│       ├── main.py             # FastAPI app entry
-│       ├── graphs/             # LangGraph workflow
-│       ├── agents/             # Agent implementations
-│       ├── skills/             # Agent skills
-│       └── interfaces/        # Web UI
-│
-├── infrastructure/              # Supporting services
-│   ├── mongodb/
-│   └── langfuse/
-│
-└── docs/                      # Documentation
-```
-
-## Testing
-
-### Running Tests
-
-The project includes unit tests for all services. Install dev dependencies first:
+Streamlit UI:
 
 ```bash
-# Install with testing tools
-uv sync --all-extras
-
-# Run all tests
-uv run pytest
-
-# Run tests with coverage
-uv run pytest --cov=src --cov-report=html
-
-# Run tests for specific service
-uv run pytest src/agent-service/tests/
-uv run pytest src/ocr-service/tests/
-```
-
-## Web UI
-
-The system includes a Streamlit web interface for claim management and workflow monitoring.
-
-### Starting the Web UI
-
-```bash
-# After installing dependencies
 cd src/agent-service
 uv run streamlit run interfaces/web/app.py
 ```
 
-Then open <http://localhost:8501> in your browser.
-
-### Web UI Features
-
-| Feature | Description |
-|---------|-------------|
-| **Claim Input** | Submit new claims with file upload |
-| **Workflow Status** | Real-time view of workflow progress |
-| **Human Review Panel** | Interface for reviewing interrupted claims |
-| **History** | View previous claim submissions |
-| **Session Management** | Track multiple workflow sessions |
-
-### Workflow States
-
-| State | Description | Action Required |
-|--------|-------------|-----------------|
-| `pending` | Workflow waiting to start | None |
-| `completeness_check` | Completeness agent running | Wait for completion |
-| `quality_check` | Quality agent running | Wait for completion |
-| `agent_review` | Automated review in progress | Wait for completion |
-| `human_review` | Paused for human review | **Submit review decision** |
-| `final_decision` | Final decision made | None |
-| `completed` | Workflow finished | None |
-
-## Troubleshooting
-
-### Services Not Starting
-
-1. Check if ports are already in use:
-
-   ```bash
-   lsof -i :8001
-   lsof -i :8003
-   lsof -i :27017
-   ```
-
-2. Check service logs:
-
-   ```bash
-   docker-compose logs -f [service-name]
-   ```
-
-### API Key Errors
-
-- Verify your `GEMINI_API_KEY` is correctly set in `.env`
-- Ensure the API key has the necessary permissions
-- Check if you've reached your API quota
-
-### MongoDB Connection Issues
-
-- Verify MongoDB is healthy:
-
-  ```bash
-  docker-compose ps mongodb
-  ```
-
-- Check MongoDB logs:
-
-  ```bash
-  docker-compose logs -f mongodb
-  ```
-
-### Rebuild Services
-
-If you make changes to the code:
+### Test
 
 ```bash
-# Rebuild and restart
-docker-compose up -d --build
-
-# Or rebuild specific service
-docker-compose up -d --build agent-service
+uv run pytest src/agent-service/tests
+uv run pytest src/ocr-service/tests
 ```
 
-### Clean Up
+Một số nhóm test quan trọng của Agent Service được mô tả ở [src/agent-service/docs/07-testing-operations.md](src/agent-service/docs/07-testing-operations.md).
 
-Stop all services and remove containers:
+## Tài Liệu Trong Repo
 
-```bash
-docker-compose down
-```
-
-Stop and remove containers, volumes, and networks:
-
-```bash
-docker-compose down -v
-```
-
-## Additional Resources
-
-- [OCR Service README](src/ocr-service/README.md)
-- [Agent Service README](src/agent-service/README.md)
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
-- [Google Gemini API Docs](https://ai.google.dev/docs)
+| Tài liệu | Nội dung |
+| --- | --- |
+| [src/agent-service/README.md](src/agent-service/README.md) | Agent Service API, state fields, skill system |
+| [src/agent-service/docs/README.md](src/agent-service/docs/README.md) | Logic từng layer/module của Agent Service |
+| [src/agent-service/interfaces/web/README.md](src/agent-service/interfaces/web/README.md) | Streamlit UI và workflow vận hành |
+| [src/ocr-service/README.md](src/ocr-service/README.md) | OCR Service, OCR v2 pipeline, endpoints |
+| [infrastructure/mongodb/README.md](infrastructure/mongodb/README.md) | MongoDB collections, connection, backup/reset |
+| [infrastructure/langfuse/README.md](infrastructure/langfuse/README.md) | Langfuse self-hosted setup |
+| [eval/README.md](eval/README.md) | Batch evaluation, label UI, metrics |
 
 ## License
 
