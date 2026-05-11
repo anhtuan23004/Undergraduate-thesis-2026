@@ -111,9 +111,20 @@ class TestRouteAfterCompleteness:
     """Tests for route_after_completeness routing."""
 
     def test_accept_routes_to_ocr_extraction(self):
-        """Valid accept should route to ocr_extraction before quality_check."""
-        state = {"agent_1_result": {"valid": True}}
+        """V2 phase 1 accept should route to ocr_extraction before quality_check."""
+        state = {
+            "ocr_stage": "phase1_classified",
+            "agent_1_result": {"valid": True},
+        }
         assert route_after_completeness(state) == "ocr_extraction"
+
+    def test_accept_routes_to_quality_for_v1_ocr(self):
+        """V1 OCR already has document data, so it should skip phase 2 extraction."""
+        state = {
+            "ocr_stage": "v1_document",
+            "agent_1_result": {"valid": True},
+        }
+        assert route_after_completeness(state) == "quality_check"
 
     def test_reject_routes_to_final(self):
         """Invalid reject should route to final_decision."""
@@ -165,13 +176,24 @@ class TestRouteAfterAgentReview:
     """Tests for route_after_agent_review routing."""
 
     def test_auto_reviewed_completeness_routes_to_ocr_extraction(self):
-        """Auto-reviewed completeness should route to ocr_extraction."""
+        """Auto-reviewed v2 completeness should route to ocr_extraction."""
         state = {
+            "ocr_stage": "phase1_classified",
             "review_stage": "completeness",
             "current_step": "agent_reviewed_completeness",
             "agent_1_result": {"is_auto_reviewed": True},
         }
         assert route_after_agent_review(state) == "ocr_extraction"
+
+    def test_auto_reviewed_completeness_routes_to_quality_for_v1_ocr(self):
+        """Auto-reviewed v1 completeness should skip phase 2 extraction."""
+        state = {
+            "ocr_stage": "v1_document",
+            "review_stage": "completeness",
+            "current_step": "agent_reviewed_completeness",
+            "agent_1_result": {"is_auto_reviewed": True},
+        }
+        assert route_after_agent_review(state) == "quality_check"
 
     def test_auto_reviewed_quality_routes_to_final(self):
         """Auto-reviewed quality should route to final_decision."""
@@ -198,6 +220,7 @@ class TestRouteAfterAgentReview:
 
     def test_explicit_review_stage_takes_precedence_over_current_step(self):
         state = {
+            "ocr_stage": "phase1_classified",
             "review_stage": "completeness",
             "current_step": "agent_reviewed_quality",
             "agent_1_result": {"is_auto_reviewed": True},
@@ -211,9 +234,20 @@ class TestRouteAfterCompletenessReview:
     """Tests for route_after_completeness_review routing."""
 
     def test_approve_routes_to_ocr_extraction(self):
-        """Approve should route to ocr_extraction."""
-        state = {"human_review_result": {"decision": "approve"}}
+        """Approve should route v2 phase 1 results to ocr_extraction."""
+        state = {
+            "ocr_stage": "phase1_classified",
+            "human_review_result": {"decision": "approve"},
+        }
         assert route_after_completeness_review(state) == "ocr_extraction"
+
+    def test_approve_routes_to_quality_for_v1_ocr(self):
+        """Approve should skip phase 2 extraction for v1 OCR."""
+        state = {
+            "ocr_stage": "v1_document",
+            "human_review_result": {"decision": "approve"},
+        }
+        assert route_after_completeness_review(state) == "quality_check"
 
     def test_reject_routes_to_final(self):
         """Reject should route to final_decision."""

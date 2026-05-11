@@ -394,7 +394,7 @@ def _ocr_request_timeout() -> tuple[int, int]:
 def _tag_ocr_version(result: dict, version: str) -> dict:
     if result.get("ocr_version") == version:
         return result
-    return {"ocr_version": version, **result}
+    return {**result, "ocr_version": version}
 
 
 def _normalize_ocr_v2_result(result: dict, *, ocr_stage: str) -> dict:

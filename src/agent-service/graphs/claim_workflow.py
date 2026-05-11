@@ -72,6 +72,7 @@ def build_claim_workflow(
         route_after_completeness,
         {
             OCR_EXTRACTION: OCR_EXTRACTION,
+            QUALITY_CHECK: QUALITY_CHECK,
             FINAL_DECISION: FINAL_DECISION,
             AGENT_REVIEW: AGENT_REVIEW,
         },

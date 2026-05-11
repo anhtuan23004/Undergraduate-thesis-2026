@@ -16,6 +16,8 @@ from graphs.constants import (
 )
 from graphs.state import GraphState
 
+OCR_STAGE_PHASE1_CLASSIFIED = "phase1_classified"
+
 
 def _get_decision_from_result(result: dict) -> str:
     """Extract the routing decision from an agent result dict."""
@@ -45,7 +47,7 @@ def route_after_completeness(state: GraphState) -> str:
     decision = _get_decision_from_result(result)
 
     routing_map = {
-        "accept": OCR_EXTRACTION,
+        "accept": _route_after_completeness_success(state),
         "reject": FINAL_DECISION,
         "accept_with_edit": AGENT_REVIEW,
     }
@@ -76,7 +78,7 @@ def route_after_agent_review(state: GraphState) -> str:
     flag to decide whether to proceed to the next automated stage or
     fall back to human review:
 
-    * For completeness-related steps, it routes to ``ocr_extraction`` when
+    * For completeness-related steps, it routes by OCR stage when
       ``is_auto_reviewed`` is true, otherwise to ``human_review``.
     * For quality-related steps, it routes to ``final_decision`` when
       ``is_auto_reviewed`` is true, otherwise to ``human_review``.
@@ -86,7 +88,8 @@ def route_after_agent_review(state: GraphState) -> str:
 
     Returns:
         The name of the next node: either the appropriate next automated
-        stage (``ocr_extraction`` or ``final_decision``) or ``human_review``.
+        stage (``ocr_extraction``, ``quality_check``, or ``final_decision``)
+        or ``human_review``.
     """
     # WHY: The agent_review node updates the corresponding agent result
     # with is_auto_reviewed=True when it is confident. We check that flag
@@ -94,7 +97,7 @@ def route_after_agent_review(state: GraphState) -> str:
     review_stage = _review_stage_from_state(state)
     if review_stage == STAGE_COMPLETENESS:
         result = state.get("agent_1_result") or {}
-        next_stage = OCR_EXTRACTION
+        next_stage = _route_after_completeness_success(state)
     else:
         result = state.get("agent_2_result") or {}
         next_stage = FINAL_DECISION
@@ -141,7 +144,7 @@ def route_after_completeness_review(state: GraphState) -> str:
     """Route from completeness review stage."""
     decision = _get_human_decision(state)
     routing_map = {
-        "approve": OCR_EXTRACTION,
+        "approve": _route_after_completeness_success(state),
         "reject": FINAL_DECISION,
         "edit": COMPLETENESS_CHECK,
     }
@@ -164,6 +167,13 @@ def route_after_ocr_extraction(state: GraphState) -> str:
     if state.get("ocr_stage") == "phase2_extracted":
         return QUALITY_CHECK
     return FINAL_DECISION
+
+
+def _route_after_completeness_success(state: GraphState) -> str:
+    """Route successful completeness based on the available OCR stage."""
+    if state.get("ocr_stage") == OCR_STAGE_PHASE1_CLASSIFIED:
+        return OCR_EXTRACTION
+    return QUALITY_CHECK
 
 
 def route_after_human_review(state: GraphState) -> str:

@@ -3,7 +3,7 @@
 import structlog
 from services.ocr_service import OCR_STAGE_PHASE2, prepare_ocr_phase2_result
 
-from graphs.constants import STAGE_NONE, STAGE_QUALITY, STATUS_RUNNING
+from graphs.constants import STAGE_FINAL, STAGE_NONE, STAGE_QUALITY, STATUS_RUNNING
 from graphs.state import GraphState
 
 logger = structlog.get_logger(__name__)
@@ -89,7 +89,7 @@ async def run_ocr_extraction(state: GraphState) -> dict:
                 }
             ],
             "current_step": "failed_ocr_extraction",
-            "active_stage": STAGE_QUALITY,
+            "active_stage": STAGE_FINAL,
             "review_stage": STAGE_NONE,
             "workflow_status": STATUS_RUNNING,
         }
