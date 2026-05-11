@@ -35,6 +35,7 @@ services:
     env_file:
       - .env
     environment:
+      - PORT=8000
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -66,6 +67,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
       - OCR_SERVICE_URL=http://ocr-service:8000
+      - OCR_API_VERSION=${OCR_API_VERSION:-v2}
+      - OCR_V2_PIPELINE=${OCR_V2_PIPELINE:-two_phase_gated}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=http://langfuse-web:3000
