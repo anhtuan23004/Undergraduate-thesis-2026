@@ -16,6 +16,50 @@ from graphs.routing import (
     route_after_quality,
     route_after_quality_review,
 )
+from graphs.workflow_policy import review_target_from_state, stage_policy
+
+
+class TestWorkflowPolicyMetadata:
+    """Tests for stage metadata consumed by routing and verifier gate."""
+
+    def test_completeness_policy_maps_agent_1_result_keys(self):
+        policy = stage_policy("completeness")
+
+        assert policy.result_key == "agent_1_result"
+        assert policy.edited_result_key == "edited_agent_1_result"
+        assert policy.next_after_human_edit == "completeness_check"
+
+    def test_quality_policy_maps_agent_2_result_keys(self):
+        policy = stage_policy("quality")
+
+        assert policy.result_key == "agent_2_result"
+        assert policy.edited_result_key == "edited_agent_2_result"
+        assert policy.next_after_human_edit == "quality_check"
+
+    def test_review_target_uses_policy_result_key_for_explicit_stage(self):
+        state = {
+            "review_stage": "completeness",
+            "agent_1_result": {"decision": "accept_with_edit"},
+            "agent_2_result": {"decision": "reject"},
+        }
+
+        target = review_target_from_state(state)
+
+        assert target.stage == "completeness"
+        assert target.result_key == "agent_1_result"
+        assert target.result == {"decision": "accept_with_edit"}
+
+    def test_review_target_defaults_final_stage_to_quality_for_verifier_gate(self):
+        state = {
+            "review_stage": "final",
+            "agent_2_result": {"decision": "accept_with_edit"},
+            "final_result": {"decision": "approve"},
+        }
+
+        target = review_target_from_state(state)
+
+        assert target.stage == "quality"
+        assert target.result_key == "agent_2_result"
 
 
 class TestGetDecisionFromResult:

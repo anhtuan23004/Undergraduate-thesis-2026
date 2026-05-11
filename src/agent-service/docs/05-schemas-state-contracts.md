@@ -46,6 +46,16 @@ classDiagram
 
 `determine_review_stage` là helper trong `services.workflow_state`, dùng khi `/workflows/resume/{run_id}` cần đóng gói `HumanReviewResult.stage`. Thứ tự suy luận là explicit `review_stage` nếu có, sau đó `final_result`, sau đó `agent_2_result`, cuối cùng là `completeness`.
 
+`graphs.workflow_policy` tập trung mapping giữa workflow stage và các state key trong `GraphState`.
+
+| Workflow stage | Result key | Edited result key | Ghi chú |
+| --- | --- | --- | --- |
+| `completeness` | `agent_1_result` | `edited_agent_1_result` | Có thể route qua OCR phase 2 trước `quality_check` |
+| `quality` | `agent_2_result` | `edited_agent_2_result` | Route tới `final_decision` sau accept/reject |
+| `final` | `final_result` | none | Luôn cần human sign-off, không đi qua Agent Review |
+
+Khi thêm stage, cập nhật `GraphState`/schema contract trước nếu stage cần result key riêng. Sau đó thêm `StagePolicy`, routing tests, UI timeline mapping, và API response nếu field mới cần expose ra ngoài.
+
 ```mermaid
 stateDiagram-v2
     [*] --> running

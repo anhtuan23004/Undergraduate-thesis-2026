@@ -9,7 +9,8 @@ Folder `graphs/` chứa state machine nghiệp vụ của claim workflow. Graph 
 | `graphs/state.py` | `GraphState` TypedDict, các field lifecycle và kết quả agent |
 | `graphs/constants.py` | Node names, stage names, workflow statuses, severity constants |
 | `graphs/claim_workflow.py` | Build LangGraph, đăng ký nodes, conditional edges, compile interrupt |
-| `graphs/routing.py` | Tất cả routing function sau từng node |
+| `graphs/workflow_policy.py` | Policy tập trung stage metadata, result-key mapping, decision normalization, routing decision |
+| `graphs/routing.py` | Adapter mỏng giữ các routing function mà LangGraph đang gọi |
 | `graphs/ocr_extraction.py` | OCR phase 2 sau khi Completeness approve phase 1 |
 | `graphs/agent_review.py` | Tự duyệt `accept_with_edit` bằng hard constraints + VerifierAgent |
 | `graphs/human_review.py` | Virtual interrupt node; chạy no-op sau khi API resume |
@@ -83,9 +84,42 @@ flowchart LR
     Extra --> Compile
 ```
 
+## Workflow routing policy
+
+`graphs/workflow_policy.py` là điểm tập trung routing policy của insurance claim workflow. Module này sở hữu stage metadata, chuẩn hóa decision, chọn target cho verifier gate, và quyết định node tiếp theo cho các nhánh agent review/human review/OCR.
+
+- `routing.py` là adapter để LangGraph gọi các function như `route_after_completeness`, `route_after_agent_review`, `route_after_human_review`.
+- `workflow_policy.py` sở hữu stage metadata và routing rules.
+- `AgentReviewNode` gọi `review_target_from_state(state)` để lấy `stage`, `result_key`, và `agent_result`.
+- `review_stage_from_state` ưu tiên `review_stage`, rồi fallback qua `current_step`/`final_result` cho checkpoint cũ.
+
+Stage metadata hiện có:
+
+| Stage | Result key | Edited result key | Accept route | Reject route | Human edit route | Agent review? |
+| --- | --- | --- | --- | --- | --- | --- |
+| `completeness` | `agent_1_result` | `edited_agent_1_result` | `ocr_extraction` nếu OCR phase 1, ngược lại `quality_check` | `final_decision` | `completeness_check` | Yes |
+| `quality` | `agent_2_result` | `edited_agent_2_result` | `final_decision` | `final_decision` | `quality_check` | Yes |
+| `final` | `final_result` | none | `human_review` | `human_review` | `quality_check` | No |
+
+```mermaid
+flowchart TD
+    State["GraphState"] --> Policy["workflow_policy"]
+    Policy --> Stage["review_stage_from_state"]
+    Policy --> Meta["StagePolicy metadata"]
+    Meta --> ResultKey["result_key / edited_result_key"]
+    Meta --> Next["next_after_* routes"]
+
+    Routing["routing.py adapter"] --> Policy
+    AgentReview["AgentReviewNode"] --> Target["review_target_from_state"]
+    Target --> ResultKey
+    Target --> AgentResult["selected agent result"]
+```
+
+Policy là Python module explicit, không phải runtime plugin/config framework. Khi thêm stage mới, cập nhật `StagePolicy`, routing tests, và các consumer liên quan như UI timeline nếu stage cần hiển thị riêng.
+
 ## Routing by decision and severity
 
-`routing.py` chuẩn hóa quyết định từ agent output:
+`workflow_policy.py` chuẩn hóa quyết định từ agent output:
 
 - Nếu output có `decision`, dùng trực tiếp.
 - Nếu thiếu `decision`, suy ra từ `valid` và issue severity.
@@ -105,7 +139,16 @@ flowchart TD
 
 ## Agent Review logic
 
-`AgentReviewNode` chỉ xử lý stage `completeness` hoặc `quality` khi agent trả `accept_with_edit`. Nó không tự sửa kết quả; nó chỉ đánh dấu `is_auto_reviewed=True` nếu đủ an toàn.
+`AgentReviewNode` chỉ xử lý stage có `supports_agent_review=True` trong `StagePolicy`, hiện là `completeness` và `quality`. Nó không tự sửa kết quả; nó chỉ đánh dấu `is_auto_reviewed=True` nếu đủ an toàn.
+
+Verifier gate không tự biết `agent_1_result` hay `agent_2_result`. Nó dùng `review_target_from_state(state)` để lấy đúng target:
+
+| Policy output | AgentReviewNode dùng để |
+| --- | --- |
+| `stage` | ghi `current_step`, `review_stage`, history |
+| `result_key` | update lại đúng state key với `is_auto_reviewed` |
+| `result` | đọc confidence, issues, suggested updates, evidence |
+| `active_stage_after_auto_review` | set `active_stage` sau khi verifier pass |
 
 Điều kiện tự duyệt:
 
@@ -119,8 +162,8 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    AR["AgentReviewNode.run"] --> Stage["resolve review stage"]
-    Stage --> Pick["pick agent_1_result or agent_2_result"]
+    AR["AgentReviewNode.run"] --> Target["workflow_policy.review_target_from_state"]
+    Target --> Pick["stage + result_key + selected result"]
     Pick --> Amount["parse total_claim_amount"]
     Amount --> Hard{"safe amount<br/>safe severity<br/>has suggestions?"}
     Hard -->|"no"| Escalate1["escalate to human<br/>reason hard_constraints_failed"]
@@ -177,4 +220,3 @@ flowchart TD
     Phase2 --> Success["extracted_documents = phase2_result<br/>ocr_stage=phase2_extracted<br/>active_stage=quality"]
     Phase2 --> Failure["error branch<br/>agent_2_result reject"]
 ```
-

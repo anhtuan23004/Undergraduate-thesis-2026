@@ -49,6 +49,7 @@ flowchart LR
 | `agent.py` | Singleton LLM client, LangChain agent invocation, optional Langfuse callback |
 | `api/` | HTTP surface cho upload, run/resume/continue/stream/status |
 | `graphs/` | LangGraph state machine và routing nghiệp vụ |
+| `graphs/workflow_policy.py` | Policy tập trung stage metadata, result-key mapping, routing decision và verifier target |
 | `agents/` | Factory tạo agent node, prompt composition, parse/validate/audit output |
 | `services/` | Cross-cutting services: graph lifecycle, OCR, file policy, response state |
 | `schemas/` | Pydantic contracts cho agent output và human review |
@@ -115,4 +116,3 @@ sequenceDiagram
 | `workflow_status` | Lifecycle: `running`, `paused`, `waiting_human`, `completed`, `error` |
 | `pending_human_review` | Cờ API/UI dùng để mở HITL panel |
 | `history` | Audit nhẹ trong graph state, được merge bằng reducer `operator.add` |
-
