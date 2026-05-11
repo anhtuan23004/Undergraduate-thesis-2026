@@ -1,36 +1,20 @@
 """OCR phase 2 extraction graph node."""
 
 import structlog
-from services.ocr_service import OCR_STAGE_PHASE2, prepare_ocr_phase2_result
+from services.ocr_pipeline import OCR_STAGE_PHASE2, get_default_ocr_pipeline
 
 from graphs.constants import STAGE_FINAL, STAGE_NONE, STAGE_QUALITY, STATUS_RUNNING
 from graphs.state import GraphState
 
 logger = structlog.get_logger(__name__)
 
-# WHY: Phase 1 `documents` and Phase 2 `documents` share the same key but
-# Phase 2 adds `extracted_data`.  We strip to classification-only fields so
-# the Phase 2 API receives a clean input without residual extraction data.
-_CLASSIFICATION_KEYS = (
-    "document_code",
-    "document_name",
-    "suggested_document_code",
-    "suggested_document_name",
-    "start_page",
-    "end_page",
-)
-
 
 async def run_ocr_extraction(state: GraphState) -> dict:
     """Extract structured fields after Completeness Agent approves Phase 1."""
     logger.info("Executing OCR extraction node", claim_id=state.get("claim_id"))
     extracted_docs = state.get("extracted_documents", {})
-    # Derive phase1_documents from documents, keeping only classification metadata
-    phase1_documents = [
-        {k: doc[k] for k in _CLASSIFICATION_KEYS if k in doc}
-        for doc in extracted_docs.get("documents", [])
-        if isinstance(doc, dict)
-    ]
+    pipeline = get_default_ocr_pipeline()
+    phase1_documents = pipeline.phase2_input_documents(extracted_docs)
 
     try:
         if not phase1_documents:
@@ -38,7 +22,7 @@ async def run_ocr_extraction(state: GraphState) -> dict:
                 "Cần có danh sách chứng từ từ OCR giai đoạn 1 trước khi trích xuất giai đoạn 2"
             )
 
-        phase2_result = await prepare_ocr_phase2_result(
+        phase2_result = await pipeline.prepare_phase2_ocr(
             state["run_id"],
             state["claim_id"],
             state["policy_number"],
