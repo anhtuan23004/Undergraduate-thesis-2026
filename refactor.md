@@ -158,31 +158,40 @@ Tracking rules:
 
 ### HRA - Human Review Application Module
 
-- [ ] HRA-01 - Research resume workflow responsibilities.
+- [x] HRA-01 - Research resume workflow responsibilities.
   - Files: `api/workflows.py`, `services/workflow_state.py`, `graphs/human_review.py`, `tests/test_human_review.py`.
   - Acceptance: phân tách rõ route Adapter, graph checkpoint mechanics, command validation, edited-result wiring, response building.
   - Dependency: WRP-06 recommended.
-- [ ] HRA-02 - Bổ sung tests cho human review application behavior.
+- [x] HRA-02 - Bổ sung tests cho human review application behavior.
   - Cases: approve/reject/edit ở completeness, quality, final; missing run returns 404; timeout returns standardized 504.
-  - Acceptance: behavior được test không cần Streamlit UI.
+  - Acceptance: behavior được test không cần Streamlit UI; fake graph chỉ tồn tại trong test, không đưa fake implementation vào production.
   - Dependency: HRA-01.
-- [ ] HRA-03 - Tạo Human Review Application Module.
+- [x] HRA-03 - Tạo Human Review Application Module.
   - Suggested file: `src/agent-service/services/human_review_application.py`.
   - Interface: function/class nhận `run_id`, review request/command, graph provider, và trả workflow response.
   - Acceptance: module mới sở hữu `HumanReviewResult.model_validate()`, review-stage inference, state update, graph continuation.
   - Dependency: HRA-02.
-- [ ] HRA-04 - Làm mỏng `resume_workflow`.
+- [x] HRA-04 - Làm mỏng `resume_workflow`.
   - File: `api/workflows.py`.
   - Acceptance: route chỉ gọi application module và map HTTP errors; route không còn set `edited_agent_1_result`/`edited_agent_2_result` trực tiếp.
   - Dependency: HRA-03.
-- [ ] HRA-05 - Verification cho milestone.
+- [x] HRA-05 - Verification cho milestone.
   - Commands:
     - `python -m pytest src/agent-service/tests/test_human_review.py -q`
+    - `python -m pytest src/agent-service/tests/test_human_review_application.py -q`
     - `python -m pytest src/agent-service/tests/test_api_schemas.py -q`
     - `python -m pytest src/agent-service/tests/test_api_status.py -q`
     - `python -m pytest src/agent-service/tests/test_workflow_state.py -q`
+    - `python -m ruff check src/agent-service`
   - Acceptance: commands pass; `/workflows/resume/{run_id}` request/response contract không đổi.
   - Dependency: HRA-04.
+  - Evidence:
+    - Baseline `python -m pytest src/agent-service/tests/test_human_review.py src/agent-service/tests/test_workflow_state.py src/agent-service/tests/test_api_status.py -q`: 11 passed.
+    - `python -m pytest src/agent-service/tests/test_human_review_application.py src/agent-service/tests/test_human_review.py -q`: 10 passed.
+    - `python -m pytest src/agent-service/tests/test_human_review.py src/agent-service/tests/test_human_review_application.py src/agent-service/tests/test_api_schemas.py src/agent-service/tests/test_api_status.py src/agent-service/tests/test_workflow_state.py -q`: 40 passed.
+    - `python -m ruff check src/agent-service`: passed.
+    - `STRICT_SKILL_LOADING=true python -m pytest src/agent-service/tests -q`: 163 passed.
+    - `npx gitnexus detect-changes`: risk medium; affected flows remain `Resume_workflow` paths.
 
 ### V2O - OCR Service V2 Operation Module
 
@@ -393,26 +402,61 @@ Interface mục tiêu:
 
 FastAPI chỉ nhận request, gọi module, và map lỗi HTTP.
 
+### Scale and Flexibility Assessment
+
+Hiệu quả kỳ vọng sau refactor: tốt nếu module mới là use-case module mỏng, sở hữu hành động nghiệp vụ "apply human review decision", nhưng không trở thành graph framework tổng quát.
+
+Trước refactor, khả năng scale khoảng `2/5`: thêm review stage mới hoặc đổi behavior `edit` sẽ phải sửa route, workflow state helper, graph node, routing policy, và tests. Sau refactor đúng boundary, khả năng scale có thể lên `4/5`: route và UI contract giữ nguyên, stage-specific wiring lấy từ `workflow_policy.StagePolicy`, và graph checkpoint mechanics được cô lập trong application module.
+
+Các trục scale/flexibility cần giữ:
+
+- Thêm stage mới: HRA không được hard-code `edited_agent_1_result`/`edited_agent_2_result`; phải lấy `edited_result_key` và `next_after_human_edit` từ `workflow_policy.stage_policy(...)`.
+- Thêm client/UI mới: command nội bộ phải độc lập với FastAPI request model để Streamlit, REST, SSE, hoặc test đều gọi cùng use case.
+- Đổi checkpoint backend hoặc graph provider: HRA nên nhận graph provider/graph object qua dependency boundary để tests dùng fake graph, không cần LangGraph thật.
+- Thêm decision mới: normalize/validate ở command/application boundary một lần; graph routing chỉ đọc `human_review_result` đã chuẩn hóa.
+- Thêm final-review behavior: final approve/reject/edit phải được encode explicit; không dùng nhánh `else` mặc định để đẩy edit về quality.
+
+Guardrails:
+
+- `workflow_policy.review_stage_from_state(...)` hoặc một wrapper gọi policy phải là source of truth cho review-stage inference; không tạo bản suy luận thứ hai trong HRA.
+- `HumanReviewNode` nên giảm về node ghi nhận/resume rất mỏng, hoặc dùng policy cho active-stage update; không giữ mapping completeness/quality riêng khi policy đã tồn tại.
+- Module mới chỉ nên biết use case human review. Không gom luôn `/continue`, `/status`, hoặc run workflow vào cùng module trong milestone này.
+- API response shape của `/workflows/resume/{run_id}` giữ nguyên; mọi thay đổi internal phải được chứng minh bằng tests application-level.
+
 ### Implementation Steps
 
 1. Chạy GitNexus impact analysis cho `resume_workflow`, `determine_review_stage`, và `HumanReviewNode.run`.
-2. Thêm hoặc xác nhận tests cho approve/reject/edit ở completeness, quality, final.
-3. Tạo command object hoặc dict rõ ràng cho human review request nội bộ.
-4. Di chuyển review-stage inference và edited-result wiring khỏi route.
-5. Đảm bảo module mới vẫn dùng `HumanReviewResult.model_validate()` trước khi inject vào graph state.
-6. Giữ endpoint path và request/response schema hiện tại.
-7. Rút `api/workflows.py::resume_workflow` xuống còn route Adapter mỏng.
+2. Thêm baseline tests cho application behavior trước khi di chuyển logic: approve/reject/edit ở completeness, quality, final; final edit phải có expected route/state rõ ràng.
+3. Tạo command object rõ ràng, ví dụ `HumanReviewCommand(decision, notes, edited_result)`, không phụ thuộc trực tiếp vào FastAPI schema.
+4. Tạo `HumanReviewApplication` nhận `run_id`, command, graph provider/graph object, timeout config, và trả workflow response dict.
+5. Di chuyển checkpoint load, missing-run handling, state update, graph continuation, pause extraction, và response building khỏi route vào application module.
+6. Di chuyển review-stage inference và edited-result wiring khỏi route; dùng `workflow_policy.review_stage_from_state(...)` và `stage_policy(...).edited_result_key` thay vì `if stage == "completeness"`.
+7. Đảm bảo module mới vẫn dùng `HumanReviewResult.model_validate()` trước khi inject vào graph state.
+8. Làm rõ final edit semantics bằng policy/test trước khi implement; nếu final edit quay về quality thì policy phải thể hiện điều đó.
+9. Giữ endpoint path và request/response schema hiện tại.
+10. Rút `api/workflows.py::resume_workflow` xuống còn route Adapter mỏng.
+
+### Implementation Notes
+
+- `HumanReviewApplication` sở hữu checkpoint load, `HumanReviewResult` validation, state update, graph continuation, pause extraction, và response building.
+- `resume_workflow` chỉ còn chuyển `HumanReviewRequest` sang `HumanReviewCommand`, gọi application module, và map `WorkflowRunNotFound`/`HumanReviewTimeout` sang HTTP lỗi chuẩn.
+- `determine_review_stage` được giữ như legacy wrapper nhưng delegate về `workflow_policy.review_stage_from_state(...)`, tránh hai source of truth.
+- Edited-result wiring dùng `workflow_policy.stage_policy(...)`; final edit đi theo `next_after_human_edit` của final policy và ghi vào target stage hiện tại là `edited_agent_2_result`.
+- `HumanReviewNode` dùng policy để tính `active_stage` sau human edit, không còn hard-code completeness/quality branch riêng.
+- Fake graph chỉ nằm trong `tests/test_human_review_application.py` như test double; production không có fake path.
 
 ### Verification
 
 - `python -m pytest src/agent-service/tests/test_human_review.py -q`
+- `python -m pytest src/agent-service/tests/test_human_review_application.py -q`
 - `python -m pytest src/agent-service/tests/test_api_schemas.py -q`
 - `python -m pytest src/agent-service/tests/test_api_status.py -q`
-- Add focused tests cho application module nếu module mới có logic đáng kể.
+- `python -m pytest src/agent-service/tests/test_workflow_state.py -q`
+- `python -m ruff check src/agent-service`
 
 ### Stop Condition
 
-Milestone hoàn tất khi approve/reject/edit behavior được test qua Human Review Application Module, route không còn biết state key `edited_agent_1_result`/`edited_agent_2_result`, và API contract không đổi.
+Milestone hoàn tất khi approve/reject/edit behavior được test qua Human Review Application Module, route không còn biết state key `edited_agent_1_result`/`edited_agent_2_result`, stage inference chỉ còn một source of truth từ policy, fake graph tests không cần LangGraph thật, và API contract không đổi.
 
 ## 4. OCR Service V2 Operation Module
 

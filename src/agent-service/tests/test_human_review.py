@@ -28,3 +28,16 @@ async def test_edit_from_quality_review_keeps_quality_active():
     )
 
     assert result["active_stage"] == "quality"
+
+
+async def test_edit_from_final_review_reopens_quality_stage():
+    node = HumanReviewNode()
+
+    result = await node.run(
+        {
+            "review_stage": "final",
+            "human_review_result": {"decision": "edit", "stage": "final"},
+        }
+    )
+
+    assert result["active_stage"] == "quality"

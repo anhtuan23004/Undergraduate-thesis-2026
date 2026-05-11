@@ -14,12 +14,11 @@ from typing import Any
 import structlog
 
 from graphs.constants import (
-    STAGE_COMPLETENESS,
     STAGE_NONE,
-    STAGE_QUALITY,
     STATUS_RUNNING,
 )
 from graphs.state import GraphState
+from graphs.workflow_policy import STAGE_POLICIES, stage_policy
 
 logger = structlog.get_logger()
 
@@ -80,6 +79,16 @@ def _active_stage_after_human_review(decision: str, review_stage: str | None) ->
     """Return the next active stage implied by a human review decision."""
     if decision != "edit":
         return STAGE_NONE
-    if review_stage == STAGE_COMPLETENESS:
-        return STAGE_COMPLETENESS
-    return STAGE_QUALITY
+
+    policy = stage_policy(review_stage)
+    next_policy = next(
+        (
+            candidate
+            for candidate in STAGE_POLICIES.values()
+            if candidate.node == policy.next_after_human_edit
+        ),
+        None,
+    )
+    if next_policy:
+        return next_policy.stage
+    return STAGE_NONE

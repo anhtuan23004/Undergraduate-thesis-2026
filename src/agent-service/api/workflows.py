@@ -3,20 +3,23 @@
 import asyncio
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
 
 import requests
 import structlog
 from config import settings
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from schemas.agent_outputs import HumanReviewResult
 from services.graph_service import get_graph
+from services.human_review_application import (
+    HumanReviewApplication,
+    HumanReviewCommand,
+    HumanReviewTimeout,
+    WorkflowRunNotFound,
+)
 from services.ocr_service import prepare_ocr_result
 from services.workflow_state import (
     build_initial_state,
     build_workflow_response,
-    determine_review_stage,
     extract_pause_state,
 )
 
@@ -109,63 +112,23 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
     Raises:
         HTTPException: If the workflow run is not found or times out.
     """
-    graph = await get_graph()
-    config = {"configurable": {"thread_id": run_id}}
-
+    command = HumanReviewCommand(
+        decision=request.decision,
+        notes=request.notes,
+        edited_result=request.edited_result,
+    )
     try:
-        async with asyncio.timeout(settings.PROCESS_TIMEOUT):
-            current_state = await graph.aget_state(config)
-            if not current_state or not current_state.values:
-                raise workflow_error(
-                    404, f"Không tìm thấy lượt chạy {run_id}", endpoint="/workflows/resume"
-                )
-
-            state_values = current_state.values
-            stage = determine_review_stage(state_values)
-
-            human_review_data = {
-                "decision": request.decision,
-                "notes": request.notes,
-                "stage": stage,
-                "reviewed_at": datetime.now(UTC).isoformat(),
-            }
-
-            # WHY: Validate against typed model before injecting into graph state.
-            validated = HumanReviewResult.model_validate(human_review_data)
-            human_review_result = validated.model_dump()
-
-            state_update = {
-                "human_review_result": human_review_result,
-                "current_step": "human_review_complete",
-                "history": [
-                    {
-                        "step": "human_review",
-                        "decision": request.decision,
-                        "notes": request.notes,
-                        "resumed": True,
-                    }
-                ],
-            }
-
-            if request.decision == "edit" and request.edited_result:
-                if stage == "completeness":
-                    state_update["edited_agent_1_result"] = request.edited_result
-                else:
-                    state_update["edited_agent_2_result"] = request.edited_result
-
-            await graph.aupdate_state(config, state_update, as_node="human_review")
-            result = await graph.ainvoke(None, config=config)
-
-            snapshot = await graph.aget_state(config)
-            is_pending, is_paused, pause_at = extract_pause_state(snapshot)
-    except TimeoutError:
+        return await HumanReviewApplication().apply(run_id, command)
+    except WorkflowRunNotFound as exc:
+        raise workflow_error(
+            404, f"Không tìm thấy lượt chạy {run_id}", endpoint="/workflows/resume"
+        ) from exc
+    except HumanReviewTimeout as exc:
         raise workflow_error(
             504,
             f"Quá thời gian xử lý sau {settings.PROCESS_TIMEOUT} giây",
             endpoint="/workflows/resume",
-        ) from None
-
-    return build_workflow_response(result, is_pending, is_paused, pause_at)
+        ) from exc
 
 
 @router.post("/workflows/continue/{run_id}")
