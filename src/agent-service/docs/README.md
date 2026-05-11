@@ -29,7 +29,8 @@ flowchart LR
     OCRService --> OCRExternal["OCR Service<br/>v1 or v2"]
     OCRService --> Documents["MongoDB documents<br/>OCR cache/audit"]
 
-    Graph --> Agents["agents.factory<br/>Completeness / Quality / Final / Verifier"]
+    Graph --> AgentSpecs["agents.node_specs<br/>role metadata"]
+    AgentSpecs --> Agents["agents.factory<br/>Completeness / Quality / Final / Verifier"]
     Agents --> SkillLoader["tools.skill_loader"]
     SkillLoader --> Skills["skills/<agent> + skills/shared"]
     Agents --> Prompts["prompts/*.md"]
@@ -50,7 +51,7 @@ flowchart LR
 | `api/` | HTTP surface cho upload, run/resume/continue/stream/status |
 | `graphs/` | LangGraph state machine và routing nghiệp vụ |
 | `graphs/workflow_policy.py` | Policy tập trung stage metadata, result-key mapping, routing decision và verifier target |
-| `agents/` | Factory tạo agent node, prompt composition, parse/validate/audit output |
+| `agents/` | Agent specs, factory tạo agent node, prompt composition, parse/validate/audit output |
 | `services/` | Cross-cutting services: graph lifecycle, OCR, file policy, response state |
 | `schemas/` | Pydantic contracts cho agent output và human review |
 | `tools/` | Runtime discovery loader cho skill tools |

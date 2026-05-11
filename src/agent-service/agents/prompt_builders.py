@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from graphs.constants import STAGE_COMPLETENESS, STAGE_NONE
+from graphs.workflow_policy import review_target_from_state
 
 
 def build_base_prompt(state: dict[str, Any], _agent_name: str) -> str:
@@ -104,16 +104,7 @@ def _history_summary(state: dict[str, Any]) -> str:
 
 
 def _primary_assessment_for_review(state: dict[str, Any]) -> dict[str, Any]:
-    review_stage = state.get("review_stage")
-    if review_stage and review_stage != STAGE_NONE:
-        if review_stage == STAGE_COMPLETENESS:
-            return state.get("agent_1_result", {})
-        return state.get("agent_2_result", {})
-
-    current_step = state.get("current_step", "")
-    if STAGE_COMPLETENESS in current_step:
-        return state.get("agent_1_result", {})
-    return state.get("agent_2_result", {})
+    return review_target_from_state(state).result
 
 
 def _json_block(value: Any) -> str:

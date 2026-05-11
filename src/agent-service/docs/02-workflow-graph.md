@@ -54,7 +54,7 @@ flowchart TD
 
 ## Build and compile logic
 
-`build_claim_workflow(llm_client, checkpointer=None)` tạo các factory:
+`build_claim_workflow(llm_client, checkpointer=None)` tạo các factory. Các factory này là wrapper mỏng quanh `agents.node_specs.AGENT_NODE_SPECS`; role metadata như prompt name, skill name, output key, schema và active/review stage nằm trong `AgentNodeSpec`.
 
 | Factory | Node | Output key |
 | --- | --- | --- |
@@ -64,6 +64,15 @@ flowchart TD
 | `AgentReviewNode` | `agent_review` | update `agent_1_result` hoặc `agent_2_result` |
 | `HumanReviewNode` | `human_review` | clear pending review sau resume |
 | `run_ocr_extraction` | `ocr_extraction` | update `extracted_documents` phase 2 |
+
+```mermaid
+flowchart TD
+    Build["build_claim_workflow"] --> RoleFactory["Completeness/Quality/Decision factory"]
+    RoleFactory --> Spec["agents.node_specs.AgentNodeSpec"]
+    Spec --> AgentFactory["AgentFactory.create_agent_with_skills(spec)"]
+    AgentFactory --> Node["LangGraph agent node"]
+    Node --> Output["GraphState output key<br/>from spec.output_key"]
+```
 
 Graph compile:
 

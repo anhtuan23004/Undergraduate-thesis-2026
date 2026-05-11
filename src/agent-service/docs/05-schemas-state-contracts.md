@@ -37,14 +37,14 @@ classDiagram
 
 | Field | Producer | Consumer |
 | --- | --- | --- |
-| `active_stage` | `build_initial_state`, agent nodes, OCR node, human node | UI timeline, routing/debug |
-| `review_stage` | agent nodes, agent review, human node | `determine_review_stage`, `AgentReviewNode`, routing |
+| `active_stage` | `build_initial_state`, agent nodes via `AgentNodeSpec`, OCR node, human node | UI timeline, routing/debug |
+| `review_stage` | agent nodes via `AgentNodeSpec`, agent review, human node | `workflow_policy.review_stage_from_state`, `AgentReviewNode`, routing, human review application |
 | `workflow_status` | graph nodes, response helper | API/UI state mapping |
 | `ocr_stage` | `build_initial_state`, OCR service/node | completeness prompt, OCR routing |
 | `pending_human_review` | agent review/human review/pause extraction | API response, Streamlit HITL panel |
 | `history` | all nodes/API continue | UI audit table, prompt history summary |
 
-`determine_review_stage` là helper trong `services.workflow_state`, dùng khi `/workflows/resume/{run_id}` cần đóng gói `HumanReviewResult.stage`. Thứ tự suy luận là explicit `review_stage` nếu có, sau đó `final_result`, sau đó `agent_2_result`, cuối cùng là `completeness`.
+`workflow_policy.review_stage_from_state` là source of truth cho suy luận review stage. `services.workflow_state.determine_review_stage` chỉ còn là legacy wrapper delegate về policy. HRA dùng policy trực tiếp khi đóng gói `HumanReviewResult.stage`.
 
 `graphs.workflow_policy` tập trung mapping giữa workflow stage và các state key trong `GraphState`.
 
@@ -55,6 +55,34 @@ classDiagram
 | `final` | `final_result` | none | Luôn cần human sign-off, không đi qua Agent Review |
 
 Khi thêm stage, cập nhật `GraphState`/schema contract trước nếu stage cần result key riêng. Sau đó thêm `StagePolicy`, routing tests, UI timeline mapping, và API response nếu field mới cần expose ra ngoài.
+
+## Agent node spec contract
+
+`agents.node_specs.AgentNodeSpec` mô tả metadata runtime cho từng agent role. Contract này không thay thế `GraphState`; nó chỉ tập trung mapping role -> output key/schema/prompt/skill để factory không phải truyền nhiều primitive string rời.
+
+```mermaid
+classDiagram
+    class AgentNodeSpec {
+        str role
+        str skill_name
+        str prompt_name
+        str display_name
+        str output_key
+        type schema_class
+        Callable prompt_builder
+        str active_stage
+        str review_stage_on_accept_with_edit
+    }
+```
+
+| Role | Output key | Schema | Stage effect |
+| --- | --- | --- | --- |
+| `completeness` | `agent_1_result` | `AssessmentOutput` | `active_stage=completeness`; `accept_with_edit` sets `review_stage=completeness` |
+| `quality` | `agent_2_result` | `AssessmentOutput` | `active_stage=quality`; `accept_with_edit` sets `review_stage=quality` |
+| `decision` | `final_result` | `FinalDecisionOutput` | `active_stage=final`; no agent-review stage |
+| `verifier` | `verifier_result` | `VerifierOutput` | `active_stage=none`; no agent-review stage |
+
+Khi thêm agent role mới, cập nhật `AgentNodeSpec` trước để output key/schema/prompt contract rõ ràng, sau đó mới cập nhật graph node registration và routing policy nếu role đó là workflow stage mới.
 
 ```mermaid
 stateDiagram-v2

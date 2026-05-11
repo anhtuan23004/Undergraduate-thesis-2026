@@ -100,26 +100,28 @@ flowchart LR
 
 ## Human review resume
 
-`POST /workflows/resume/{run_id}` không tạo run mới. Endpoint đọc checkpoint hiện tại, xác định stage cần review, validate payload thành `HumanReviewResult`, update graph state `as_node="human_review"`, rồi tiếp tục graph.
+`POST /workflows/resume/{run_id}` không tạo run mới. Endpoint chỉ chuyển `HumanReviewRequest` sang `HumanReviewCommand`, gọi `services.human_review_application.HumanReviewApplication`, rồi map lỗi use-case sang HTTP error chuẩn.
 
-`determine_review_stage` nằm trong `services.workflow_state` và dùng thứ tự ưu tiên: `review_stage` explicit nếu khác `none`, sau đó `final_result`, sau đó `agent_2_result`, cuối cùng fallback `completeness`. Stage này được ghi vào `human_review_result.stage`, nên `route_after_human_review` có dữ liệu rõ ràng để quyết định approve/reject/edit sẽ đi đâu.
+`HumanReviewApplication` sở hữu checkpoint load, `workflow_policy.review_stage_from_state(...)`, validate `HumanReviewResult`, edited-result wiring theo `StagePolicy`, update graph state `as_node="human_review"`, tiếp tục graph, và build workflow response.
 
 ```mermaid
 flowchart TD
-    Resume["POST /workflows/resume/{run_id}"] --> Load["graph.aget_state(thread_id)"]
+    Resume["POST /workflows/resume/{run_id}"] --> Command["HumanReviewCommand"]
+    Command --> App["HumanReviewApplication.apply(run_id, command)"]
+    App --> Load["graph.aget_state(thread_id)"]
     Load --> Exists{"state exists?"}
-    Exists -->|"no"| NotFound["404 workflow_error"]
-    Exists -->|"yes"| Stage["determine_review_stage"]
+    Exists -->|"no"| NotFound["WorkflowRunNotFound -> 404 workflow_error"]
+    Exists -->|"yes"| Stage["workflow_policy.review_stage_from_state"]
     Stage --> Validate["HumanReviewResult.model_validate"]
     Validate --> Decision{"decision == edit<br/>and edited_result?"}
-    Decision -->|"yes, completeness"| Edit1["edited_agent_1_result = payload"]
-    Decision -->|"yes, quality/final fallback"| Edit2["edited_agent_2_result = payload"]
+    Decision -->|"yes"| PolicyKey["edited_result_key_after_human_review"]
+    PolicyKey --> EditKey["edited_agent_1_result<br/>or edited_agent_2_result"]
     Decision -->|"no"| Update["state_update human_review_result"]
-    Edit1 --> Update
-    Edit2 --> Update
+    EditKey --> Update
     Update --> AUpdate["graph.aupdate_state(..., as_node=human_review)"]
     AUpdate --> Invoke["graph.ainvoke(None, thread_id)"]
     Invoke --> Response["build_workflow_response"]
+    App --> Timeout["HumanReviewTimeout -> 504 workflow_error"]
 ```
 
 ## Continue workflow

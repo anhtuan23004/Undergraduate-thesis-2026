@@ -9,12 +9,23 @@ Tài liệu này gom các điểm vận hành và regression test quan trọng c
 | `tests/test_config_lifecycle.py` | Env parsing, startup validation, CORS behavior, OCR pipeline validation |
 | `tests/test_upload_policy.py` | Extension/MIME allowlist, safe filename, path containment |
 | `tests/test_ocr_service.py` | OCR v1/v2 selection, cache query, v2 phase 1/phase 2 normalize payload |
+| `tests/test_agent_node_specs.py` | Agent role metadata registry, output key/schema/stage mapping |
+| `tests/test_agent_factory.py` | AgentFactory lifecycle với fake LLM, fake skill loader, fake audit |
+| `tests/test_agent_prompt_builders.py` | Prompt composition và verifier target selection |
+| `tests/test_agent_review.py` | Agent Review hard constraints, verifier pass/fail, escalation |
+| `tests/test_routing.py` | Workflow policy/routing transition regression |
 | `tests/test_api_status.py` | Status/health API behavior và response shape |
 
 Command smoke test cho P7/P8 hiện dùng:
 
 ```bash
 python -m pytest src/agent-service/tests/test_config_lifecycle.py src/agent-service/tests/test_upload_policy.py src/agent-service/tests/test_ocr_service.py src/agent-service/tests/test_api_status.py -q
+```
+
+Command smoke test cho agent runtime/ANS:
+
+```bash
+python -m pytest src/agent-service/tests/test_agent_node_specs.py src/agent-service/tests/test_agent_factory.py src/agent-service/tests/test_agent_prompt_builders.py src/agent-service/tests/test_agent_review.py src/agent-service/tests/test_routing.py -q
 ```
 
 ## Runtime dependencies
@@ -110,5 +121,5 @@ flowchart TD
 - `thread_id` in LangGraph config must equal `run_id`.
 - `human_review` is an interrupt-before node; API must update state before resume.
 - `accept_with_edit` should pass through Agent Review first, then escalate only when unsafe.
+- Agent role metadata should flow through `AgentNodeSpec`; do not reintroduce output-key/schema/stage literals into factory subclasses.
 - OCR phase 2 depends on clean phase 1 classification metadata; do not pass stale `extracted_data` back into phase 2.
-
