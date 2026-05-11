@@ -3,7 +3,12 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from graphs.agent_review import AgentReviewNode
+from graphs.agent_review import (
+    REASON_HARD_CONSTRAINTS_FAILED,
+    REASON_VERIFIER_CONTRADICTIONS,
+    REASON_VERIFIER_FAILED,
+    AgentReviewNode,
+)
 
 
 class TestAgentReviewNode:
@@ -25,10 +30,10 @@ class TestAgentReviewNode:
         }
         result = await node.run(state)
         assert result["pending_human_review"] is True
-        assert (
-            "medium" in result["history"][0]["escalation_reason"].lower()
-            or "severity" in result["history"][0]["escalation_reason"].lower()
-        )
+        assert result["review_stage"] == "completeness"
+        assert result["workflow_status"] == "waiting_human"
+        assert result["history"][0]["escalation_reason_code"] == REASON_HARD_CONSTRAINTS_FAILED
+        assert "Trung bình" in result["history"][0]["escalation_reason"]
 
     @pytest.mark.asyncio
     async def test_escalate_on_contradictions(self, node):
@@ -54,7 +59,8 @@ class TestAgentReviewNode:
         )
         result = await node.run(state)
         assert result["pending_human_review"] is True
-        assert "Contradictions" in result["history"][0]["escalation_reason"]
+        assert result["history"][0]["escalation_reason_code"] == REASON_VERIFIER_CONTRADICTIONS
+        assert "Date does not match OCR text exactly" in result["history"][0]["escalation_reason"]
 
     @pytest.fixture
     def llm_client(self):
@@ -67,6 +73,11 @@ class TestAgentReviewNode:
     def node(self, llm_client):
         """Review node instance with mocked dependencies."""
         return AgentReviewNode(llm_client)
+
+    def test_parse_claim_amount_accepts_numeric_values(self, node):
+        """Numeric OCR amounts should not raise while normalizing."""
+        assert node._parse_claim_amount(1_000_000) == 1_000_000.0
+        assert node._parse_claim_amount(1_000_000.5) == 1_000_000.5
 
     @pytest.mark.asyncio
     async def test_escalate_on_critical_issue(self, node):
@@ -81,7 +92,7 @@ class TestAgentReviewNode:
         }
         result = await node.run(state)
         assert result["pending_human_review"] is True
-        assert "Hard constraints failed" in result["history"][0]["escalation_reason"]
+        assert result["history"][0]["escalation_reason_code"] == REASON_HARD_CONSTRAINTS_FAILED
 
     @pytest.mark.asyncio
     async def test_escalate_on_large_amount(self, node):
@@ -97,10 +108,9 @@ class TestAgentReviewNode:
         }
         result = await node.run(state)
         assert result["pending_human_review"] is True
-        assert (
-            f"Amount 6000000 >= {node.amount_threshold}"
-            in result["history"][0]["escalation_reason"]
-        )
+        assert result["history"][0]["escalation_reason_code"] == REASON_HARD_CONSTRAINTS_FAILED
+        assert "Nên để human review" in result["history"][0]["escalation_reason"]
+        assert "6,000,000" in result["history"][0]["escalation_reason"]
 
     @pytest.mark.asyncio
     async def test_auto_approve_on_verifier_pass(self, node):
@@ -125,7 +135,36 @@ class TestAgentReviewNode:
         result = await node.run(state)
         assert "agent_2_result" in result
         assert result["agent_2_result"]["is_auto_reviewed"] is True
+        assert result["review_stage"] == "none"
+        assert result["workflow_status"] == "running"
         assert result["history"][0]["auto_reviewed"] is True
+
+    @pytest.mark.asyncio
+    async def test_explicit_review_stage_selects_completeness_result(self, node):
+        state = {
+            "review_stage": "completeness",
+            "current_step": "quality_check",
+            "agent_1_result": {
+                "confidence_score": 0.95,
+                "evidence": {"total_claim_amount": 1_000_000},
+                "issues": [{"severity": "low", "description": "Minor fix"}],
+                "suggested_updates": [{"field": "doc", "suggested_value": "fix"}],
+            },
+            "agent_2_result": {
+                "confidence_score": 0.0,
+                "issues": [{"severity": "critical", "description": "Wrong target"}],
+            },
+        }
+        node.verifier_agent = AsyncMock(
+            return_value={
+                "verifier_result": {"verdict": "pass", "reason": "Everything looks grounded."}
+            }
+        )
+
+        result = await node.run(state)
+
+        assert "agent_1_result" in result
+        assert result["agent_1_result"]["is_auto_reviewed"] is True
 
     @pytest.mark.asyncio
     async def test_escalate_on_verifier_fail(self, node):
@@ -150,4 +189,24 @@ class TestAgentReviewNode:
         result = await node.run(state)
         # Assert escalation
         assert result["pending_human_review"] is True
-        assert "Verifier risk" in result["history"][0]["escalation_reason"]
+        assert result["history"][0]["escalation_reason_code"] == REASON_VERIFIER_FAILED
+        assert "Contradiction found in ICD code." in result["history"][0]["escalation_reason"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("amount", [6_000_000, "6,000,000", "6.000.000", "invalid"])
+    async def test_escalate_on_large_or_unparseable_amount_formats(self, node, amount):
+        """OCR amount formats above threshold, or invalid values, must escalate."""
+        state = {
+            "current_step": "quality_check",
+            "agent_2_result": {
+                "confidence_score": 0.95,
+                "evidence": {"total_claim_amount": amount},
+                "issues": [{"severity": "low", "description": "Minor fix"}],
+                "suggested_updates": [{"field": "icd", "suggested_value": "K29.7"}],
+            },
+        }
+
+        result = await node.run(state)
+
+        assert result["pending_human_review"] is True
+        assert result["history"][0]["escalation_reason_code"] == REASON_HARD_CONSTRAINTS_FAILED

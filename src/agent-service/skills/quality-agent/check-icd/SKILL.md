@@ -36,6 +36,7 @@ Data points: primary/secondary diagnoses, ICD codes, and medication lists.
    2. Call `check-icd` with all these codes in ONE call (e.g., `check-icd("E11.9, J18.9")`).
 3. For each code:
    - Compare the returned official description with the associated diagnosis text in records.
+   - Use the tool-provided `reference_url` for that ICD code. Do not create `query-global` search URLs yourself.
    - **SUCCESS (`icd_valid`):** Description matches diagnosis.
    - **WARNING (`icd_mismatch`):** Description does not match diagnosis. Provide `suggested_icd` if a better match exists.
 
@@ -44,6 +45,7 @@ Data points: primary/secondary diagnoses, ICD codes, and medication lists.
 1. Identify any diagnoses that **DO NOT** have an ICD code provided in documents.
    2. For these specific diagnoses, call `check-icd` using their text (e.g., `check-icd("Pneumonia, Hypertension")`).
 3. Use the `best_match` result to provide a **WARNING (`icd_missing`)** along with `suggested_icd`.
+4. Use the `reference_url` returned by `check-icd` for the suggested ICD code.
 
 ### Efficiency Note
 

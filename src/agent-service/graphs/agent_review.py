@@ -96,9 +96,12 @@ class AgentReviewNode:
         has_suggestions = len(suggested_updates) > 0
 
         if not (is_safe_amount and is_safe_severity and has_suggestions):
-            reason = "Vi phạm ràng buộc cứng: "
+            reason = "Nên chuyển sang kiểm duyệt thủ công vì : "
             if not is_safe_amount:
-                reason += f"Số tiền {total_amount:,.0f} >= ngưỡng {self.amount_threshold:,.0f}. "
+                reason += (
+                    f"Số tiền {total_amount:,.0f} >= "
+                    f"ngưỡng tự động {self.amount_threshold:,.0f}. "
+                )
             if not is_safe_severity:
                 reason += "Tồn tại cảnh báo mức Nghiêm trọng/Cao/Trung bình. "
             if not has_suggestions:
