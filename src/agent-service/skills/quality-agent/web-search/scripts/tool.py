@@ -8,11 +8,17 @@ import json
 
 from config import settings
 from langchain_core.tools import tool
-from tavily import TavilyClient
+
+try:
+    from tavily import TavilyClient
+except ModuleNotFoundError:
+    TavilyClient = None
 
 
-def _get_tavily_client() -> TavilyClient | None:
+def _get_tavily_client():
     """Create Tavily client only when the optional API key is configured."""
+    if TavilyClient is None:
+        return None
     if not settings.TAVILY_API_KEY:
         return None
     return TavilyClient(api_key=settings.TAVILY_API_KEY)
@@ -33,6 +39,15 @@ def web_search(query: str, max_results: int = 3) -> str:
     Returns:
         JSON string with search results.
     """
+    if TavilyClient is None:
+        return json.dumps(
+            {
+                "status": "error",
+                "message": "Optional dependency 'tavily-python' is not installed",
+            },
+            ensure_ascii=False,
+        )
+
     tavily_client = _get_tavily_client()
     if tavily_client is None:
         return json.dumps(

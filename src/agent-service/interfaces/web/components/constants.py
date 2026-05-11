@@ -42,6 +42,7 @@ STEP_ORDER = ["completeness", "agent_review", "quality", "human_review", "final_
 
 STEP_LABELS = {
     "completeness": "Kiểm tra đầy đủ",
+    "ocr_extraction": "Trích xuất OCR chi tiết",
     "agent_review": "Duyệt tự động",
     "quality": "Kiểm tra chất lượng",
     "human_review": "Thẩm định thủ công",

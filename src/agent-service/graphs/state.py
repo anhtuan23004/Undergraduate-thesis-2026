@@ -10,6 +10,7 @@ from typing import Annotated, Literal, TypedDict
 
 WorkflowStage = Literal["completeness", "quality", "final", "none"]
 WorkflowStatus = Literal["running", "paused", "waiting_human", "completed", "error"]
+OcrStage = Literal["none", "v1_document", "phase1_classified", "phase2_extracted", "error"]
 
 
 class GraphState(TypedDict):
@@ -33,6 +34,9 @@ class GraphState(TypedDict):
 
     input_file: str
     """Path to the input file being processed."""
+
+    file_hash: str | None
+    """Optional hash of the input file for OCR cache lookup."""
 
     extracted_documents: dict
     """Documents extracted from the input file (OCR results, etc.)."""
@@ -73,6 +77,9 @@ class GraphState(TypedDict):
 
     workflow_status: WorkflowStatus
     """Machine-readable workflow lifecycle status."""
+
+    ocr_stage: OcrStage
+    """Current OCR pipeline stage available in extracted_documents."""
 
     should_continue: bool
     """Flag indicating whether the workflow should continue or halt."""

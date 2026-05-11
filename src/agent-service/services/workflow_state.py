@@ -5,9 +5,7 @@ from typing import Any
 from graphs.constants import (
     HUMAN_REVIEW,
     STAGE_COMPLETENESS,
-    STAGE_FINAL,
     STAGE_NONE,
-    STAGE_QUALITY,
     STATUS_COMPLETED,
     STATUS_ERROR,
     STATUS_PAUSED,
@@ -15,6 +13,7 @@ from graphs.constants import (
     STATUS_WAITING_HUMAN,
 )
 from graphs.state import GraphState
+from graphs.workflow_policy import review_stage_from_state
 
 
 def extract_pause_state(snapshot: Any) -> tuple[bool, bool, str | None]:
@@ -33,14 +32,8 @@ def extract_pause_state(snapshot: Any) -> tuple[bool, bool, str | None]:
 
 
 def determine_review_stage(state: dict) -> str:
-    """Determine which stage the human review is for based on current state."""
-    if state.get("review_stage") and state.get("review_stage") != STAGE_NONE:
-        return state["review_stage"]
-    if state.get("final_result"):
-        return STAGE_FINAL
-    if state.get("agent_2_result"):
-        return STAGE_QUALITY
-    return STAGE_COMPLETENESS
+    """Return review stage through the workflow policy source of truth."""
+    return review_stage_from_state(state)
 
 
 def build_initial_state(
@@ -49,6 +42,7 @@ def build_initial_state(
     policy_number: str,
     input_file: str,
     extracted_documents: dict,
+    file_hash: str | None = None,
 ) -> GraphState:
     """Build the initial graph state for a new workflow run."""
     return {
@@ -56,6 +50,7 @@ def build_initial_state(
         "claim_id": claim_id,
         "policy_number": policy_number,
         "input_file": input_file,
+        "file_hash": file_hash,
         "extracted_documents": extracted_documents,
         "agent_1_result": None,
         "agent_2_result": None,
@@ -68,6 +63,7 @@ def build_initial_state(
         "active_stage": STAGE_COMPLETENESS,
         "review_stage": STAGE_NONE,
         "workflow_status": STATUS_RUNNING,
+        "ocr_stage": extracted_documents.get("ocr_stage", "none"),
         "should_continue": True,
         "error": None,
         "pending_human_review": False,

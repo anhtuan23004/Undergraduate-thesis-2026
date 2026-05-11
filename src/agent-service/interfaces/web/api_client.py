@@ -56,14 +56,14 @@ class APIClient:
 
                 if status_code == 404:
                     return {
-                        "error": f"Resource not found: {endpoint}",
+                        "error": f"Không tìm thấy tài nguyên: {endpoint}",
                         "error_detail": response_body,
                         "status_code": status_code,
                         "endpoint": endpoint,
                     }
 
                 return {
-                    "error": f"HTTP {status_code} while calling {endpoint}",
+                    "error": f"Lỗi HTTP {status_code} khi gọi {endpoint}",
                     "error_detail": response_body,
                     "status_code": status_code,
                     "endpoint": endpoint,
@@ -71,7 +71,7 @@ class APIClient:
 
             return {"error": str(e), "endpoint": endpoint}
         except requests.exceptions.Timeout:
-            return {"error": "Request timed out", "endpoint": endpoint}
+            return {"error": "Yêu cầu xử lý quá thời gian chờ", "endpoint": endpoint}
         except requests.exceptions.RequestException as e:
             return {"error": str(e), "endpoint": endpoint}
 
@@ -174,14 +174,17 @@ class APIClient:
                 except ValueError:
                     response_body = response.text
                 return {
-                    "error": f"HTTP {response.status_code} while uploading document",
+                    "error": f"Lỗi HTTP {response.status_code} khi tải tài liệu lên",
                     "error_detail": response_body,
                     "status_code": response.status_code,
                     "endpoint": "/api/v1/workflows/upload",
                 }
             return {"error": str(e), "endpoint": "/api/v1/workflows/upload"}
         except requests.exceptions.Timeout:
-            return {"error": "Upload timed out", "endpoint": "/api/v1/workflows/upload"}
+            return {
+                "error": "Tải tài liệu lên quá thời gian chờ",
+                "endpoint": "/api/v1/workflows/upload",
+            }
         except requests.exceptions.RequestException as e:
             return {"error": str(e), "endpoint": "/api/v1/workflows/upload"}
 

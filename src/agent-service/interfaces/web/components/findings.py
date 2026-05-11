@@ -57,7 +57,7 @@ def render_confidence_badge(payload: dict) -> None:
         return
 
     is_auto = payload.get("is_auto_reviewed", False)
-    auto_tag = " · ✅ Auto-reviewed" if is_auto else ""
+    auto_tag = " · ✅ Đã duyệt tự động" if is_auto else ""
 
     if confidence >= 0.9:
         color = "green"

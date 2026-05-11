@@ -12,6 +12,7 @@ logger = structlog.get_logger()
 # WHY: Map LangGraph node names to the UI step names used by the frontend.
 NODE_TO_STEP = {
     "completeness_check": "completeness",
+    "ocr_extraction": "ocr_extraction",
     "agent_review": "agent_review",
     "quality_check": "quality",
     "human_review": "human_review",

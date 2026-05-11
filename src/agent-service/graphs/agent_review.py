@@ -18,13 +18,15 @@ from config import settings
 
 from graphs.constants import (
     SEVERITY_REVIEW_REQUIRED,
-    STAGE_COMPLETENESS,
     STAGE_NONE,
-    STAGE_QUALITY,
     STATUS_RUNNING,
     STATUS_WAITING_HUMAN,
 )
 from graphs.state import GraphState
+from graphs.workflow_policy import (
+    active_stage_after_auto_review,
+    review_target_from_state,
+)
 
 logger = structlog.get_logger()
 
@@ -68,13 +70,10 @@ class AgentReviewNode:
         Returns:
             Dictionary with updated agent result and history.
         """
-        stage = self._review_stage(state)
-        if stage == STAGE_COMPLETENESS:
-            agent_result = state.get("agent_1_result") or {}
-            result_key = "agent_1_result"
-        else:
-            agent_result = state.get("agent_2_result") or {}
-            result_key = "agent_2_result"
+        target = review_target_from_state(state)
+        stage = target.stage
+        agent_result = target.result
+        result_key = target.result_key
 
         confidence = agent_result.get("confidence_score", 0.0)
         issues = agent_result.get("issues", []) or []
@@ -96,9 +95,12 @@ class AgentReviewNode:
         has_suggestions = len(suggested_updates) > 0
 
         if not (is_safe_amount and is_safe_severity and has_suggestions):
-            reason = "Vi phạm ràng buộc cứng: "
+            reason = "Nên để thẩm định thủ công: "
             if not is_safe_amount:
-                reason += f"Số tiền {total_amount:,.0f} >= ngưỡng {self.amount_threshold:,.0f}. "
+                reason += (
+                    f"Số tiền {total_amount:,.0f} >= "
+                    f"ngưỡng tự động {self.amount_threshold:,.0f}. "
+                )
             if not is_safe_severity:
                 reason += "Tồn tại cảnh báo mức Nghiêm trọng/Cao/Trung bình. "
             if not has_suggestions:
@@ -189,7 +191,7 @@ class AgentReviewNode:
         Args:
             result_key: State key for the agent result (e.g. 'agent_1_result').
             agent_result: The original agent result dict.
-            stage: Current workflow stage ('completeness' or 'quality').
+            stage: Current workflow stage.
             confidence: Agent's confidence score.
             num_suggestions: Number of suggested updates applied.
 
@@ -200,7 +202,7 @@ class AgentReviewNode:
         return {
             result_key: updated_result,
             "current_step": f"agent_reviewed_{stage}",
-            "active_stage": STAGE_QUALITY if stage == STAGE_COMPLETENESS else STAGE_NONE,
+            "active_stage": active_stage_after_auto_review(stage),
             "review_stage": STAGE_NONE,
             "workflow_status": STATUS_RUNNING,
             "history": [
@@ -261,11 +263,4 @@ class AgentReviewNode:
 
     @staticmethod
     def _review_stage(state: GraphState) -> str:
-        explicit_stage = state.get("review_stage")
-        if explicit_stage and explicit_stage != STAGE_NONE:
-            return explicit_stage
-
-        current_step = state.get("current_step", "")
-        if STAGE_COMPLETENESS in current_step:
-            return STAGE_COMPLETENESS
-        return STAGE_QUALITY
+        return review_target_from_state(state).stage

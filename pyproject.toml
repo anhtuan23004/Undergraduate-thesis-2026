@@ -143,7 +143,7 @@ agent-service = [
     "structlog>=24.1.0",
     "requests>=2.31.0",
     "tavily-python>=0.3.3",
-    "streamlit>=1.28.0",
+    "streamlit>=1.28.0"
 ]
 ocr-service = [
     "google-genai>=1.51.0",
@@ -152,4 +152,5 @@ ocr-service = [
     "python-multipart>=0.0.9",
     "httpx>=0.23.0",
     "pydantic-settings>=2.0.0",
+    "pymupdf>=1.27.2.3",
 ]

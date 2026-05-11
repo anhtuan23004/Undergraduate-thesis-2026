@@ -1,82 +1,41 @@
-"""OCR preparation and document audit helpers."""
+"""Compatibility facade for OCR pipeline helpers."""
 
-import asyncio
-import mimetypes
-import os
-from datetime import UTC, datetime
-from pathlib import Path
+from mongodb_client import get_collection as _get_collection
 
-import requests
-import structlog
-from config import settings
-from fastapi import HTTPException
-from mongodb_client import get_collection
+from services import ocr_pipeline as _ocr_pipeline
 
-logger = structlog.get_logger(__name__)
+
+def _pipeline() -> _ocr_pipeline.OcrPipeline:
+    return _ocr_pipeline.OcrPipeline(
+        adapter=_ocr_pipeline.OcrServiceAdapter(),
+        collection_provider=_get_collection,
+        audit_writer=_ocr_pipeline.save_ocr_result,
+    )
 
 
 def run_ocr_document(file_path: str) -> dict:
     """Run OCR service document extraction for a file path."""
-    endpoint = f"{settings.OCR_SERVICE_URL}/api/v1/ocr/document"
-    resolved_file_path = _resolve_input_file_path(file_path)
-
-    if not os.path.exists(resolved_file_path):
-        raise HTTPException(status_code=400, detail=f"Input file not found: {file_path}")
-
-    mime_type, _ = mimetypes.guess_type(resolved_file_path)
-    mime_type = mime_type or "application/octet-stream"
-
-    with open(resolved_file_path, "rb") as f:
-        files = {"file": (os.path.basename(resolved_file_path), f, mime_type)}
-        response = requests.post(endpoint, files=files, timeout=settings.OCR_TIMEOUT)
-        response.raise_for_status()
-        result = response.json()
-
-    if isinstance(result, dict):
-        return result
-    return {"data": result}
+    return _ocr_pipeline.OcrServiceAdapter().run_document(file_path)
 
 
-def _resolve_input_file_path(file_path: str) -> str:
-    """Resolve workflow input paths and restrict them to UPLOADS_DIR."""
-    upload_dir = Path(settings.UPLOADS_DIR).expanduser().resolve()
-    candidate = Path(file_path).expanduser()
-    resolved = (
-        candidate.resolve() if candidate.is_absolute() else (upload_dir / candidate).resolve()
-    )
-
-    if resolved != upload_dir and upload_dir not in resolved.parents:
-        raise HTTPException(
-            status_code=400,
-            detail="Input file must be inside UPLOADS_DIR",
-        )
-
-    return str(resolved)
+def run_ocr_v1_document(file_path: str) -> dict:
+    """Run OCR service v1 document extraction for a file path."""
+    return _ocr_pipeline.OcrServiceAdapter().run_v1_document(file_path)
 
 
-def save_ocr_result(
-    run_id: str,
-    claim_id: str,
-    policy_number: str,
-    file_path: str,
-    ocr_result: dict,
-    file_hash: str | None = None,
-) -> None:
-    """Save raw OCR result to MongoDB for auditing and potential reuse."""
-    try:
-        doc = {
-            "run_id": run_id,
-            "claim_id": claim_id,
-            "policy_number": policy_number,
-            "file_path": file_path,
-            "file_hash": file_hash,
-            "ocr_result": ocr_result,
-            "created_at": datetime.now(UTC),
-        }
-        collection = get_collection("documents")
-        collection.insert_one(doc)
-    except Exception as exc:
-        logger.error("Failed to save OCR result", error=str(exc))
+def run_ocr_v2_document(file_path: str) -> dict:
+    """Run OCR service v2 phase 1 classification for a file path."""
+    return _ocr_pipeline.OcrServiceAdapter().run_v2_document(file_path)
+
+
+def run_ocr_v2_classify_segment(file_path: str) -> dict:
+    """Run OCR service v2 phase 1 classification and segmentation."""
+    return _ocr_pipeline.OcrServiceAdapter().run_v2_classify_segment(file_path)
+
+
+def run_ocr_v2_extract(file_path: str, phase1_documents: list[dict]) -> dict:
+    """Run OCR service v2 phase 2 extraction for classified documents."""
+    return _ocr_pipeline.OcrServiceAdapter().run_phase2_extract(file_path, phase1_documents)
 
 
 async def prepare_ocr_result(
@@ -87,35 +46,29 @@ async def prepare_ocr_result(
     file_hash: str | None = None,
 ) -> dict:
     """Load cached OCR by hash or call OCR service, then audit the result."""
-    ocr_result = None
+    return await _pipeline().prepare_initial_ocr(
+        run_id,
+        claim_id,
+        policy_number,
+        input_file,
+        file_hash,
+    )
 
-    if file_hash:
-        collection = get_collection("documents")
-        existing_doc = await asyncio.to_thread(collection.find_one, {"file_hash": file_hash})
 
-        if existing_doc:
-            logger.info("Using existing OCR result for hash", hash=file_hash)
-            ocr_result = existing_doc.get("ocr_result")
-            await asyncio.to_thread(
-                save_ocr_result,
-                run_id,
-                claim_id,
-                policy_number,
-                input_file,
-                ocr_result,
-                file_hash,
-            )
-
-    if not ocr_result:
-        ocr_result = await asyncio.to_thread(run_ocr_document, input_file)
-        await asyncio.to_thread(
-            save_ocr_result,
-            run_id,
-            claim_id,
-            policy_number,
-            input_file,
-            ocr_result,
-            file_hash,
-        )
-
-    return ocr_result
+async def prepare_ocr_phase2_result(
+    run_id: str,
+    claim_id: str,
+    policy_number: str,
+    input_file: str,
+    phase1_documents: list[dict],
+    file_hash: str | None = None,
+) -> dict:
+    """Load cached OCR v2 phase 2 result or extract classified documents."""
+    return await _pipeline().prepare_phase2_ocr(
+        run_id,
+        claim_id,
+        policy_number,
+        input_file,
+        phase1_documents,
+        file_hash,
+    )

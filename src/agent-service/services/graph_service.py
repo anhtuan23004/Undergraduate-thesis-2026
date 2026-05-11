@@ -5,15 +5,9 @@ from typing import Any
 from config import settings
 from graphs import build_claim_workflow
 
+from services.mongodb_config import get_mongodb_client_kwargs, normalize_mongodb_url
+
 _compiled_graph: Any = None
-
-
-def normalize_mongodb_url(mongo_url: str) -> str:
-    """Ensure MongoDB URL uses direct connection for local checkpointing."""
-    if "directConnection" in mongo_url:
-        return mongo_url
-    separator = "&" if "?" in mongo_url else "?"
-    return f"{mongo_url}{separator}directConnection=true"
 
 
 async def get_graph() -> Any:
@@ -24,7 +18,10 @@ async def get_graph() -> Any:
         from langgraph.checkpoint.mongodb import MongoDBSaver
         from pymongo import MongoClient
 
-        client = MongoClient(normalize_mongodb_url(settings.MONGODB_URL))
+        client = MongoClient(
+            normalize_mongodb_url(settings.MONGODB_URL),
+            **get_mongodb_client_kwargs(),
+        )
         checkpointer = MongoDBSaver(client, db_name=settings.MONGODB_DB)
 
         _compiled_graph = build_claim_workflow(

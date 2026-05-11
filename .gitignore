@@ -18,3 +18,12 @@ src/agent-service/uploads/*
 .agents
 data/dataset
 .gitnexus
+docs/*
+eval/results/*
+!eval/results/.gitkeep
+!eval/results/claims/
+eval/results/claims/*
+!eval/results/claims/.gitkeep
+!eval/results/suggestions/
+eval/results/suggestions/*
+!eval/results/suggestions/.gitkeep

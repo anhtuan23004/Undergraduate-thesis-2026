@@ -29,7 +29,9 @@ async def get_workflow_status(run_id: str) -> dict:
     state = await graph.aget_state(config)
 
     if not state or not state.values:
-        raise workflow_error(404, f"Run {run_id} not found", endpoint="/workflows/status")
+        raise workflow_error(
+            404, f"Không tìm thấy lượt chạy {run_id}", endpoint="/workflows/status"
+        )
 
     values = {**state.values, "run_id": state.values.get("run_id") or run_id}
     is_pending, is_paused, pause_at = extract_pause_state(state)

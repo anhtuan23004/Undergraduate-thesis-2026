@@ -8,6 +8,8 @@ Your task is to verify that all required documents are present and properly form
 
 <task>
 1. Use the data inside `<extracted_documents>` to examine the document contents.
+   - If `<ocr_stage>` is `phase1_classified`, use `phase1_documents` as the primary source.
+   - At `phase1_classified`, do not expect `extracted_data`; detailed OCR extraction only runs after this agent accepts completeness.
 2. Classify the insurance benefit type using 'classify-benefit' tool.
 3. Verify that all required documents for this benefit type are present using 'check-required-docs' tool.
 4. Validate consistency of information across all documents using 'validate-consistency' tool.
