@@ -34,7 +34,7 @@ def run_ocr_v1_document(file_path: str) -> dict:
     resolved_file_path = _resolve_input_file_path(file_path)
 
     if not os.path.exists(resolved_file_path):
-        raise HTTPException(status_code=400, detail=f"Input file not found: {file_path}")
+        raise HTTPException(status_code=400, detail=f"Không tìm thấy tệp đầu vào: {file_path}")
 
     mime_type, _ = mimetypes.guess_type(resolved_file_path)
     mime_type = mime_type or "application/octet-stream"
@@ -73,7 +73,7 @@ def run_ocr_v2_classify_segment(file_path: str) -> dict:
     resolved_file_path = _resolve_input_file_path(file_path)
 
     if not os.path.exists(resolved_file_path):
-        raise HTTPException(status_code=400, detail=f"Input file not found: {file_path}")
+        raise HTTPException(status_code=400, detail=f"Không tìm thấy tệp đầu vào: {file_path}")
 
     mime_type, _ = mimetypes.guess_type(resolved_file_path)
     mime_type = mime_type or "application/octet-stream"
@@ -113,7 +113,7 @@ def run_ocr_v2_extract(file_path: str, phase1_documents: list[dict]) -> dict:
     resolved_file_path = _resolve_input_file_path(file_path)
 
     if not os.path.exists(resolved_file_path):
-        raise HTTPException(status_code=400, detail=f"Input file not found: {file_path}")
+        raise HTTPException(status_code=400, detail=f"Không tìm thấy tệp đầu vào: {file_path}")
 
     mime_type, _ = mimetypes.guess_type(resolved_file_path)
     mime_type = mime_type or "application/octet-stream"
@@ -323,7 +323,7 @@ def _selected_ocr_version() -> str:
     if version not in {"v1", "v2"}:
         raise HTTPException(
             status_code=500,
-            detail="OCR_API_VERSION must be either 'v1' or 'v2'",
+            detail="OCR_API_VERSION chỉ được nhận giá trị 'v1' hoặc 'v2'",
         )
     return version
 

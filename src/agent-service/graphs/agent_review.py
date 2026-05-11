@@ -96,7 +96,7 @@ class AgentReviewNode:
         has_suggestions = len(suggested_updates) > 0
 
         if not (is_safe_amount and is_safe_severity and has_suggestions):
-            reason = "Nên để human review: "
+            reason = "Nên để thẩm định thủ công: "
             if not is_safe_amount:
                 reason += (
                     f"Số tiền {total_amount:,.0f} >= "

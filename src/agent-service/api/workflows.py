@@ -54,18 +54,18 @@ async def run_workflow(request: ClaimRequest) -> dict:
         detail = str(e)
         raise workflow_error(
             502,
-            f"OCR service error: {detail}",
+            f"Lỗi từ dịch vụ OCR: {detail}",
             endpoint="/workflows/run",
         ) from e
     except requests.RequestException as e:
         raise workflow_error(
-            502, f"Failed to connect OCR service: {str(e)}", endpoint="/workflows/run"
+            502, f"Không thể kết nối đến dịch vụ OCR: {str(e)}", endpoint="/workflows/run"
         ) from e
     except HTTPException:
         raise
     except Exception as e:
         raise workflow_error(
-            500, f"Failed to prepare OCR data: {str(e)}", endpoint="/workflows/run"
+            500, f"Không thể chuẩn bị dữ liệu OCR: {str(e)}", endpoint="/workflows/run"
         ) from e
 
     initial_state = build_initial_state(
@@ -88,7 +88,7 @@ async def run_workflow(request: ClaimRequest) -> dict:
     except TimeoutError:
         raise workflow_error(
             504,
-            f"Processing timed out after {settings.PROCESS_TIMEOUT}s",
+            f"Quá thời gian xử lý sau {settings.PROCESS_TIMEOUT} giây",
             endpoint="/workflows/run",
         ) from None
 
@@ -116,7 +116,9 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
         async with asyncio.timeout(settings.PROCESS_TIMEOUT):
             current_state = await graph.aget_state(config)
             if not current_state or not current_state.values:
-                raise workflow_error(404, f"Run {run_id} not found", endpoint="/workflows/resume")
+                raise workflow_error(
+                    404, f"Không tìm thấy lượt chạy {run_id}", endpoint="/workflows/resume"
+                )
 
             state_values = current_state.values
             stage = determine_review_stage(state_values)
@@ -159,7 +161,7 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
     except TimeoutError:
         raise workflow_error(
             504,
-            f"Processing timed out after {settings.PROCESS_TIMEOUT}s",
+            f"Quá thời gian xử lý sau {settings.PROCESS_TIMEOUT} giây",
             endpoint="/workflows/resume",
         ) from None
 
@@ -187,12 +189,14 @@ async def continue_workflow(run_id: str, request: ContinueRequest | None = None)
         async with asyncio.timeout(settings.PROCESS_TIMEOUT):
             current_state = await graph.aget_state(config)
             if not current_state or not current_state.values:
-                raise workflow_error(404, f"Run {run_id} not found", endpoint="/workflows/continue")
+                raise workflow_error(
+                    404, f"Không tìm thấy lượt chạy {run_id}", endpoint="/workflows/continue"
+                )
 
             if current_state.next and "human_review" in current_state.next:
                 raise workflow_error(
                     400,
-                    "Workflow is waiting for human review. Use /workflows/resume/{run_id}.",
+                    "Workflow đang chờ thẩm định thủ công. Hãy dùng /workflows/resume/{run_id}.",
                     endpoint="/workflows/continue",
                 )
 
@@ -215,7 +219,7 @@ async def continue_workflow(run_id: str, request: ContinueRequest | None = None)
     except TimeoutError:
         raise workflow_error(
             504,
-            f"Processing timed out after {settings.PROCESS_TIMEOUT}s",
+            f"Quá thời gian xử lý sau {settings.PROCESS_TIMEOUT} giây",
             endpoint="/workflows/continue",
         ) from None
 
@@ -252,18 +256,20 @@ async def run_workflow_stream(request: ClaimRequest) -> StreamingResponse:
         detail = str(e)
         raise workflow_error(
             502,
-            f"OCR service error: {detail}",
+            f"Lỗi từ dịch vụ OCR: {detail}",
             endpoint="/workflows/run-stream",
         ) from e
     except requests.RequestException as e:
         raise workflow_error(
-            502, f"Failed to connect OCR service: {str(e)}", endpoint="/workflows/run-stream"
+            502,
+            f"Không thể kết nối đến dịch vụ OCR: {str(e)}",
+            endpoint="/workflows/run-stream",
         ) from e
     except HTTPException:
         raise
     except Exception as e:
         raise workflow_error(
-            500, f"Failed to prepare OCR data: {str(e)}", endpoint="/workflows/run-stream"
+            500, f"Không thể chuẩn bị dữ liệu OCR: {str(e)}", endpoint="/workflows/run-stream"
         ) from e
 
     initial_state = build_initial_state(
@@ -309,7 +315,9 @@ async def stream_workflow(run_id: str) -> StreamingResponse:
 
     current_state = await graph.aget_state(config)
     if not current_state or not current_state.values:
-        raise workflow_error(404, f"Run {run_id} not found", endpoint="/workflows/stream")
+        raise workflow_error(
+            404, f"Không tìm thấy lượt chạy {run_id}", endpoint="/workflows/stream"
+        )
 
     return StreamingResponse(
         stream_graph_events(graph, None, config),

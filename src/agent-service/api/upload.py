@@ -42,7 +42,7 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
         if len(content) > max_size:
             raise HTTPException(
                 status_code=413,
-                detail=f"File too large. Max size is {settings.MAX_UPLOAD_SIZE_MB}MB",
+                detail=f"Tệp quá lớn. Kích thước tối đa là {settings.MAX_UPLOAD_SIZE_MB}MB",
             )
 
         output_path.write_bytes(content)
@@ -57,5 +57,5 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to save uploaded file: {str(e)}"
+            status_code=500, detail=f"Không thể lưu tệp đã tải lên: {str(e)}"
         ) from e

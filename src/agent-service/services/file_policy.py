@@ -38,7 +38,7 @@ def validate_upload_metadata(filename: str | None, mime_type: str | None) -> Non
         raise HTTPException(
             status_code=415,
             detail=(
-                "Unsupported file extension. Allowed extensions: "
+                "Phần mở rộng tệp không được hỗ trợ. Các phần mở rộng cho phép: "
                 f"{', '.join(sorted(ALLOWED_UPLOAD_EXTENSIONS))}"
             ),
         )
@@ -48,7 +48,7 @@ def validate_upload_metadata(filename: str | None, mime_type: str | None) -> Non
         raise HTTPException(
             status_code=415,
             detail=(
-                "Unsupported file MIME type. Allowed MIME types: "
+                "Loại MIME của tệp không được hỗ trợ. Các loại MIME cho phép: "
                 f"{', '.join(sorted(ALLOWED_UPLOAD_MIME_TYPES))}"
             ),
         )
@@ -58,8 +58,8 @@ def validate_upload_metadata(filename: str | None, mime_type: str | None) -> Non
         raise HTTPException(
             status_code=415,
             detail=(
-                "File extension does not match MIME type. "
-                f"Extension {extension} requires: {', '.join(sorted(allowed_mime_types))}"
+                "Phần mở rộng tệp không khớp với loại MIME. "
+                f"Phần mở rộng {extension} yêu cầu: {', '.join(sorted(allowed_mime_types))}"
             ),
         )
 
@@ -67,7 +67,7 @@ def validate_upload_metadata(filename: str | None, mime_type: str | None) -> Non
 def resolve_upload_path(file_path: str) -> Path:
     """Resolve workflow input paths and restrict them to UPLOADS_DIR."""
     if not file_path or not str(file_path).strip():
-        raise HTTPException(status_code=400, detail="Input file path is required")
+        raise HTTPException(status_code=400, detail="Cần cung cấp đường dẫn tệp đầu vào")
 
     upload_dir = resolve_upload_dir()
     candidate = Path(file_path).expanduser()
@@ -80,7 +80,7 @@ def resolve_upload_path(file_path: str) -> Path:
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
-            detail="Input file must be inside UPLOADS_DIR",
+            detail="Tệp đầu vào phải nằm trong thư mục UPLOADS_DIR",
         ) from exc
 
     return resolved

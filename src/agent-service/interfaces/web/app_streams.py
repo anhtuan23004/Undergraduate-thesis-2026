@@ -40,9 +40,9 @@ def consume_stream_events(
         elif event_type == "error":
             status.update(label="Lỗi xử lý!", state="error")
             render_error_state(
-                payload.get("error", "Unknown streaming error"),
+                payload.get("error", "Lỗi không xác định khi nhận luồng xử lý"),
                 error_payload=payload,
-                context_label="stream workflow",
+                context_label="luồng xử lý workflow",
             )
             return None
 

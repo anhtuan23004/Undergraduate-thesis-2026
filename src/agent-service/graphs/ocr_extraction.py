@@ -34,7 +34,9 @@ async def run_ocr_extraction(state: GraphState) -> dict:
 
     try:
         if not phase1_documents:
-            raise ValueError("OCR phase 1 documents are required before phase 2 extraction")
+            raise ValueError(
+                "Cần có danh sách chứng từ từ OCR giai đoạn 1 trước khi trích xuất giai đoạn 2"
+            )
 
         phase2_result = await prepare_ocr_phase2_result(
             state["run_id"],
@@ -75,7 +77,7 @@ async def run_ocr_extraction(state: GraphState) -> dict:
                         "reason": str(exc),
                     }
                 ],
-                "message": "Không thể chạy OCR Phase 2 sau bước kiểm tra tính đầy đủ.",
+                "message": "Không thể chạy OCR giai đoạn 2 sau bước kiểm tra tính đầy đủ.",
                 "confidence_score": 1.0,
                 "evidence": {"ocr_stage": "error"},
             },
