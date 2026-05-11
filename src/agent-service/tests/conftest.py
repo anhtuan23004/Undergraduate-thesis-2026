@@ -11,18 +11,6 @@ def skill_tools():
 
 
 @pytest.fixture
-def validate_diagnosis_tool(skill_tools):
-    """Fixture providing validate_diagnosis tool from skills."""
-    return next((t for t in skill_tools[0] if t.name == "validate-diagnosis"), None)
-
-
-@pytest.fixture
-def tool(skill_tools):
-    """Backward-compatible fixture alias expected by test_validate_diagnosis.py."""
-    return next((t for t in skill_tools[0] if t.name == "validate-diagnosis"), None)
-
-
-@pytest.fixture
 def check_required_documents_tool():
     """Fixture providing check_required_documents tool from skills."""
     tools, _ = load_agent_skills("completeness_agent")

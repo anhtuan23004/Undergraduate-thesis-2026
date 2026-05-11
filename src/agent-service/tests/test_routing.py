@@ -7,10 +7,12 @@ various agent results and human review decisions.
 from graphs.routing import (
     _get_decision_from_result,
     _get_human_decision,
+    _review_stage_from_state,
     route_after_agent_review,
     route_after_completeness,
     route_after_completeness_review,
     route_after_final_review,
+    route_after_ocr_extraction,
     route_after_quality,
     route_after_quality_review,
 )
@@ -108,10 +110,10 @@ class TestGetHumanDecision:
 class TestRouteAfterCompleteness:
     """Tests for route_after_completeness routing."""
 
-    def test_accept_routes_to_quality(self):
-        """Valid accept should route to quality_check."""
+    def test_accept_routes_to_ocr_extraction(self):
+        """Valid accept should route to ocr_extraction before quality_check."""
         state = {"agent_1_result": {"valid": True}}
-        assert route_after_completeness(state) == "quality_check"
+        assert route_after_completeness(state) == "ocr_extraction"
 
     def test_reject_routes_to_final(self):
         """Invalid reject should route to final_decision."""
@@ -162,17 +164,19 @@ class TestRouteAfterQuality:
 class TestRouteAfterAgentReview:
     """Tests for route_after_agent_review routing."""
 
-    def test_auto_reviewed_completeness_routes_to_quality(self):
-        """Auto-reviewed completeness should route to quality_check."""
+    def test_auto_reviewed_completeness_routes_to_ocr_extraction(self):
+        """Auto-reviewed completeness should route to ocr_extraction."""
         state = {
+            "review_stage": "completeness",
             "current_step": "agent_reviewed_completeness",
             "agent_1_result": {"is_auto_reviewed": True},
         }
-        assert route_after_agent_review(state) == "quality_check"
+        assert route_after_agent_review(state) == "ocr_extraction"
 
     def test_auto_reviewed_quality_routes_to_final(self):
         """Auto-reviewed quality should route to final_decision."""
         state = {
+            "review_stage": "quality",
             "current_step": "agent_reviewed_quality",
             "agent_2_result": {"is_auto_reviewed": True},
         }
@@ -181,6 +185,7 @@ class TestRouteAfterAgentReview:
     def test_not_auto_reviewed_routes_to_human(self):
         """Not auto-reviewed should route to human_review."""
         state = {
+            "review_stage": "quality",
             "current_step": "agent_review_escalated_quality",
             "agent_2_result": {"is_auto_reviewed": False},
         }
@@ -191,14 +196,24 @@ class TestRouteAfterAgentReview:
         state = {"current_step": "agent_review_escalated_completeness"}
         assert route_after_agent_review(state) == "human_review"
 
+    def test_explicit_review_stage_takes_precedence_over_current_step(self):
+        state = {
+            "review_stage": "completeness",
+            "current_step": "agent_reviewed_quality",
+            "agent_1_result": {"is_auto_reviewed": True},
+            "agent_2_result": {"is_auto_reviewed": False},
+        }
+
+        assert route_after_agent_review(state) == "ocr_extraction"
+
 
 class TestRouteAfterCompletenessReview:
     """Tests for route_after_completeness_review routing."""
 
-    def test_approve_routes_to_quality(self):
-        """Approve should route to quality_check."""
+    def test_approve_routes_to_ocr_extraction(self):
+        """Approve should route to ocr_extraction."""
         state = {"human_review_result": {"decision": "approve"}}
-        assert route_after_completeness_review(state) == "quality_check"
+        assert route_after_completeness_review(state) == "ocr_extraction"
 
     def test_reject_routes_to_final(self):
         """Reject should route to final_decision."""
@@ -230,6 +245,20 @@ class TestRouteAfterQualityReview:
         assert route_after_quality_review(state) == "quality_check"
 
 
+class TestRouteAfterOcrExtraction:
+    """Tests for OCR phase 2 routing."""
+
+    def test_phase2_success_routes_to_quality(self):
+        state = {"ocr_stage": "phase2_extracted"}
+
+        assert route_after_ocr_extraction(state) == "quality_check"
+
+    def test_phase2_failure_routes_to_final(self):
+        state = {"ocr_stage": "error"}
+
+        assert route_after_ocr_extraction(state) == "final_decision"
+
+
 class TestRouteAfterFinalReview:
     """Tests for route_after_final_review routing."""
 
@@ -243,17 +272,17 @@ class TestRouteAfterFinalReview:
         state = {"final_result": {"decision": "reject"}}
         assert route_after_final_review(state) == "human_review"
 
-    def test_edit_routes_to_quality(self):
-        """Edit from final agent should still route to quality_check if agent wants more info."""
-        state = {"final_result": {"decision": "edit"}}
-        assert route_after_final_review(state) == "quality_check"
+    def test_any_decision_routes_to_human_review(self):
+        """FinalDecisionOutput only allows approve/reject; all paths lead to human_review."""
+        # WHY: Defensive test — even if an unexpected decision value appears,
+        # route_after_final_review always returns human_review.
+        for decision in ("approve", "reject", "edit", "unknown"):
+            state = {"final_result": {"decision": decision}}
+            assert route_after_final_review(state) == "human_review"
 
-    def test_final_result_decision_takes_precedence(self):
-        state = {
-            "human_review_result": {"decision": "edit"},  # Previous human decision
-            "final_result": {"decision": "approve"},  # Final agent decision
-        }
-        # DecisionAgent result should now route to human_review for final approval
+    def test_empty_final_result_routes_to_human_review(self):
+        """Missing final_result should still route to human_review."""
+        state = {}
         assert route_after_final_review(state) == "human_review"
 
 
@@ -280,3 +309,22 @@ class TestRouteAfterFinalHumanReview:
         from graphs.routing import route_after_human_review
 
         assert route_after_human_review(state) == "quality_check"
+
+
+class TestReviewStageFromState:
+    """Tests for explicit review stage with legacy fallback."""
+
+    def test_explicit_review_stage_wins(self):
+        state = {"review_stage": "completeness", "current_step": "agent_reviewed_quality"}
+
+        assert _review_stage_from_state(state) == "completeness"
+
+    def test_legacy_current_step_fallback(self):
+        state = {"current_step": "agent_reviewed_quality"}
+
+        assert _review_stage_from_state(state) == "quality"
+
+    def test_final_result_fallback(self):
+        state = {"final_result": {"decision": "approve"}}
+
+        assert _review_stage_from_state(state) == "final"
