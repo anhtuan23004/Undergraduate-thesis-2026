@@ -1,10 +1,10 @@
 """Upload API routes for workflow documents."""
 
 import uuid
-from pathlib import Path
 
 from config import settings
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from services.file_policy import resolve_upload_dir, safe_upload_filename, validate_upload_metadata
 
 from .helpers import compute_file_hash
 from .schemas import UploadResponse
@@ -26,10 +26,12 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
         HTTPException: If the file fails to save.
     """
     try:
-        upload_dir = Path(settings.UPLOADS_DIR).expanduser().resolve()
+        validate_upload_metadata(file.filename, file.content_type)
+
+        upload_dir = resolve_upload_dir()
         upload_dir.mkdir(parents=True, exist_ok=True)
 
-        safe_name = Path(file.filename or "claim_document").name
+        safe_name = safe_upload_filename(file.filename)
         unique_name = f"{uuid.uuid4().hex}_{safe_name}"
         output_path = upload_dir / unique_name
 

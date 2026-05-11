@@ -18,11 +18,16 @@ def build_completeness_prompt(state: dict[str, Any], _agent_name: str) -> str:
     claim_id = state.get("claim_id", "N/A")
     policy_number = state.get("policy_number", "N/A")
     input_file = state.get("input_file", "N/A")
+    ocr_stage = state.get("ocr_stage") or state.get("extracted_documents", {}).get("ocr_stage")
     extracted = _json_block(state.get("extracted_documents", {}))
 
     return (
         f"Kiểm toán tính đầy đủ của hồ sơ bảo hiểm {claim_id}. Số hợp đồng: {policy_number}\n"
         f"Tài liệu đầu vào: {input_file}\n\n"
+        f"<ocr_stage>\n{ocr_stage or 'unknown'}\n</ocr_stage>\n\n"
+        "Ở bước Completeness, nếu ocr_stage là phase1_classified thì dữ liệu OCR mới chỉ "
+        "gồm classification/segmentation; chưa có extracted_data chi tiết. Hãy dùng "
+        "documents làm nguồn chính để kiểm tra nhóm chứng từ bắt buộc.\n\n"
         f"<extracted_documents>\n{extracted}\n</extracted_documents>\n\n"
         f"<history_summary>\n{_history_summary(state)}\n</history_summary>\n"
     )

@@ -15,6 +15,7 @@ from graphs.constants import (
     END,
     FINAL_DECISION,
     HUMAN_REVIEW,
+    OCR_EXTRACTION,
     QUALITY_CHECK,
 )
 from graphs.routing import (
@@ -22,6 +23,7 @@ from graphs.routing import (
     route_after_completeness,
     route_after_final_review,
     route_after_human_review,
+    route_after_ocr_extraction,
     route_after_quality,
 )
 from graphs.state import GraphState
@@ -49,6 +51,9 @@ def build_claim_workflow(
     workflow = StateGraph(GraphState)
 
     workflow.add_node(COMPLETENESS_CHECK, c_factory.create_completeness_agent())
+    from graphs.ocr_extraction import run_ocr_extraction
+
+    workflow.add_node(OCR_EXTRACTION, run_ocr_extraction)
     workflow.add_node(QUALITY_CHECK, q_factory.create_quality_agent())
     workflow.add_node(FINAL_DECISION, d_factory.create_decision_agent())
 
@@ -66,9 +71,18 @@ def build_claim_workflow(
         COMPLETENESS_CHECK,
         route_after_completeness,
         {
-            QUALITY_CHECK: QUALITY_CHECK,
+            OCR_EXTRACTION: OCR_EXTRACTION,
             FINAL_DECISION: FINAL_DECISION,
             AGENT_REVIEW: AGENT_REVIEW,
+        },
+    )
+
+    workflow.add_conditional_edges(
+        OCR_EXTRACTION,
+        route_after_ocr_extraction,
+        {
+            QUALITY_CHECK: QUALITY_CHECK,
+            FINAL_DECISION: FINAL_DECISION,
         },
     )
 
@@ -85,6 +99,7 @@ def build_claim_workflow(
         AGENT_REVIEW,
         route_after_agent_review,
         {
+            OCR_EXTRACTION: OCR_EXTRACTION,
             QUALITY_CHECK: QUALITY_CHECK,
             FINAL_DECISION: FINAL_DECISION,
             HUMAN_REVIEW: HUMAN_REVIEW,
@@ -105,6 +120,7 @@ def build_claim_workflow(
         route_after_human_review,
         {
             COMPLETENESS_CHECK: COMPLETENESS_CHECK,
+            OCR_EXTRACTION: OCR_EXTRACTION,
             QUALITY_CHECK: QUALITY_CHECK,
             FINAL_DECISION: FINAL_DECISION,
             END: LANGGRAPH_END,

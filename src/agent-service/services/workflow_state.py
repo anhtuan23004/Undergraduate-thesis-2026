@@ -49,6 +49,7 @@ def build_initial_state(
     policy_number: str,
     input_file: str,
     extracted_documents: dict,
+    file_hash: str | None = None,
 ) -> GraphState:
     """Build the initial graph state for a new workflow run."""
     return {
@@ -56,6 +57,7 @@ def build_initial_state(
         "claim_id": claim_id,
         "policy_number": policy_number,
         "input_file": input_file,
+        "file_hash": file_hash,
         "extracted_documents": extracted_documents,
         "agent_1_result": None,
         "agent_2_result": None,
@@ -68,6 +70,7 @@ def build_initial_state(
         "active_stage": STAGE_COMPLETENESS,
         "review_stage": STAGE_NONE,
         "workflow_status": STATUS_RUNNING,
+        "ocr_stage": extracted_documents.get("ocr_stage", "none"),
         "should_continue": True,
         "error": None,
         "pending_human_review": False,

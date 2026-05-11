@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 import structlog
 from api.routes import router as workflows_router
-from config import settings
+from config import get_cors_origins, settings, validate_startup_config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mongodb_client import close_mongodb_client
@@ -15,6 +15,7 @@ logger = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
+    validate_startup_config()
     logger.info("Starting Agent Service", version=settings.APP_VERSION)
     yield
     # Cleanup MongoDB connection on shutdown
@@ -31,7 +32,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS else ["*"],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

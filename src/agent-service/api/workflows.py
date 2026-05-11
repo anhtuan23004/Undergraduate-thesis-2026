@@ -51,9 +51,10 @@ async def run_workflow(request: ClaimRequest) -> dict:
             request.file_hash,
         )
     except requests.HTTPError as e:
+        detail = str(e)
         raise workflow_error(
             502,
-            f"OCR service error: {e.response.status_code if e.response else str(e)}",
+            f"OCR service error: {detail}",
             endpoint="/workflows/run",
         ) from e
     except requests.RequestException as e:
@@ -73,6 +74,7 @@ async def run_workflow(request: ClaimRequest) -> dict:
         request.policy_number,
         request.input_file,
         ocr_result,
+        request.file_hash,
     )
 
     try:
@@ -247,9 +249,10 @@ async def run_workflow_stream(request: ClaimRequest) -> StreamingResponse:
             request.file_hash,
         )
     except requests.HTTPError as e:
+        detail = str(e)
         raise workflow_error(
             502,
-            f"OCR service error: {e.response.status_code if e.response else str(e)}",
+            f"OCR service error: {detail}",
             endpoint="/workflows/run-stream",
         ) from e
     except requests.RequestException as e:
@@ -269,6 +272,7 @@ async def run_workflow_stream(request: ClaimRequest) -> StreamingResponse:
         request.policy_number,
         request.input_file,
         ocr_result,
+        request.file_hash,
     )
 
     config = {"configurable": {"thread_id": run_id}}

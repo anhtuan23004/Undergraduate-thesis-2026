@@ -1,6 +1,7 @@
 """Shared graph node, stage, and workflow status constants."""
 
 COMPLETENESS_CHECK = "completeness_check"
+OCR_EXTRACTION = "ocr_extraction"
 QUALITY_CHECK = "quality_check"
 AGENT_REVIEW = "agent_review"
 HUMAN_REVIEW = "human_review"
