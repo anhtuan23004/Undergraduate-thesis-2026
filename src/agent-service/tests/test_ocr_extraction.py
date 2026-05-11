@@ -85,10 +85,16 @@ async def test_ocr_extraction_node_returns_quality_reject_on_missing_phase1():
             "policy_number": "policy-1",
             "input_file": "claim.pdf",
             "file_hash": None,
-            "extracted_documents": {"documents": []},
+            "extracted_documents": {
+                "ocr_stage": "phase1_classified",
+                "documents": [],
+            },
         }
     )
 
     assert result["ocr_stage"] == "error"
+    assert result["extracted_documents"]["ocr_stage"] == "error"
+    assert result["extracted_documents"]["error"]["stage"] == "phase2_extraction"
+    assert result["extracted_documents"]["error"]["code"] == "OCR_EXTRACTION_FAILED"
     assert result["agent_2_result"]["decision"] == "reject"
     assert result["agent_2_result"]["issues"][0]["code"] == "OCR_EXTRACTION_FAILED"

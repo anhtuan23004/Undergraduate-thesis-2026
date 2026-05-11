@@ -49,7 +49,17 @@ async def run_ocr_extraction(state: GraphState) -> dict:
         }
     except Exception as exc:
         logger.error("OCR phase 2 extraction failed", error=str(exc))
+        failed_documents = {
+            **extracted_docs,
+            "ocr_stage": "error",
+            "error": {
+                "stage": "phase2_extraction",
+                "code": "OCR_EXTRACTION_FAILED",
+                "message": str(exc),
+            },
+        }
         return {
+            "extracted_documents": failed_documents,
             "agent_2_result": {
                 "valid": False,
                 "decision": "reject",
