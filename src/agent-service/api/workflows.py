@@ -126,7 +126,7 @@ async def resume_workflow(run_id: str, request: HumanReviewRequest) -> dict:
     except HumanReviewTimeout as exc:
         raise workflow_error(
             504,
-            f"Quá thời gian xử lý sau {settings.PROCESS_TIMEOUT} giây",
+            f"Quá thời gian xử lý sau {exc.timeout_seconds} giây",
             endpoint="/workflows/resume",
         ) from exc
 
