@@ -40,7 +40,6 @@ class Settings(BaseSettings):
     PROCESS_TIMEOUT: int = 300
     OCR_TIMEOUT: int = 120
     OUTBOUND_HTTP_CONNECT_TIMEOUT: int = 10
-    OUTBOUND_HTTP_READ_TIMEOUT: int = 30
     UPLOADS_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE_MB: int = 20
     PAUSE_AT_EACH_STAGE: bool = False
