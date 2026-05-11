@@ -142,7 +142,7 @@ def upload_document(base_url: str, file_path: Path, timeout: float) -> dict[str,
             files={"file": (file_path.name, handle, "application/pdf")},
             timeout=timeout,
         )
-    response.raise_for_status()
+    _raise_for_status(response, "upload document")
     return response.json()
 
 
@@ -180,8 +180,37 @@ def run_claim(
         timeout=timeout,
     )
     latency_ms = (time.perf_counter() - started) * 1000
-    response.raise_for_status()
+    _raise_for_status(response, "run workflow")
     return workflow_response_to_result(response.json(), latency_ms)
+
+
+def _raise_for_status(response: requests.Response, action: str) -> None:
+    """Raise an HTTPError that includes FastAPI's structured error body."""
+    if response.ok:
+        return
+
+    detail = _response_error_detail(response)
+    message = (
+        f"{response.status_code} {response.reason} while attempting to {action}: " f"{response.url}"
+    )
+    if detail:
+        message = f"{message} - {detail}"
+    raise requests.HTTPError(message, response=response)
+
+
+def _response_error_detail(response: requests.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return response.text.strip()
+
+    detail = payload.get("detail") if isinstance(payload, dict) else payload
+    if isinstance(detail, dict):
+        parts = [str(detail.get(key)) for key in ("error", "error_detail") if detail.get(key)]
+        return " | ".join(parts)
+    if detail:
+        return str(detail)
+    return response.text.strip()
 
 
 def workflow_response_to_result(data: dict[str, Any], latency_ms: float) -> ExperimentResult:
@@ -278,6 +307,12 @@ def run_batch(args: argparse.Namespace) -> list[ExperimentResult]:
     history = load_history(args.history)
     initialize_history(history, claims)
     save_history(args.history, history)
+
+    if getattr(args, "deprecated_no_upload", False):
+        print(
+            "Warning: --no-upload is deprecated; current agent-service requires "
+            "workflow inputs to be under UPLOADS_DIR, so eval will upload documents."
+        )
 
     results = load_saved_results(args.results_dir) if args.skip_existing else []
     existing_ids = {result.claim_id for result in results}
@@ -398,9 +433,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--claim-id", action="append", help="Run only one claim id; repeatable.")
     parser.add_argument(
         "--no-upload",
-        dest="upload",
-        action="store_false",
-        help="Pass local file paths directly to agent-service instead of uploading first.",
+        dest="deprecated_no_upload",
+        action="store_true",
+        help=(
+            "Deprecated no-op. Current agent-service requires workflow inputs under "
+            "UPLOADS_DIR, so eval uploads documents before running workflows."
+        ),
     )
     parser.add_argument("--skip-existing", action="store_true")
     parser.add_argument("--fail-fast", action="store_true")
@@ -408,7 +446,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dry-run", action="store_true", help="List selected claims without calling APIs."
     )
-    parser.set_defaults(upload=True)
+    parser.set_defaults(upload=True, deprecated_no_upload=False)
     return parser
 
 

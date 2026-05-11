@@ -30,11 +30,11 @@ Mặc định CLI sẽ:
 - `failed`: chạy xong nhưng lỗi API/model/workflow;
 - `skipped`: bỏ qua vì đã có kết quả và dùng `--skip-existing`.
 
-Nếu `agent-service` chạy local và đọc được path PDF trực tiếp:
+Lưu ý về upload:
 
-```bash
-uv run python -m eval run --skip-existing --no-upload --build-suggestions
-```
+`--no-upload` vẫn được chấp nhận để tương thích lệnh cũ, nhưng hiện là no-op.
+`agent-service` hiện yêu cầu `input_file` nằm trong `UPLOADS_DIR`, nên eval luôn
+upload PDF trước khi gọi workflow.
 
 Kiểm tra danh sách hồ sơ mà không gọi API:
 

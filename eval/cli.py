@@ -69,12 +69,20 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout", type=float, default=900.0)
     run.add_argument("--limit", type=int)
     run.add_argument("--claim-id", action="append")
-    run.add_argument("--no-upload", dest="upload", action="store_false")
+    run.add_argument(
+        "--no-upload",
+        dest="deprecated_no_upload",
+        action="store_true",
+        help=(
+            "Deprecated no-op. Current agent-service requires workflow inputs under "
+            "UPLOADS_DIR, so eval uploads documents before running workflows."
+        ),
+    )
     run.add_argument("--skip-existing", action="store_true")
     run.add_argument("--fail-fast", action="store_true")
     run.add_argument("--build-suggestions", action="store_true")
     run.add_argument("--dry-run", action="store_true")
-    run.set_defaults(upload=True)
+    run.set_defaults(upload=True, deprecated_no_upload=False)
 
     metrics = subparsers.add_parser("metrics", help="Compute metrics from saved results.")
     metrics.add_argument("--ground-truth", type=Path, default=GROUND_TRUTH)

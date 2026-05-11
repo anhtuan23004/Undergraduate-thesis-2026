@@ -1,4 +1,7 @@
+import requests
+
 from eval.batch_run import (
+    _raise_for_status,
     extract_routing_path,
     initialize_history,
     save_history,
@@ -6,6 +9,10 @@ from eval.batch_run import (
     update_history,
     workflow_response_to_result,
 )
+from eval.batch_run import (
+    build_parser as build_batch_parser,
+)
+from eval.cli import build_parser as build_cli_parser
 from eval.runner import load_results, write_agent_suggestions
 
 
@@ -139,3 +146,35 @@ def test_suggestions_are_saved_per_claim(tmp_path):
 
     assert output.exists()
     assert (suggestions_dir / "CLAIM-001.json").exists()
+
+
+def test_no_upload_flag_is_deprecated_noop_for_current_agent_service_contract():
+    cli_args = build_cli_parser().parse_args(["run", "--no-upload"])
+    batch_args = build_batch_parser().parse_args(["--no-upload"])
+
+    assert cli_args.upload is True
+    assert cli_args.deprecated_no_upload is True
+    assert batch_args.upload is True
+    assert batch_args.deprecated_no_upload is True
+
+
+def test_http_error_includes_agent_service_detail():
+    response = requests.Response()
+    response.status_code = 400
+    response.reason = "Bad Request"
+    response.url = "http://localhost:8003/api/v1/workflows/run"
+    response._content = (
+        b'{"detail":{"error":"Failed to prepare OCR data: Input file must be '
+        b'inside UPLOADS_DIR","status_code":400,"endpoint":"/workflows/run"}}'
+    )
+    response.headers["Content-Type"] = "application/json"
+
+    try:
+        _raise_for_status(response, "run workflow")
+    except requests.HTTPError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("Expected HTTPError")
+
+    assert "Input file must be inside UPLOADS_DIR" in message
+    assert "run workflow" in message
