@@ -15,15 +15,15 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade \
     pip \
-    setuptools>=78.1.1 \
-    wheel>=0.46.2 \
+    "setuptools>=78.1.1" \
+    "wheel>=0.46.2" \
     && pip install --no-cache-dir -r requirements.txt
 
-COPY src ./src
+COPY . .
 
-EXPOSE 8091
+EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
- CMD sh -c "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8091}/health')\""
+ CMD sh -c "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8000}/health')\""
 
-CMD ["sh","-c","uvicorn main:app --host 0.0.0.0 --port ${PORT:-8091} --workers ${WEB_CONCURRENCY:-5}"]
+CMD ["sh","-c","uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-5}"]
