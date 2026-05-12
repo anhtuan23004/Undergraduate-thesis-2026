@@ -6,7 +6,7 @@ Folder `agents/`, `prompts/`, `skills/`, và `tools/` tạo thành agent runtime
 
 | Module/folder | Logic chính |
 | --- | --- |
-| `agent.py` | `LangGraphLLMClient`, Gemini model, LangChain `create_agent`, optional Langfuse tracing |
+| `agent.py` | `LangGraphLLMClient`, Gemini model, LangChain `create_agent`, optional Langfuse tracing/session propagation |
 | `agents/node_specs.py` | Registry role metadata cho Completeness, Quality, Final Decision, Verifier |
 | `agents/factory.py` | Tạo LangGraph agent node từ `AgentNodeSpec` và shared runtime |
 | `agents/prompt_builders.py` | Build user prompt từ `GraphState` cho từng agent |
@@ -66,8 +66,9 @@ sequenceDiagram
     Factory->>Factory: load_system_prompt(spec.prompt_name) + schema instruction
     Graph->>Factory: agent_node(state)
     Factory->>Prompt: spec.prompt_builder(state, spec.display_name)
-    Factory->>LLM: invoke_agent(prompt, tools, system_prompt, trace_name)
+    Factory->>LLM: invoke_agent(prompt, tools, system_prompt, trace_name, metadata)
     LLM->>LLM: create_agent(model=Gemini, tools=tools)
+    LLM->>LLM: propagate Langfuse session_id = run_id
     LLM-->>Factory: raw messages
     Factory->>Parser: extract_agent_content(raw_result)
     Parser-->>Factory: content string
@@ -82,6 +83,10 @@ sequenceDiagram
 ## Agent factories
 
 Các class `CompletenessAgentFactory`, `QualityAgentFactory`, `DecisionAgentFactory`, và `VerifierAgentFactory` là compatibility wrappers cho call sites hiện tại như `build_claim_workflow`. Chúng không còn override prompt builder hoặc chứa mapping literal riêng; mapping nằm trong `AGENT_NODE_SPECS`.
+
+## Langfuse session tracking
+
+Khi `LANGFUSE_ENABLED=true`, mỗi agent invocation truyền `run_id`, `claim_id`, `agent_role`, và `agent_name` vào LangChain metadata. `LangGraphLLMClient` dùng `run_id` làm Langfuse `session_id` qua `propagate_attributes(...)`, nên các trace/observations của cùng một workflow run được gom trong cùng Langfuse Session. `session_id` chỉ được set khi giá trị là US-ASCII; giá trị không hợp lệ bị bỏ qua để tránh lỗi propagation.
 
 ## Prompt composition
 
