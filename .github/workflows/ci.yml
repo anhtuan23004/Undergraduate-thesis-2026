@@ -35,12 +35,14 @@ jobs:
         run: uv run ruff check .
 
       - name: Test agent service
-        working-directory: src/agent-service
-        run: uv run pytest tests -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src/agent-service
+        run: uv run pytest src/agent-service/tests -v
 
       - name: Test OCR service
-        working-directory: src/ocr-service
-        run: uv run pytest tests -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src/ocr-service
+        run: uv run pytest src/ocr-service/tests -v
 
   docker-build:
     name: Docker build
