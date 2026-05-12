@@ -22,7 +22,7 @@ async def test_get_workflow_status_not_found_uses_standard_error(monkeypatch):
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == {
-        "error": "Run missing-run not found",
+        "error": "Không tìm thấy lượt chạy missing-run",
         "error_detail": None,
         "status_code": 404,
         "endpoint": "/workflows/status",

@@ -109,7 +109,7 @@ class TestAgentReviewNode:
         result = await node.run(state)
         assert result["pending_human_review"] is True
         assert result["history"][0]["escalation_reason_code"] == REASON_HARD_CONSTRAINTS_FAILED
-        assert "Nên để human review" in result["history"][0]["escalation_reason"]
+        assert "Nên để thẩm định thủ công" in result["history"][0]["escalation_reason"]
         assert "6,000,000" in result["history"][0]["escalation_reason"]
 
     @pytest.mark.asyncio

@@ -1,52 +1,43 @@
 # Agentic AI Insurance Claims Processing System
 
-Hệ thống xử lý hồ sơ bồi thường bảo hiểm sức khỏe bằng kiến trúc multi-agent. Dịch vụ OCR trích xuất dữ liệu từ tài liệu y tế, Agent Service điều phối LangGraph workflow gồm kiểm tra đầy đủ, kiểm tra chất lượng y tế, tự thẩm định bằng verifier, human-in-the-loop và kết luận cuối cùng.
+Hệ thống xử lý hồ sơ bồi thường bảo hiểm sức khỏe bằng kiến trúc agentic AI. Dự án được xây dựng trong phạm vi khóa luận tốt nghiệp, tập trung vào quy trình tiếp nhận chứng từ, số hóa tài liệu, kiểm tra tính đầy đủ, thẩm định chất lượng y tế và ra quyết định với cơ chế human-in-the-loop.
 
-## Mục Lục
+Mục tiêu của hệ thống là cung cấp một pipeline có thể triển khai, kiểm thử và tái lập được: các service có ranh giới rõ ràng, cấu hình qua biến môi trường, trạng thái workflow được lưu bền vững, kết quả OCR/agent có audit log, và các bước cần thẩm định thủ công được tách khỏi các bước tự động.
 
-- [Concept](#concept)
-- [Kiến Trúc](#kiến-trúc)
-- [Cài Đặt Chuẩn Trong Phạm Vi Khóa Luận](#cài-đặt-chuẩn-trong-phạm-vi-khóa-luận)
-- [Cài Đặt Nhanh Bằng Docker Compose](#cài-đặt-nhanh-bằng-docker-compose)
-- [Cấu Hình Chuẩn Tối Thiểu](#cấu-hình-chuẩn-tối-thiểu)
-- [Vận Hành](#vận-hành)
-- [Phát Triển Local](#phát-triển-local)
-- [Tài Liệu Trong Repo](#tài-liệu-trong-repo)
+## Tổng Quan
 
-## Concept
+Hệ thống xử lý một hồ sơ bồi thường theo luồng nghiệp vụ sau:
 
-Hệ thống được tách thành các service rõ boundary:
+1. Người dùng tải bộ chứng từ PDF/ảnh lên Agent Service hoặc giao diện vận hành.
+2. OCR Service dùng Google Gemini để phân loại tài liệu, chia đoạn trang và trích xuất dữ liệu có cấu trúc.
+3. Completeness Agent kiểm tra hồ sơ có đủ chứng từ bắt buộc theo ngữ cảnh bảo hiểm.
+4. Khi hồ sơ đủ điều kiện, OCR phase 2 trích xuất dữ liệu chi tiết theo schema tài liệu.
+5. Quality Agent đánh giá thông tin y tế, ICD, thuốc, quyền lợi và điều khoản loại trừ.
+6. Agent Review kết hợp verifier và hard constraints để quyết định tự động đi tiếp hay chuyển thẩm định thủ công.
+7. Human reviewer phê duyệt, từ chối hoặc hiệu chỉnh khi workflow tạm dừng.
+8. Decision Agent tổng hợp kết quả cuối cùng và trả về kết luận xử lý hồ sơ.
+
+## Thành Phần Chính
 
 | Thành phần | Vai trò |
 | --- | --- |
-| **OCR Service** | Nhận PDF/ảnh, chạy Gemini OCR, phân loại/chia trang tài liệu, trích xuất dữ liệu có cấu trúc |
-| **Agent Service** | FastAPI service điều phối LangGraph workflow, gọi OCR, chạy agent, lưu checkpoint, expose API/SSE |
-| **MongoDB** | Lưu LangGraph checkpoints, OCR audit/cache, agent audit logs |
-| **Redis** | Hạ tầng cache/queue dùng bởi stack kèm theo và cấu hình service |
-| **Langfuse** | Observability/tracing tùy chọn cho LLM calls |
-| **Streamlit UI** | Giao diện vận hành: upload hồ sơ, theo dõi tiến trình, human review |
-| **Evaluation Toolkit** | Batch evaluation, label UI, metrics cho bộ hồ sơ test |
-
-Workflow nghiệp vụ chính:
-
-1. Upload tài liệu vào Agent Service.
-2. OCR phase 1 phân loại/chia đoạn tài liệu.
-3. Completeness Agent kiểm tra chứng từ bắt buộc.
-4. OCR phase 2 trích xuất dữ liệu chi tiết khi hồ sơ đủ điều kiện.
-5. Quality Agent kiểm tra ICD, thuốc, điều khoản loại trừ.
-6. Agent Review dùng verifier + ràng buộc cứng để quyết định tự duyệt hay chuyển human review.
-7. Human reviewer approve/reject/edit khi workflow pause.
-8. Decision Agent tổng hợp kết luận cuối cùng.
+| **Agent Service** | FastAPI service điều phối LangGraph workflow, upload, streaming, resume, checkpoint và API vận hành |
+| **OCR Service** | FastAPI service trích xuất dữ liệu tài liệu bằng Gemini OCR, hỗ trợ OCR v1 và OCR v2 hai pha |
+| **Streamlit UI** | Giao diện demo/vận hành cho upload hồ sơ, theo dõi tiến trình và human review |
+| **MongoDB** | Lưu LangGraph checkpoints, OCR cache/audit và agent audit logs |
+| **Redis** | Lưu mapping phiên xử lý và hỗ trợ hạ tầng cache/session |
+| **Langfuse** | Observability tùy chọn cho LLM traces và phân tích phiên chạy |
+| **Evaluation Toolkit** | Chạy batch evaluation, label dữ liệu và tính metrics trên bộ hồ sơ thử nghiệm |
 
 ## Kiến Trúc
 
 ```mermaid
 flowchart LR
-    UI["Streamlit UI<br/>operator console"] -->|"upload / run-stream / resume"| AgentAPI["Agent Service<br/>FastAPI :8003"]
+    UI["Streamlit UI / Client"] -->|"upload, run-stream, resume"| AgentAPI["Agent Service<br/>FastAPI :8003"]
 
     AgentAPI --> Graph["LangGraph Workflow"]
     Graph --> Completeness["Completeness Agent"]
-    Graph --> OCR2["OCR Phase 2"]
+    Graph --> OCRPhase2["OCR Phase 2"]
     Graph --> Quality["Quality Agent"]
     Graph --> Review["Agent Review + Verifier"]
     Graph --> Human["Human Review Interrupt"]
@@ -55,115 +46,67 @@ flowchart LR
     AgentAPI --> OCR["OCR Service<br/>FastAPI :8001"]
     OCR --> Gemini["Google Gemini"]
 
-    AgentAPI --> Mongo["MongoDB<br/>checkpoints/cache/audit"]
+    AgentAPI --> Mongo["MongoDB<br/>checkpoints, cache, audit"]
+    AgentAPI --> Redis["Redis"]
     AgentAPI -. optional .-> Langfuse["Langfuse"]
 ```
 
-Chi tiết logic theo module nằm ở [src/agent-service/docs/README.md](src/agent-service/docs/README.md).
+Thiết kế chi tiết theo từng layer nằm trong [src/agent-service/docs/README.md](src/agent-service/docs/README.md). OCR v2 và schema trích xuất được mô tả tại [src/ocr-service/README.md](src/ocr-service/README.md).
 
-## Cài Đặt Chuẩn Trong Phạm Vi Khóa Luận
+## Yêu Cầu Môi Trường
 
-Trong phạm vi khóa luận, mục tiêu là một cấu hình chạy ổn định, dễ tái lập, có ranh giới service rõ ràng và tránh các cấu hình nguy hiểm thường gặp. Cách tổ chức dưới đây phục vụ demo, đánh giá và vận hành thử đáng tin cậy.
+Khuyến nghị cho môi trường demo, thực nghiệm hoặc triển khai thử trong khóa luận:
 
-### 1. Tách runtime khỏi dữ liệu
+| Hạng mục | Yêu cầu |
+| --- | --- |
+| Runtime | Docker và Docker Compose |
+| Python local | Python 3.11+ nếu chạy service ngoài Docker |
+| API key | `GEMINI_API_KEY` cho OCR và agent runtime |
+| Database | MongoDB cho checkpoint/cache/audit |
+| Network | Agent Service gọi nội bộ tới OCR Service qua `OCR_SERVICE_URL` |
+| Tài nguyên | CPU/RAM đủ chạy MongoDB, Redis, Langfuse tùy chọn và 2 application services |
 
-- App containers phải stateless: `ocr-service`, `agent-service`, `streamlit UI` nếu dùng.
-- Dữ liệu bền vững đặt ở managed services hoặc volume được backup:
-  - MongoDB cho checkpoints, OCR cache/audit.
-  - Object storage hoặc persistent volume cho upload nếu cần giữ file lâu dài.
-  - Langfuse/Postgres/ClickHouse/MinIO nếu bật observability self-hosted.
-
-### 2. Chỉ public các endpoint cần thiết
-
-Khuyến nghị public qua reverse proxy/API gateway:
-
-| Public? | Service | Ghi chú |
-| --- | --- | --- |
-| Yes | Streamlit UI hoặc frontend riêng | Đặt authentication trước UI |
-| Yes/Private | Agent API | Chỉ mở nếu có client backend gọi trực tiếp; nên bảo vệ bằng auth/network policy |
-| No | OCR Service | Chỉ Agent Service gọi nội bộ |
-| No | MongoDB, Redis, Langfuse internals | Không expose Internet |
-| Optional | Langfuse Web | Chỉ mở qua SSO/VPN/basic auth |
-
-### 3. Cấu hình qua secret manager
-
-Không hard-code secret trong image hoặc commit `.env`.
-
-Các secret/cấu hình nhạy cảm:
-
-- `GEMINI_API_KEY`
-- `MONGODB_URL`
-- `MONGO_ROOT_PASSWORD`
-- `LANGFUSE_SECRET_KEY`
-- `NEXTAUTH_SECRET`, `SALT`, `ENCRYPTION_KEY`
-- `POSTGRES_PASSWORD`, `CLICKHOUSE_PASSWORD`, `MINIO_ROOT_PASSWORD`
-- API keys phụ trợ như `TAVILY_API_KEY`, `OPENAI_API_KEY` nếu bật tool tương ứng.
-
-### 4. Cấu hình chạy nghiêm ngặt
-
-Cấu hình chuẩn nên chạy:
-
-- `DEBUG=false`
-- `ALLOWED_ORIGINS` là danh sách domain cụ thể, không dùng `*`
-- `LANGFUSE_ENABLED=true` nếu cần trace LLM
-- MongoDB có timeout rõ ràng
-- Upload giới hạn bằng `MAX_UPLOAD_SIZE_MB`
-- OCR v2 pipeline cố định `OCR_V2_PIPELINE=two_phase_gated`
-
-Agent Service có startup validation khi `DEBUG=false`: thiếu `GEMINI_API_KEY`, `MONGODB_URL`, `OCR_SERVICE_URL` hoặc wildcard CORS sẽ fail sớm.
-
-### 5. Health check và rollout
-
-Trước khi nhận traffic:
-
-```bash
-curl http://<agent-host>/health
-curl http://<ocr-host>/health
-```
-
-Trước khi demo hoặc chạy batch evaluation nên có:
-
-- readiness/liveness probe cho Agent/OCR.
-- structured logs được ship về log backend.
-- alert cho OCR timeout, Gemini/API quota, MongoDB connectivity.
-- backup/retention policy cho MongoDB và Langfuse data.
-- migration/runbook cho thay đổi schema prompt/tool quan trọng.
+Trong môi trường gần production, không public trực tiếp MongoDB, Redis hoặc OCR Service. Chỉ public UI hoặc Agent API sau lớp xác thực/reverse proxy.
 
 ## Cài Đặt Nhanh Bằng Docker Compose
 
-### 1. Chuẩn bị `.env`
+### 1. Tạo cấu hình môi trường
 
 ```bash
 cp .env.example .env
 ```
 
-Sửa ít nhất:
+Cập nhật tối thiểu:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
+GEMINI_API_KEY=<your_gemini_api_key>
 DEBUG=false
+LOG_LEVEL=INFO
 ALLOWED_ORIGINS=http://localhost:8501
+OCR_API_VERSION=v2
+OCR_V2_PIPELINE=two_phase_gated
 ```
 
-Nếu chạy demo cho hội đồng hoặc chia sẻ máy chủ, đổi toàn bộ password mặc định trong `.env.example`.
+Nếu chạy trên máy chủ dùng chung hoặc demo có truy cập từ bên ngoài, đổi toàn bộ mật khẩu mặc định trong `.env`, đặc biệt là MongoDB, Mongo Express, Langfuse, Postgres, ClickHouse, MinIO và Redis.
 
-### 2. Start stack
+### 2. Khởi động hệ thống
 
 ```bash
 docker compose up -d --build
 ```
 
-Root compose sẽ build:
+Root compose sẽ build và chạy:
 
-- `ocr-service`: container port `8000`, host port `8001`
-- `agent-service`: container port `8000`, host port `8003`
+| Service | Host port | Vai trò |
+| --- | --- | --- |
+| `ocr-service` | `8001` | OCR và structured extraction |
+| `agent-service` | `8003` | LangGraph workflow API |
+| `mongodb` | theo compose hạ tầng | Checkpoint/cache/audit |
+| `redis` | theo compose hạ tầng | Cache/session |
+| `langfuse-web` | `3000` nếu bật | LLM observability |
+| `mongo-express` | `8081` nếu bật | Quản trị MongoDB nội bộ/demo |
 
-Và include hạ tầng:
-
-- MongoDB/Mongo Express từ [infrastructure/mongodb](infrastructure/mongodb/README.md)
-- Langfuse stack từ [infrastructure/langfuse](infrastructure/langfuse/README.md)
-
-### 3. Kiểm tra
+### 3. Kiểm tra trạng thái
 
 ```bash
 docker compose ps
@@ -171,19 +114,19 @@ curl http://localhost:8001/health
 curl http://localhost:8003/health
 ```
 
-Endpoint thường dùng:
+Các URL thường dùng:
 
 | URL | Mục đích |
 | --- | --- |
-| <http://localhost:8003/docs> | Swagger của Agent API |
-| <http://localhost:8003/health> | Agent health |
-| <http://localhost:8001/health> | OCR health |
-| <http://localhost:8081> | Mongo Express, chỉ dùng local/demo nội bộ |
+| <http://localhost:8003/docs> | Swagger UI của Agent API |
+| <http://localhost:8003/health> | Health check Agent Service |
+| <http://localhost:8001/health> | Health check OCR Service |
+| <http://localhost:8081> | Mongo Express cho local/demo nội bộ |
 | <http://localhost:3000> | Langfuse Web nếu bật |
 
-## Cấu Hình Chuẩn Tối Thiểu
+## Cấu Hình Triển Khai Khuyến Nghị
 
-Ví dụ `.env` tối thiểu cho một lần chạy chuẩn trong phạm vi khóa luận:
+Các biến môi trường quan trọng:
 
 ```env
 DEBUG=false
@@ -198,6 +141,7 @@ MONGODB_CONNECT_TIMEOUT_MS=5000
 MONGODB_SERVER_SELECTION_TIMEOUT_MS=5000
 MONGODB_SOCKET_TIMEOUT_MS=20000
 
+REDIS_URL=redis://redis:6379/0
 OCR_SERVICE_URL=http://ocr-service:8000
 OCR_API_VERSION=v2
 OCR_V2_PIPELINE=two_phase_gated
@@ -214,91 +158,87 @@ LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 ```
 
-Nếu dùng Langfuse self-hosted, đọc thêm [infrastructure/langfuse/README.md](infrastructure/langfuse/README.md) để thay `NEXTAUTH_SECRET`, `SALT`, `ENCRYPTION_KEY`, database/object storage credentials và public URL.
+Khi `DEBUG=false`, Agent Service thực hiện startup validation nghiêm ngặt. Service sẽ fail sớm nếu thiếu `GEMINI_API_KEY`, `MONGODB_URL`, `OCR_SERVICE_URL` hoặc nếu `ALLOWED_ORIGINS=*`.
 
-## Vận Hành
+## Nguyên Tắc Vận Hành
 
-### Agent API chính
+- Application containers nên stateless; dữ liệu bền vững đặt trong MongoDB, object storage hoặc volume được backup.
+- OCR Service chỉ nên được gọi nội bộ bởi Agent Service.
+- Agent API hoặc UI cần được bảo vệ bằng reverse proxy, authentication và CORS domain cụ thể.
+- Secret không được hard-code trong image hoặc commit lên Git.
+- MongoDB, Redis, Langfuse internals, ClickHouse, Postgres và MinIO không nên expose trực tiếp ra Internet.
+- Cần theo dõi lỗi OCR timeout, Gemini quota, MongoDB connectivity và các workflow bị dừng ở trạng thái human review.
+
+## API Vận Hành Chính
 
 | Method | Endpoint | Mục đích |
 | --- | --- | --- |
-| `POST` | `/api/v1/workflows/upload` | Upload tài liệu, nhận `file_path` và `file_hash` |
-| `POST` | `/api/v1/workflows/run` | Chạy workflow và trả kết quả khi graph dừng/kết thúc |
-| `POST` | `/api/v1/workflows/run-stream` | Chạy workflow với SSE progress |
-| `GET` | `/api/v1/workflows/status/{run_id}` | Lấy trạng thái checkpoint |
-| `POST` | `/api/v1/workflows/resume/{run_id}` | Resume sau human review |
-| `POST` | `/api/v1/workflows/continue/{run_id}` | Continue pause không phải human review |
-| `GET` | `/api/v1/workflows/stream/{run_id}` | Stream workflow đã tồn tại |
+| `POST` | `/api/v1/workflows/upload` | Upload tài liệu và nhận `file_path`, `file_hash` |
+| `POST` | `/api/v1/workflows/run` | Chạy workflow và trả kết quả khi graph dừng hoặc kết thúc |
+| `POST` | `/api/v1/workflows/run-stream` | Chạy workflow với Server-Sent Events |
+| `GET` | `/api/v1/workflows/status/{run_id}` | Đọc trạng thái checkpoint của một lần chạy |
+| `POST` | `/api/v1/workflows/resume/{run_id}` | Resume workflow sau human review |
+| `POST` | `/api/v1/workflows/continue/{run_id}` | Continue một workflow đang pause không phải human review |
+| `GET` | `/api/v1/workflows/stream/{run_id}` | Stream trạng thái workflow đã tồn tại |
 
-### UI vận hành
+## Chạy UI Demo
 
 ```bash
 cd src/agent-service
 uv run streamlit run interfaces/web/app.py
 ```
 
-Mở <http://localhost:8501> và cấu hình API URL trỏ tới Agent Service. Xem thêm [src/agent-service/interfaces/web/README.md](src/agent-service/interfaces/web/README.md).
-
-### Evaluation
-
-```bash
-uv run python -m eval run --skip-existing --build-suggestions
-uv run python -m eval metrics --multi-results eval/results/claims
-```
-
-Xem [eval/README.md](eval/README.md).
+Mở <http://localhost:8501>, cấu hình Agent API URL trỏ tới `http://localhost:8003`, upload hồ sơ và theo dõi timeline xử lý. Chi tiết UI nằm tại [src/agent-service/interfaces/web/README.md](src/agent-service/interfaces/web/README.md).
 
 ## Phát Triển Local
 
-### Cài dependency
+Cài dependency:
 
 ```bash
 uv sync --all-extras
 ```
 
-### Chạy từng service không dùng Docker
-
-OCR standalone mặc định dùng port `8091`:
+Chạy OCR Service độc lập:
 
 ```bash
 cd src/ocr-service
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8091
 ```
 
-Agent Service:
+Chạy Agent Service trỏ tới OCR local:
 
 ```bash
 cd src/agent-service
 OCR_SERVICE_URL=http://localhost:8091 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8003
 ```
 
-Streamlit UI:
-
-```bash
-cd src/agent-service
-uv run streamlit run interfaces/web/app.py
-```
-
-### Test
+Chạy test:
 
 ```bash
 uv run pytest src/agent-service/tests
 uv run pytest src/ocr-service/tests
 ```
 
-Một số nhóm test quan trọng của Agent Service được mô tả ở [src/agent-service/docs/07-testing-operations.md](src/agent-service/docs/07-testing-operations.md).
+## Evaluation
+
+```bash
+uv run python -m eval run --skip-existing --build-suggestions
+uv run python -m eval metrics --multi-results eval/results/claims
+```
+
+Xem thêm [eval/README.md](eval/README.md).
 
 ## Tài Liệu Trong Repo
 
 | Tài liệu | Nội dung |
 | --- | --- |
-| [src/agent-service/README.md](src/agent-service/README.md) | Agent Service API, state fields, skill system |
-| [src/agent-service/docs/README.md](src/agent-service/docs/README.md) | Logic từng layer/module của Agent Service |
-| [src/agent-service/interfaces/web/README.md](src/agent-service/interfaces/web/README.md) | Streamlit UI và workflow vận hành |
-| [src/ocr-service/README.md](src/ocr-service/README.md) | OCR Service, OCR v2 pipeline, endpoints |
+| [src/agent-service/README.md](src/agent-service/README.md) | Agent Service API, lifecycle fields, routing và skill system |
+| [src/agent-service/docs/README.md](src/agent-service/docs/README.md) | Tài liệu logic từng layer của Agent Service |
+| [src/agent-service/interfaces/web/README.md](src/agent-service/interfaces/web/README.md) | Streamlit UI và thao tác human review |
+| [src/ocr-service/README.md](src/ocr-service/README.md) | OCR Service, OCR v2 pipeline, schema registry và endpoints |
 | [infrastructure/mongodb/README.md](infrastructure/mongodb/README.md) | MongoDB collections, connection, backup/reset |
 | [infrastructure/langfuse/README.md](infrastructure/langfuse/README.md) | Langfuse self-hosted setup |
-| [eval/README.md](eval/README.md) | Batch evaluation, label UI, metrics |
+| [eval/README.md](eval/README.md) | Batch evaluation, label UI và metrics |
 
 ## License
 
