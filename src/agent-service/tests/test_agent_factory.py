@@ -68,6 +68,12 @@ async def test_completeness_agent_node_uses_spec_metadata(isolate_factory_depend
     assert result["review_stage"] == "completeness"
     assert result["workflow_status"] == "running"
     assert llm.calls[0]["trace_name"] == "CompletenessAgent_claim-1"
+    assert llm.calls[0]["metadata"] == {
+        "run_id": "run-1",
+        "claim_id": "claim-1",
+        "agent_role": "completeness",
+        "agent_name": "CompletenessAgent",
+    }
     assert "<output_format>" in llm.calls[0]["system_prompt"]
     assert isolate_factory_dependencies[0]["step_name"] == "completeness_agent"
 

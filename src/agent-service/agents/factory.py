@@ -53,6 +53,12 @@ class AgentFactory:
                     tools=tools,
                     system_prompt=system_prompt,
                     trace_name=f"{spec.display_name}_{state.get('claim_id', 'unknown')}",
+                    metadata={
+                        "run_id": str(state.get("run_id") or ""),
+                        "claim_id": str(state.get("claim_id") or ""),
+                        "agent_role": spec.role,
+                        "agent_name": spec.display_name,
+                    },
                 )
 
                 if "error" in raw_result:

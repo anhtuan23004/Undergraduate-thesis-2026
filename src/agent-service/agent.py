@@ -1,6 +1,7 @@
 """LLM client for LangGraph with async support and Langfuse tracing."""
 
 import os
+from contextlib import nullcontext
 from typing import Any
 
 import structlog
@@ -108,6 +109,48 @@ def _build_agent_config(
     return config
 
 
+def _langfuse_session_id(metadata: dict[str, Any] | None) -> str | None:
+    """Return a Langfuse-compatible session id from workflow metadata."""
+    if not metadata:
+        return None
+
+    raw_session_id = metadata.get("session_id") or metadata.get("run_id")
+    if raw_session_id is None:
+        return None
+
+    session_id = str(raw_session_id).strip()
+    if not session_id:
+        return None
+
+    try:
+        session_id.encode("ascii")
+    except UnicodeEncodeError:
+        logger.warning("Langfuse session_id must be US-ASCII; dropping invalid value")
+        return None
+
+    return session_id
+
+
+def _langfuse_attributes_context(session_id: str | None, trace_name: str):
+    """Build a Langfuse propagation context for session replay attributes."""
+    if not settings.LANGFUSE_ENABLED or not session_id:
+        return nullcontext()
+
+    try:
+        from langfuse import propagate_attributes
+
+        return propagate_attributes(
+            session_id=session_id,
+            trace_name=trace_name,
+            tags=["agent-service", "langgraph"],
+        )
+    except ImportError:
+        logger.warning("Langfuse is enabled but propagate_attributes is unavailable.")
+    except Exception as exc:
+        logger.warning("Langfuse attribute propagation disabled", error=str(exc))
+    return nullcontext()
+
+
 class LangGraphLLMClient:
     """LLM client with proper async handling for LangGraph workflows."""
 
@@ -140,10 +183,13 @@ class LangGraphLLMClient:
         )
 
         try:
-            result = await agent.ainvoke(
-                {"messages": [{"role": "user", "content": prompt}]},
-                config=_build_agent_config(trace_name, metadata, callbacks),
-            )
+            config = _build_agent_config(trace_name, metadata, callbacks)
+            session_id = _langfuse_session_id(metadata)
+            with _langfuse_attributes_context(session_id, trace_name):
+                result = await agent.ainvoke(
+                    {"messages": [{"role": "user", "content": prompt}]},
+                    config=config,
+                )
             return result
         except Exception as e:
             logger.error("Agent invocation failed", error=str(e))
