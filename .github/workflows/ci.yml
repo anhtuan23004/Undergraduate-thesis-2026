@@ -1,78 +1,65 @@
-name: CI/CD
+name: CI
 
-on:
+"on":
   push:
-    branches: [main, develop]
   pull_request:
-    branches: [main, develop]
-  tags:
-    - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
   PYTHON_VERSION: "3.13"
+  GEMINI_API_KEY: ci-test-gemini-key
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - uses: astral-sh/setup-uv@v1
-      - run: uv sync --all-extras
-      - run: uv run ruff check .
-
   test:
-    name: Test
+    name: Lint and test
     runs-on: ubuntu-latest
-    needs: lint
-    strategy:
-      matrix:
-        service: [agent-service, ocr-service]
+
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - uses: astral-sh/setup-uv@v1
-      - run: uv sync --all-extras
-      - run: cd src/${{ matrix.service }} && uv run pytest tests/ -v
 
-  docker:
-    name: Docker
+      - name: Install uv
+        run: python -m pip install --upgrade pip uv
+
+      - name: Install dependencies
+        run: uv sync --all-extras --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Test agent service
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src/agent-service
+        run: uv run pytest src/agent-service/tests -v
+
+      - name: Test OCR service
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src/ocr-service
+        run: uv run pytest src/ocr-service/tests -v
+
+  docker-build:
+    name: Docker build
     runs-on: ubuntu-latest
     needs: test
-    strategy:
-      matrix:
-        service: [ocr-service, agent-service]
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./src/${{ matrix.service }}
-          file: ./src/${{ matrix.service }}/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
-          tags: ghcr.io/${{ github.repository_owner }}/claims-${{ matrix.service }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: docker
-    permissions:
-      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - agent-service
+          - ocr-service
+
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f src/${{ matrix.service }}/Dockerfile src/${{ matrix.service }}
