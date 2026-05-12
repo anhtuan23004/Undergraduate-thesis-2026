@@ -4,7 +4,6 @@ from typing import Any
 
 from core.config import settings
 from core.engine.v1 import OCRServiceV1
-from core.engine.v2 import OCRServiceV2
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from schemas import (
     ClassificationSchema,
@@ -17,9 +16,6 @@ from schemas import (
     ExtractResponse,
     PrefilterRequest,
     PrefilterResponse,
-    SchemaSelectionError,
-    resolve_default_extraction_schemas,
-    to_classification_schemas,
 )
 
 from api.utils import (
@@ -28,13 +24,23 @@ from api.utils import (
     parse_json_list,
     parse_model_list,
     parse_schema_list,
-    validate_model_response,
+)
+from api.v2_operations import (
+    OCRV2Operations,
+    V2ClassifySegmentCommand,
+    V2ExtractCommand,
+    V2ExtractFullCommand,
+    V2ModelOptions,
+    V2PrefilterCommand,
+    v2_form_file_source,
+    v2_json_file_source,
 )
 
 health_router = APIRouter()
 ocr_router_v1 = APIRouter(prefix=f"{settings.API_PREFIX}/ocr", tags=["ocr-v1"])
 ocr_router_v2 = APIRouter(prefix=f"{settings.API_V2_PREFIX}/ocr", tags=["ocr-v2"])
 ocr_router_v2_form = APIRouter(prefix=f"{settings.API_V2_PREFIX}/ocr", tags=["ocr-v2-form"])
+OCR_V2_OPERATIONS = OCRV2Operations()
 
 
 @health_router.get("/health")
@@ -145,51 +151,6 @@ async def ocr_document(
         )
 
 
-def _resolve_v2_extraction_schemas(
-    *,
-    extraction_schemas: list[ExtractionSchema] | None = None,
-    document_codes: list[str] | None = None,
-    document_names: list[str] | None = None,
-) -> list[ExtractionSchema]:
-    if extraction_schemas:
-        return extraction_schemas
-
-    try:
-        return resolve_default_extraction_schemas(
-            document_codes=document_codes,
-            document_names=document_names,
-        )
-    except SchemaSelectionError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-def _resolve_v2_classification_schemas(
-    *,
-    extraction_schemas: list[ClassificationSchema] | None = None,
-    document_codes: list[str] | None = None,
-    document_names: list[str] | None = None,
-) -> list[ClassificationSchema]:
-    if extraction_schemas:
-        return extraction_schemas
-
-    schemas = _resolve_v2_extraction_schemas(
-        document_codes=document_codes,
-        document_names=document_names,
-    )
-    return to_classification_schemas(schemas)
-
-
-async def _get_v2_file_content_from_request(
-    request: PrefilterRequest | ClassifySegmentRequest | ExtractRequest | ExtractFullRequest,
-    operation: str,
-) -> tuple[bytes, str, str]:
-    return await get_file_content(
-        file_url=request.file_url,
-        file_data=request.file_data,
-        operation=operation,
-    )
-
-
 def _parse_optional_string_list(raw: str | None, field_name: str) -> list[str] | None:
     if not raw:
         return None
@@ -200,151 +161,19 @@ def _parse_optional_string_list(raw: str | None, field_name: str) -> list[str] |
     return values
 
 
-def _run_v2_classify_segment(
-    *,
-    service: OCRServiceV2,
-    file_bytes: bytes,
-    file_name: str,
-    mime_type: str,
-    extraction_schemas: list[ClassificationSchema],
-    model_name: str | None = None,
-    temperature: float | None = None,
-    top_p: float | None = None,
-    top_k: int | None = None,
-    max_output_tokens: int | None = None,
-    thinking_budget: int | None = None,
-    thinking_level: str | None = None,
-    log_prefix: str,
-) -> ClassifySegmentResponse:
-    result = service.run_classify_and_segment(
-        file_bytes=file_bytes,
-        file_name=file_name,
-        mime_type=mime_type,
-        extraction_schemas=extraction_schemas,
-        extract_all_documents=settings.OCR_EXTRACT_ALL_DOCUMENTS,
-        model_name=model_name,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        max_output_tokens=max_output_tokens,
-        thinking_budget=thinking_budget,
-        thinking_level=thinking_level,
-    )
-    return validate_model_response(
-        result=result,
-        response_model=ClassifySegmentResponse.model_validate,
-        log_prefix=log_prefix,
-    )
-
-
-def _run_v2_extract(
-    *,
-    service: OCRServiceV2,
-    file_bytes: bytes,
-    file_name: str,
-    mime_type: str,
-    documents: list[ClassifySegmentDocument],
-    extraction_schemas: list[ExtractionSchema],
-    extract_all_fields: bool = False,
-    model_name: str | None = None,
-    temperature: float | None = None,
-    top_p: float | None = None,
-    top_k: int | None = None,
-    max_output_tokens: int | None = None,
-    thinking_budget: int | None = None,
-    thinking_level: str | None = None,
-    log_prefix: str,
-) -> ExtractResponse:
-    result = service.extract_classified_documents(
-        file_bytes=file_bytes,
-        file_name=file_name,
-        mime_type=mime_type,
-        documents=documents,
-        extraction_schemas=extraction_schemas,
-        extract_all_fields=extract_all_fields,
-        model_name=model_name,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        max_output_tokens=max_output_tokens,
-        thinking_budget=thinking_budget,
-        thinking_level=thinking_level,
-    )
-    return validate_model_response(
-        result=result,
-        response_model=ExtractResponse.model_validate,
-        log_prefix=log_prefix,
-    )
-
-
-def _run_v2_extract_full(
-    *,
-    service: OCRServiceV2,
-    file_bytes: bytes,
-    file_name: str,
-    mime_type: str,
-    extraction_schemas: list[ExtractionSchema],
-    extract_all_fields: bool = False,
-    model_name: str | None = None,
-    temperature: float | None = None,
-    top_p: float | None = None,
-    top_k: int | None = None,
-    max_output_tokens: int | None = None,
-    thinking_budget: int | None = None,
-    thinking_level: str | None = None,
-    log_prefix: str,
-) -> ExtractResponse:
-    classification = _run_v2_classify_segment(
-        service=service,
-        file_bytes=file_bytes,
-        file_name=file_name,
-        mime_type=mime_type,
-        extraction_schemas=to_classification_schemas(extraction_schemas),
-        model_name=model_name,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        max_output_tokens=max_output_tokens,
-        thinking_budget=thinking_budget,
-        thinking_level=thinking_level,
-        log_prefix=log_prefix,
-    )
-    return _run_v2_extract(
-        service=service,
-        file_bytes=file_bytes,
-        file_name=file_name,
-        mime_type=mime_type,
-        documents=classification.documents,
-        extraction_schemas=extraction_schemas,
-        extract_all_fields=extract_all_fields,
-        model_name=model_name,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        max_output_tokens=max_output_tokens,
-        thinking_budget=thinking_budget,
-        thinking_level=thinking_level,
-        log_prefix=log_prefix,
-    )
-
-
 @ocr_router_v2.post(
     "/prefilter", response_model=PrefilterResponse, response_model_exclude_none=True
 )
 async def ocr_prefilter_v2(request: PrefilterRequest) -> PrefilterResponse:
     """Run v2 prefilter to check if a document is in scope."""
     async with handle_ocr_error("ocr_prefilter_v2"):
-        service = OCRServiceV2(api_key=request.api_key)
-        file_bytes, file_name, mime_type = await _get_v2_file_content_from_request(
-            request, "v2_json"
+        return await OCR_V2_OPERATIONS.prefilter(
+            V2PrefilterCommand(
+                source=v2_json_file_source(request),
+                api_key=request.api_key,
+                model_name=request.model_name,
+            )
         )
-        result = service.run_prefilter_only(
-            file_bytes=file_bytes,
-            file_name=file_name,
-            mime_type=mime_type,
-            model_name=request.model_name,
-        )
-        return PrefilterResponse.model_validate(result)
 
 
 @ocr_router_v2.post(
@@ -353,29 +182,15 @@ async def ocr_prefilter_v2(request: PrefilterRequest) -> PrefilterResponse:
 async def ocr_classify_segment_v2(request: ClassifySegmentRequest) -> ClassifySegmentResponse:
     """Run v2 phase 1 classification and segmentation."""
     async with handle_ocr_error("ocr_classify_segment_v2"):
-        service = OCRServiceV2(api_key=request.api_key)
-        file_bytes, file_name, mime_type = await _get_v2_file_content_from_request(
-            request, "v2_json"
-        )
-        extraction_schemas = _resolve_v2_classification_schemas(
-            extraction_schemas=request.extraction_schemas,
-            document_codes=request.document_codes,
-            document_names=request.document_names,
-        )
-        return _run_v2_classify_segment(
-            service=service,
-            file_bytes=file_bytes,
-            file_name=file_name,
-            mime_type=mime_type,
-            extraction_schemas=extraction_schemas,
-            model_name=request.model_name,
-            temperature=request.temperature,
-            top_p=request.top_p,
-            top_k=request.top_k,
-            max_output_tokens=request.max_output_tokens,
-            thinking_budget=request.thinking_budget,
-            thinking_level=request.thinking_level,
-            log_prefix="V2",
+        return await OCR_V2_OPERATIONS.classify_segment(
+            V2ClassifySegmentCommand(
+                source=v2_json_file_source(request),
+                extraction_schemas=request.extraction_schemas,
+                document_codes=request.document_codes,
+                document_names=request.document_names,
+                model_options=V2ModelOptions.from_payload(request),
+                api_key=request.api_key,
+            )
         )
 
 
@@ -383,31 +198,17 @@ async def ocr_classify_segment_v2(request: ClassifySegmentRequest) -> ClassifySe
 async def ocr_extract_v2(request: ExtractRequest) -> ExtractResponse:
     """Run v2 schema-driven multi-document extraction."""
     async with handle_ocr_error("ocr_extract_v2"):
-        service = OCRServiceV2(api_key=request.api_key)
-        file_bytes, file_name, mime_type = await _get_v2_file_content_from_request(
-            request, "v2_json"
-        )
-        extraction_schemas = _resolve_v2_extraction_schemas(
-            extraction_schemas=request.extraction_schemas,
-            document_codes=request.document_codes,
-            document_names=request.document_names,
-        )
-        return _run_v2_extract(
-            service=service,
-            file_bytes=file_bytes,
-            file_name=file_name,
-            mime_type=mime_type,
-            documents=request.documents,
-            extraction_schemas=extraction_schemas,
-            extract_all_fields=request.extract_all_fields,
-            model_name=request.model_name,
-            temperature=request.temperature,
-            top_p=request.top_p,
-            top_k=request.top_k,
-            max_output_tokens=request.max_output_tokens,
-            thinking_budget=request.thinking_budget,
-            thinking_level=request.thinking_level,
-            log_prefix="V2",
+        return await OCR_V2_OPERATIONS.extract(
+            V2ExtractCommand(
+                source=v2_json_file_source(request),
+                documents=request.documents,
+                extraction_schemas=request.extraction_schemas,
+                document_codes=request.document_codes,
+                document_names=request.document_names,
+                extract_all_fields=request.extract_all_fields,
+                model_options=V2ModelOptions.from_payload(request),
+                api_key=request.api_key,
+            )
         )
 
 
@@ -417,30 +218,16 @@ async def ocr_extract_v2(request: ExtractRequest) -> ExtractResponse:
 async def ocr_extract_full_v2(request: ExtractFullRequest) -> ExtractResponse:
     """Run v2 full classify-then-extract pipeline."""
     async with handle_ocr_error("ocr_extract_full_v2"):
-        service = OCRServiceV2(api_key=request.api_key)
-        file_bytes, file_name, mime_type = await _get_v2_file_content_from_request(
-            request, "v2_json"
-        )
-        extraction_schemas = _resolve_v2_extraction_schemas(
-            extraction_schemas=request.extraction_schemas,
-            document_codes=request.document_codes,
-            document_names=request.document_names,
-        )
-        return _run_v2_extract_full(
-            service=service,
-            file_bytes=file_bytes,
-            file_name=file_name,
-            mime_type=mime_type,
-            extraction_schemas=extraction_schemas,
-            extract_all_fields=request.extract_all_fields,
-            model_name=request.model_name,
-            temperature=request.temperature,
-            top_p=request.top_p,
-            top_k=request.top_k,
-            max_output_tokens=request.max_output_tokens,
-            thinking_budget=request.thinking_budget,
-            thinking_level=request.thinking_level,
-            log_prefix="V2 Full",
+        return await OCR_V2_OPERATIONS.extract_full(
+            V2ExtractFullCommand(
+                source=v2_json_file_source(request),
+                extraction_schemas=request.extraction_schemas,
+                document_codes=request.document_codes,
+                document_names=request.document_names,
+                extract_all_fields=request.extract_all_fields,
+                model_options=V2ModelOptions.from_payload(request),
+                api_key=request.api_key,
+            )
         )
 
 
@@ -472,39 +259,35 @@ async def ocr_extract_v2_form(
             if extraction_schemas
             else None
         )
-        resolved_schemas = _resolve_v2_extraction_schemas(
-            extraction_schemas=extraction_schemas_obj,
-            document_codes=_parse_optional_string_list(document_codes, "document_codes"),
-            document_names=_parse_optional_string_list(document_names, "document_names"),
-        )
         documents_obj = parse_model_list(
             documents,
             "documents",
             ClassifySegmentDocument.model_validate,
         )
-        service = OCRServiceV2(api_key=api_key)
-        file_bytes, file_name, mime_type = await get_file_content(
-            file=file,
-            file_url=file_url,
-            file_data=file_data,
-            operation="v2_form",
-        )
-        return _run_v2_extract(
-            service=service,
-            file_bytes=file_bytes,
-            file_name=file_name,
-            mime_type=mime_type,
-            documents=documents_obj,
-            extraction_schemas=resolved_schemas,
-            extract_all_fields=extract_all_fields,
-            model_name=model_name,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            max_output_tokens=max_output_tokens,
-            thinking_budget=thinking_budget,
-            thinking_level=thinking_level,
-            log_prefix="V2 Form",
+        return await OCR_V2_OPERATIONS.extract(
+            V2ExtractCommand(
+                source=v2_form_file_source(
+                    file=file,
+                    file_url=file_url,
+                    file_data=file_data,
+                ),
+                documents=documents_obj,
+                extraction_schemas=extraction_schemas_obj,
+                document_codes=_parse_optional_string_list(document_codes, "document_codes"),
+                document_names=_parse_optional_string_list(document_names, "document_names"),
+                extract_all_fields=extract_all_fields,
+                model_options=V2ModelOptions(
+                    model_name=model_name,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    max_output_tokens=max_output_tokens,
+                    thinking_budget=thinking_budget,
+                    thinking_level=thinking_level,
+                ),
+                api_key=api_key,
+                log_prefix="V2 Form",
+            )
         )
 
 
@@ -537,31 +320,26 @@ async def ocr_classify_segment_v2_form(
                 extraction_schemas,
                 ClassificationSchema.model_validate,
             )
-        resolved_schemas = _resolve_v2_classification_schemas(
-            extraction_schemas=extraction_schemas_obj,
-            document_codes=_parse_optional_string_list(document_codes, "document_codes"),
-            document_names=_parse_optional_string_list(document_names, "document_names"),
-        )
-
-        service = OCRServiceV2(api_key=api_key)
-        file_bytes, file_name, mime_type = await get_file_content(
-            file=file,
-            file_url=file_url,
-            file_data=file_data,
-            operation="v2_form",
-        )
-        return _run_v2_classify_segment(
-            service=service,
-            file_bytes=file_bytes,
-            file_name=file_name,
-            mime_type=mime_type,
-            extraction_schemas=resolved_schemas,
-            model_name=model_name,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            max_output_tokens=max_output_tokens,
-            thinking_budget=thinking_budget,
-            thinking_level=thinking_level,
-            log_prefix="V2 Form",
+        return await OCR_V2_OPERATIONS.classify_segment(
+            V2ClassifySegmentCommand(
+                source=v2_form_file_source(
+                    file=file,
+                    file_url=file_url,
+                    file_data=file_data,
+                ),
+                extraction_schemas=extraction_schemas_obj,
+                document_codes=_parse_optional_string_list(document_codes, "document_codes"),
+                document_names=_parse_optional_string_list(document_names, "document_names"),
+                model_options=V2ModelOptions(
+                    model_name=model_name,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    max_output_tokens=max_output_tokens,
+                    thinking_budget=thinking_budget,
+                    thinking_level=thinking_level,
+                ),
+                api_key=api_key,
+                log_prefix="V2 Form",
+            )
         )

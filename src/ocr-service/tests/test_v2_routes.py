@@ -2,6 +2,7 @@
 
 import api.routes as routes
 import pytest
+from api.v2_operations import OCRV2Operations
 from schemas import ClassifySegmentRequest, ExtractFullRequest, ExtractRequest
 
 
@@ -46,14 +47,20 @@ class FakeOCRServiceV2:
         }
 
 
-async def fake_file_content_from_request(request, operation):
+async def fake_file_loader(**kwargs):
     return b"%PDF-1.4", "claim.pdf", "application/pdf"
 
 
 @pytest.fixture
 def fake_v2_service(monkeypatch):
-    monkeypatch.setattr(routes, "OCRServiceV2", FakeOCRServiceV2)
-    monkeypatch.setattr(routes, "_get_v2_file_content_from_request", fake_file_content_from_request)
+    monkeypatch.setattr(
+        routes,
+        "OCR_V2_OPERATIONS",
+        OCRV2Operations(
+            engine_factory=FakeOCRServiceV2,
+            file_loader=fake_file_loader,
+        ),
+    )
     return FakeOCRServiceV2
 
 
