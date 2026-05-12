@@ -10,6 +10,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.13"
+  GEMINI_API_KEY: ci-test-gemini-key
 
 jobs:
   test:
