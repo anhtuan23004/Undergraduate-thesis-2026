@@ -4,7 +4,7 @@ from typing import Any
 
 from config import settings
 from graphs.claim_workflow import build_claim_workflow
-from persistence.mongodb_config import get_mongodb_client_kwargs, normalize_mongodb_url
+from mongodb_client import get_mongodb_client
 
 from services.ocr_pipeline import get_default_ocr_pipeline
 
@@ -17,13 +17,8 @@ async def get_graph() -> Any:
     if _compiled_graph is None:
         from agent import get_llm_client
         from langgraph.checkpoint.mongodb import MongoDBSaver
-        from pymongo import MongoClient
 
-        client = MongoClient(
-            normalize_mongodb_url(settings.MONGODB_URL),
-            **get_mongodb_client_kwargs(),
-        )
-        checkpointer = MongoDBSaver(client, db_name=settings.MONGODB_DB)
+        checkpointer = MongoDBSaver(get_mongodb_client(), db_name=settings.MONGODB_DB)
 
         _compiled_graph = build_claim_workflow(
             llm_client=get_llm_client(),
@@ -31,3 +26,9 @@ async def get_graph() -> Any:
             ocr_pipeline_provider=get_default_ocr_pipeline,
         )
     return _compiled_graph
+
+
+def reset_graph() -> None:
+    """Clear the cached compiled graph so shutdown cannot retain a closed client."""
+    global _compiled_graph
+    _compiled_graph = None
