@@ -8,6 +8,7 @@ from config import get_cors_origins, settings, validate_startup_config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mongodb_client import close_mongodb_client
+from services.graph_service import reset_graph
 
 logger = structlog.get_logger()
 
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Agent Service", app_name=app.title, version=settings.APP_VERSION)
     yield
     # Cleanup MongoDB connection on shutdown
+    reset_graph()
     close_mongodb_client()
     logger.info("Shutting down Agent Service")
 

@@ -14,9 +14,11 @@ def normalize_mongodb_url(mongo_url: str) -> str:
 
 
 def get_mongodb_client_kwargs() -> dict[str, int]:
-    """Return explicit PyMongo timeout options from settings."""
+    """Return explicit PyMongo connection options from settings."""
     return {
         "connectTimeoutMS": settings.MONGODB_CONNECT_TIMEOUT_MS,
         "serverSelectionTimeoutMS": settings.MONGODB_SERVER_SELECTION_TIMEOUT_MS,
         "socketTimeoutMS": settings.MONGODB_SOCKET_TIMEOUT_MS,
+        "maxPoolSize": settings.MONGODB_MAX_POOL_SIZE,
+        "minPoolSize": settings.MONGODB_MIN_POOL_SIZE,
     }

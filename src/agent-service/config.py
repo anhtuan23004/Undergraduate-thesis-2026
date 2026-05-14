@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     MONGODB_CONNECT_TIMEOUT_MS: int = 5000
     MONGODB_SERVER_SELECTION_TIMEOUT_MS: int = 5000
     MONGODB_SOCKET_TIMEOUT_MS: int = 20000
+    MONGODB_MAX_POOL_SIZE: int = 20
+    MONGODB_MIN_POOL_SIZE: int = 0
 
     MEDICINE_DB: str = "document_qa"
     OCR_SERVICE_URL: str = "http://localhost:8091"

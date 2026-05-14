@@ -6,6 +6,7 @@ import pytest
 from config import Settings, get_cors_origins, validate_startup_config
 from mongodb_client import close_mongodb_client, get_mongodb_client
 from persistence.mongodb_config import normalize_mongodb_url
+from services.graph_service import reset_graph
 
 
 def test_validate_startup_config_requires_core_env_in_non_debug() -> None:
@@ -76,7 +77,7 @@ def test_normalize_mongodb_url_adds_direct_connection_once() -> None:
     )
 
 
-def test_get_mongodb_client_uses_explicit_timeouts(monkeypatch) -> None:
+def test_get_mongodb_client_uses_explicit_connection_options(monkeypatch) -> None:
     captured = {}
 
     class FakeMongoClient:
@@ -92,6 +93,8 @@ def test_get_mongodb_client_uses_explicit_timeouts(monkeypatch) -> None:
     monkeypatch.setattr("mongodb_client.settings.MONGODB_CONNECT_TIMEOUT_MS", 111)
     monkeypatch.setattr("mongodb_client.settings.MONGODB_SERVER_SELECTION_TIMEOUT_MS", 222)
     monkeypatch.setattr("mongodb_client.settings.MONGODB_SOCKET_TIMEOUT_MS", 333)
+    monkeypatch.setattr("mongodb_client.settings.MONGODB_MAX_POOL_SIZE", 44)
+    monkeypatch.setattr("mongodb_client.settings.MONGODB_MIN_POOL_SIZE", 0)
     monkeypatch.setattr("mongodb_client._client", None)
     monkeypatch.setattr("mongodb_client._db", None)
 
@@ -104,7 +107,20 @@ def test_get_mongodb_client_uses_explicit_timeouts(monkeypatch) -> None:
             "connectTimeoutMS": 111,
             "serverSelectionTimeoutMS": 222,
             "socketTimeoutMS": 333,
+            "maxPoolSize": 44,
+            "minPoolSize": 0,
         },
     }
     assert close_mongodb_client() is None
     assert captured["closed"] is True
+
+
+def test_reset_graph_clears_cached_compiled_graph(monkeypatch) -> None:
+    sentinel = object()
+    monkeypatch.setattr("services.graph_service._compiled_graph", sentinel)
+
+    reset_graph()
+
+    from services import graph_service
+
+    assert graph_service._compiled_graph is None

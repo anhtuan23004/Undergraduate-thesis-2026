@@ -14,8 +14,11 @@
 # Quick Start:
 #   1. cp .env.example .env
 #   2. Edit .env with your GEMINI_API_KEY
-#   3. docker-compose up -d --build
-#   4. docker-compose logs -f
+#   3. docker compose up -d --build
+#   4. docker compose logs -f
+#
+# Requirements:
+#   - Docker Compose v2.20.0+ because this file uses top-level include.
 #
 # ============================================
 
@@ -28,15 +31,12 @@ services:
     build:
       context: ./src/ocr-service
       dockerfile: Dockerfile
-    container_name: claims-ocr-service
     restart: unless-stopped
     ports:
-      - "8001:8000"
-    env_file:
-      - .env
+      - "${OCR_SERVICE_PORT:-8001}:8000"
     environment:
       - PORT=8000
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?Set GEMINI_API_KEY in .env or shell}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
@@ -58,16 +58,13 @@ services:
     build:
       context: ./src/agent-service
       dockerfile: Dockerfile
-    container_name: claims-agent-service
     restart: unless-stopped
     ports:
-      - "8003:8000"
-    env_file:
-      - .env
+      - "${AGENT_SERVICE_PORT:-8003}:8000"
     environment:
       - MONGODB_URL=mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongodb:27017/claims?authSource=admin
-      - REDIS_URL=redis://redis:6379/0
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_URL=redis://:${REDIS_AUTH:-myredissecret}@redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?Set GEMINI_API_KEY in .env or shell}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
       - OCR_SERVICE_URL=http://ocr-service:8000
