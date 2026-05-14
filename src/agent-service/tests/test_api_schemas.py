@@ -7,16 +7,16 @@ data, and that typed constants stay consistent across modules.
 import pytest
 from api.errors import workflow_error
 from api.schemas import HumanReviewRequest, WorkflowErrorResponse
-from graphs.constants import (
-    SEVERITY_ESCALATION,
-    SEVERITY_ORDER,
-    SEVERITY_REVIEW_REQUIRED,
-)
 from pydantic import ValidationError
 from schemas.agent_outputs import (
     FinalDecisionOutput,
     HumanReviewResult,
     Issue,
+)
+from workflow.contracts import (
+    SEVERITY_ESCALATION,
+    SEVERITY_ORDER,
+    SEVERITY_REVIEW_REQUIRED,
 )
 
 # ---------------------------------------------------------------------------

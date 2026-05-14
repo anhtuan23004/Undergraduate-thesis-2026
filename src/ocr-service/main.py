@@ -2,13 +2,14 @@
 
 from api.routes import health_router, ocr_router_v1, ocr_router_v2, ocr_router_v2_form
 from core.config import settings
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from utils.logging import setup_logging
+from utils.logging import get_logger, setup_logging
 
 # Configure logging on module load
 setup_logging()
+logger = get_logger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -17,7 +18,10 @@ app = FastAPI(
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
     """Handle validation errors with simplified error messages.
 
     Args:
@@ -34,6 +38,7 @@ async def validation_exception_handler(request, exc: RequestValidationError) -> 
         errors.append(f"{field}: {message}")
 
     detail = errors[0] if len(errors) == 1 else errors if errors else "Validation error"
+    logger.warning("Request validation failed", extra={"path": request.url.path})
 
     return JSONResponse(
         status_code=422,

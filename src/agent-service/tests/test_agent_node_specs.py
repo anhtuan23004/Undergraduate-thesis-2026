@@ -9,9 +9,9 @@ from agents.node_specs import (
     agent_node_spec,
     review_stage_after_agent_result,
 )
-from graphs.workflow_policy import stage_policy
 from schemas.agent_outputs import AssessmentOutput, FinalDecisionOutput
 from schemas.verifier_outputs import VerifierOutput
+from workflow.policy import stage_policy
 
 
 def test_agent_node_specs_cover_current_roles():

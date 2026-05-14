@@ -4,15 +4,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from graphs.constants import (
+from pydantic import BaseModel
+from schemas.agent_outputs import AssessmentOutput, FinalDecisionOutput
+from schemas.verifier_outputs import VerifierOutput
+from workflow.contracts import (
     STAGE_COMPLETENESS,
     STAGE_FINAL,
     STAGE_NONE,
     STAGE_QUALITY,
 )
-from pydantic import BaseModel
-from schemas.agent_outputs import AssessmentOutput, FinalDecisionOutput
-from schemas.verifier_outputs import VerifierOutput
 
 from agents.prompt_builders import (
     build_completeness_prompt,
@@ -37,7 +37,7 @@ class AgentNodeSpec:
     display_name: str
     output_key: str
     schema_class: type[BaseModel]
-    prompt_builder: Callable[[dict[str, Any], str], str]
+    prompt_builder: Callable[[dict[str, Any]], str]
     active_stage: str
     review_stage_on_accept_with_edit: str = STAGE_NONE
 

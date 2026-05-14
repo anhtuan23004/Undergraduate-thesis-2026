@@ -7,13 +7,13 @@ from datetime import UTC, datetime
 from typing import Any
 
 from config import settings
-from graphs.workflow_policy import (
+from schemas.agent_outputs import HumanReviewResult
+from workflow.policy import (
     STAGE_POLICIES,
     StagePolicy,
     review_stage_from_state,
     stage_policy,
 )
-from schemas.agent_outputs import HumanReviewResult
 
 from services.graph_service import get_graph
 from services.workflow_state import build_workflow_response, extract_pause_state

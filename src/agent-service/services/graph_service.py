@@ -3,9 +3,10 @@
 from typing import Any
 
 from config import settings
-from graphs import build_claim_workflow
+from graphs.claim_workflow import build_claim_workflow
+from persistence.mongodb_config import get_mongodb_client_kwargs, normalize_mongodb_url
 
-from services.mongodb_config import get_mongodb_client_kwargs, normalize_mongodb_url
+from services.ocr_pipeline import get_default_ocr_pipeline
 
 _compiled_graph: Any = None
 
@@ -27,5 +28,6 @@ async def get_graph() -> Any:
         _compiled_graph = build_claim_workflow(
             llm_client=get_llm_client(),
             checkpointer=checkpointer,
+            ocr_pipeline_provider=get_default_ocr_pipeline,
         )
     return _compiled_graph

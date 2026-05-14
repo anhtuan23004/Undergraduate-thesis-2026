@@ -5,9 +5,6 @@ various agent results and human review decisions.
 """
 
 from graphs.routing import (
-    _get_decision_from_result,
-    _get_human_decision,
-    _review_stage_from_state,
     route_after_agent_review,
     route_after_completeness,
     route_after_completeness_review,
@@ -16,7 +13,13 @@ from graphs.routing import (
     route_after_quality,
     route_after_quality_review,
 )
-from graphs.workflow_policy import review_target_from_state, stage_policy
+from workflow.policy import (
+    decision_from_result,
+    human_decision_from_state,
+    review_stage_from_state,
+    review_target_from_state,
+    stage_policy,
+)
 
 
 class TestWorkflowPolicyMetadata:
@@ -68,42 +71,42 @@ class TestGetDecisionFromResult:
     def test_accept_decision(self):
         """Should return 'accept' when valid=True."""
         result = {"valid": True}
-        assert _get_decision_from_result(result) == "accept"
+        assert decision_from_result(result) == "accept"
 
     def test_explicit_accept(self):
         """Should return 'accept' when decision field is 'accept'."""
         result = {"decision": "accept"}
-        assert _get_decision_from_result(result) == "accept"
+        assert decision_from_result(result) == "accept"
 
     def test_explicit_reject(self):
         """Should return 'reject' when decision field is 'reject'."""
         result = {"decision": "reject"}
-        assert _get_decision_from_result(result) == "reject"
+        assert decision_from_result(result) == "reject"
 
     def test_explicit_accept_with_edit(self):
         """Should return 'accept_with_edit' when decision field is 'accept_with_edit'."""
         result = {"decision": "accept_with_edit"}
-        assert _get_decision_from_result(result) == "accept_with_edit"
+        assert decision_from_result(result) == "accept_with_edit"
 
     def test_reject_with_critical_issue(self):
         """Should return 'reject' when valid=False with critical issue."""
         result = {"valid": False, "issues": [{"severity": "critical", "code": "TEST"}]}
-        assert _get_decision_from_result(result) == "reject"
+        assert decision_from_result(result) == "reject"
 
     def test_reject_with_high_issue(self):
         """Should return 'reject' when valid=False with high issue."""
         result = {"valid": False, "issues": [{"severity": "high", "code": "TEST"}]}
-        assert _get_decision_from_result(result) == "reject"
+        assert decision_from_result(result) == "reject"
 
     def test_accept_with_edit_with_low_issue(self):
         """Should return 'accept_with_edit' when valid=False with only low issues."""
         result = {"valid": False, "issues": [{"severity": "low", "code": "TEST"}]}
-        assert _get_decision_from_result(result) == "accept_with_edit"
+        assert decision_from_result(result) == "accept_with_edit"
 
     def test_accept_with_edit_with_medium_issue(self):
         """Should return 'accept_with_edit' when valid=False with only medium issues."""
         result = {"valid": False, "issues": [{"severity": "medium", "code": "TEST"}]}
-        assert _get_decision_from_result(result) == "accept_with_edit"
+        assert decision_from_result(result) == "accept_with_edit"
 
     def test_reject_with_low_and_critical_issue(self):
         """Should return 'reject' when any issue is critical."""
@@ -114,12 +117,12 @@ class TestGetDecisionFromResult:
                 {"severity": "critical", "code": "TEST2"},
             ],
         }
-        assert _get_decision_from_result(result) == "reject"
+        assert decision_from_result(result) == "reject"
 
     def test_empty_result(self):
         """Should return 'reject' when result is empty/None."""
-        assert _get_decision_from_result({}) == "reject"
-        assert _get_decision_from_result(None) == "reject"
+        assert decision_from_result({}) == "reject"
+        assert decision_from_result(None) == "reject"
 
 
 class TestGetHumanDecision:
@@ -128,27 +131,27 @@ class TestGetHumanDecision:
     def test_approve(self):
         """Should return 'approve' when decision is 'approve'."""
         state = {"human_review_result": {"decision": "approve"}}
-        assert _get_human_decision(state) == "approve"
+        assert human_decision_from_state(state) == "approve"
 
     def test_reject(self):
         """Should return 'reject' when decision is 'reject'."""
         state = {"human_review_result": {"decision": "reject"}}
-        assert _get_human_decision(state) == "reject"
+        assert human_decision_from_state(state) == "reject"
 
     def test_edit(self):
         """Should return 'edit' when decision is 'edit'."""
         state = {"human_review_result": {"decision": "edit"}}
-        assert _get_human_decision(state) == "edit"
+        assert human_decision_from_state(state) == "edit"
 
     def test_no_human_review_result(self):
         """Should return 'reject' when human_review_result is missing."""
         state = {}
-        assert _get_human_decision(state) == "reject"
+        assert human_decision_from_state(state) == "reject"
 
     def test_empty_human_review_result(self):
         """Should return 'reject' when human_review_result is empty."""
         state = {"human_review_result": {}}
-        assert _get_human_decision(state) == "reject"
+        assert human_decision_from_state(state) == "reject"
 
 
 class TestRouteAfterCompleteness:
@@ -395,14 +398,14 @@ class TestReviewStageFromState:
     def test_explicit_review_stage_wins(self):
         state = {"review_stage": "completeness", "current_step": "agent_reviewed_quality"}
 
-        assert _review_stage_from_state(state) == "completeness"
+        assert review_stage_from_state(state) == "completeness"
 
     def test_legacy_current_step_fallback(self):
         state = {"current_step": "agent_reviewed_quality"}
 
-        assert _review_stage_from_state(state) == "quality"
+        assert review_stage_from_state(state) == "quality"
 
     def test_final_result_fallback(self):
         state = {"final_result": {"decision": "approve"}}
 
-        assert _review_stage_from_state(state) == "final"
+        assert review_stage_from_state(state) == "final"

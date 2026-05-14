@@ -3,24 +3,23 @@
 from dataclasses import dataclass
 from typing import Any
 
-from graphs.constants import (
+from workflow.contracts import (
     AGENT_REVIEW,
     COMPLETENESS_CHECK,
     END,
     FINAL_DECISION,
     HUMAN_REVIEW,
     OCR_EXTRACTION,
+    OCR_STAGE_PHASE1_CLASSIFIED,
+    OCR_STAGE_PHASE2_EXTRACTED,
     QUALITY_CHECK,
     SEVERITY_ESCALATION,
     STAGE_COMPLETENESS,
     STAGE_FINAL,
     STAGE_NONE,
     STAGE_QUALITY,
+    GraphState,
 )
-from graphs.state import GraphState
-
-OCR_STAGE_PHASE1_CLASSIFIED = "phase1_classified"
-OCR_STAGE_PHASE2_EXTRACTED = "phase2_extracted"
 
 VALID_AGENT_DECISIONS = frozenset({"accept", "reject", "accept_with_edit"})
 

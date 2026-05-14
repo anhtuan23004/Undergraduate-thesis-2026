@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from config import Settings, get_cors_origins, validate_startup_config
 from mongodb_client import close_mongodb_client, get_mongodb_client
-from services.mongodb_config import normalize_mongodb_url
+from persistence.mongodb_config import normalize_mongodb_url
 
 
 def test_validate_startup_config_requires_core_env_in_non_debug() -> None:

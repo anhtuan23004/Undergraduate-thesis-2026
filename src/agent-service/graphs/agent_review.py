@@ -15,15 +15,14 @@ from typing import Any
 import structlog
 from agents.factory import VerifierAgentFactory
 from config import settings
-
-from graphs.constants import (
+from workflow.contracts import (
     SEVERITY_REVIEW_REQUIRED,
     STAGE_NONE,
     STATUS_RUNNING,
     STATUS_WAITING_HUMAN,
+    GraphState,
 )
-from graphs.state import GraphState
-from graphs.workflow_policy import (
+from workflow.policy import (
     active_stage_after_auto_review,
     review_target_from_state,
 )

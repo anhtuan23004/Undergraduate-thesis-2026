@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from graphs.constants import (
+from workflow.contracts import (
     HUMAN_REVIEW,
     STAGE_COMPLETENESS,
     STAGE_NONE,
@@ -11,9 +11,9 @@ from graphs.constants import (
     STATUS_PAUSED,
     STATUS_RUNNING,
     STATUS_WAITING_HUMAN,
+    GraphState,
 )
-from graphs.state import GraphState
-from graphs.workflow_policy import review_stage_from_state
+from workflow.policy import review_stage_from_state
 
 
 def extract_pause_state(snapshot: Any) -> tuple[bool, bool, str | None]:

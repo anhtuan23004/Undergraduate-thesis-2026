@@ -20,8 +20,7 @@ def test_completeness_prompt_includes_claim_context_and_history():
                 "documents": [{"document_code": "invoice"}],
             },
             "history": [{"step": "ocr", "agent": "System"}],
-        },
-        "CompletenessAgent",
+        }
     )
 
     assert "CLAIM-001" in prompt
@@ -41,8 +40,7 @@ def test_decision_prompt_uses_agent_results_not_raw_ocr():
             "agent_1_result": {"decision": "accept"},
             "agent_2_result": {"decision": "reject"},
             "extracted_documents": {"raw": "should not be included"},
-        },
-        "FinalAgent",
+        }
     )
 
     assert "<completeness_result>" in prompt
@@ -59,8 +57,7 @@ def test_verifier_prompt_selects_completeness_result_from_current_step():
             "agent_1_result": {"decision": "reject", "evidence": {"missing": ["invoice"]}},
             "agent_2_result": {"decision": "accept"},
             "extracted_documents": {},
-        },
-        "VerifierAgent",
+        }
     )
 
     assert '"missing"' in prompt
@@ -77,8 +74,7 @@ def test_verifier_prompt_prefers_explicit_review_stage():
             "agent_1_result": {"decision": "reject", "evidence": {"missing": ["invoice"]}},
             "agent_2_result": {"decision": "accept"},
             "extracted_documents": {},
-        },
-        "VerifierAgent",
+        }
     )
 
     assert '"missing"' in prompt
