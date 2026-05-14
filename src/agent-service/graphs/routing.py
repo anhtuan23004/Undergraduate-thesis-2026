@@ -1,28 +1,16 @@
 """Routing functions for the multi-agent workflow graph."""
 
-from graphs.constants import HUMAN_REVIEW, STAGE_COMPLETENESS, STAGE_QUALITY
-from graphs.state import GraphState
-from graphs.workflow_policy import (
-    decision_from_result,
-    human_decision_from_state,
+import structlog
+from workflow.contracts import HUMAN_REVIEW, STAGE_COMPLETENESS, STAGE_QUALITY, GraphState
+from workflow.policy import (
     next_after_agent_review,
     next_after_human_review,
     next_after_human_stage_review,
     next_after_ocr_extraction,
-    next_after_stage_accept,
     next_after_stage_assessment,
-    review_stage_from_state,
-    stage_policy,
 )
 
-_get_decision_from_result = decision_from_result
-_get_human_decision = human_decision_from_state
-_review_stage_from_state = review_stage_from_state
-
-
-def _route_after_completeness_success(state: GraphState) -> str:
-    """Route successful completeness based on the available OCR stage."""
-    return next_after_stage_accept(state, stage_policy(STAGE_COMPLETENESS))
+logger = structlog.get_logger(__name__)
 
 
 def route_after_completeness(state: GraphState) -> str:
@@ -71,6 +59,7 @@ def route_after_final_review(state: GraphState) -> str:
     # WHY: FinalDecisionOutput.decision is Literal["approve", "reject"].
     # No "edit" branch exists for the final agent — all results require
     # human sign-off before the workflow can complete.
+    logger.debug("Routing final decision to human review", claim_id=state.get("claim_id"))
     return HUMAN_REVIEW
 
 

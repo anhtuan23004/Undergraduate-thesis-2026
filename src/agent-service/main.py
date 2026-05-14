@@ -16,7 +16,7 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     validate_startup_config()
-    logger.info("Starting Agent Service", version=settings.APP_VERSION)
+    logger.info("Starting Agent Service", app_name=app.title, version=settings.APP_VERSION)
     yield
     # Cleanup MongoDB connection on shutdown
     close_mongodb_client()

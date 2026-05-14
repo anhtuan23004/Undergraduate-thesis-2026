@@ -9,16 +9,21 @@ from agents.factory import CompletenessAgentFactory, VerifierAgentFactory
 @dataclass
 class Message:
     content: object
+    usage_metadata: dict | None = None
+    tool_calls: list[dict] | None = None
+    type: str = ""
+    name: str | None = None
 
 
 class FakeLLMClient:
-    def __init__(self, content: str) -> None:
+    def __init__(self, content: str, messages: list[Message] | None = None) -> None:
         self.content = content
+        self.messages = messages
         self.calls = []
 
     async def invoke_agent(self, **kwargs):
         self.calls.append(kwargs)
-        return {"messages": [Message(content=self.content)]}
+        return {"messages": self.messages or [Message(content=self.content)]}
 
 
 @pytest.fixture(autouse=True)
@@ -48,7 +53,25 @@ async def test_completeness_agent_node_uses_spec_metadata(isolate_factory_depend
           "message": "Cần sửa hồ sơ",
           "confidence_score": 0.72
         }
-        """
+        """,
+        messages=[
+            Message(
+                content="",
+                usage_metadata={"input_tokens": 10, "output_tokens": 2, "total_tokens": 12},
+                tool_calls=[{"name": "check-icd"}],
+            ),
+            Message(
+                content="""
+                {
+                  "valid": false,
+                  "decision": "accept_with_edit",
+                  "issues": [],
+                  "message": "Cần sửa hồ sơ",
+                  "confidence_score": 0.72
+                }
+                """
+            ),
+        ],
     )
     node = CompletenessAgentFactory(llm).create_completeness_agent()
 
@@ -67,6 +90,14 @@ async def test_completeness_agent_node_uses_spec_metadata(isolate_factory_depend
     assert result["active_stage"] == "completeness"
     assert result["review_stage"] == "completeness"
     assert result["workflow_status"] == "running"
+    assert result["history"][0]["token_usage"] == {
+        "prompt_tokens": 10,
+        "completion_tokens": 2,
+        "token_usage": 12,
+        "token_usage_source": "provider_metadata",
+        "llm_call_count": 1,
+    }
+    assert result["history"][0]["called_tools"] == ["check-icd"]
     assert llm.calls[0]["trace_name"] == "CompletenessAgent_claim-1"
     assert llm.calls[0]["metadata"] == {
         "run_id": "run-1",

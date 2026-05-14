@@ -12,13 +12,12 @@ All routing logic lives in the conditional edge (route_after_human_review).
 from typing import Any
 
 import structlog
-
-from graphs.constants import (
+from workflow.contracts import (
     STAGE_NONE,
     STATUS_RUNNING,
+    GraphState,
 )
-from graphs.state import GraphState
-from graphs.workflow_policy import STAGE_POLICIES, stage_policy
+from workflow.policy import STAGE_POLICIES, stage_policy
 
 logger = structlog.get_logger()
 

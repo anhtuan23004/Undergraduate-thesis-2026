@@ -3,17 +3,17 @@
 import json
 from typing import Any
 
-from graphs.workflow_policy import review_target_from_state
+from workflow.policy import review_target_from_state
 
 
-def build_base_prompt(state: dict[str, Any], _agent_name: str) -> str:
+def build_base_prompt(state: dict[str, Any]) -> str:
     """Build a minimal fallback prompt."""
     claim_id = state.get("claim_id", "N/A")
     policy_number = state.get("policy_number", "N/A")
     return f"Process claim {claim_id} for policy {policy_number}"
 
 
-def build_completeness_prompt(state: dict[str, Any], _agent_name: str) -> str:
+def build_completeness_prompt(state: dict[str, Any]) -> str:
     """Build prompt for the completeness agent."""
     claim_id = state.get("claim_id", "N/A")
     policy_number = state.get("policy_number", "N/A")
@@ -33,7 +33,7 @@ def build_completeness_prompt(state: dict[str, Any], _agent_name: str) -> str:
     )
 
 
-def build_quality_prompt(state: dict[str, Any], _agent_name: str) -> str:
+def build_quality_prompt(state: dict[str, Any]) -> str:
     """Build prompt for the medical quality agent."""
     claim_id = state.get("claim_id", "N/A")
     policy_number = state.get("policy_number", "N/A")
@@ -46,7 +46,7 @@ def build_quality_prompt(state: dict[str, Any], _agent_name: str) -> str:
     )
 
 
-def build_decision_prompt(state: dict[str, Any], _agent_name: str) -> str:
+def build_decision_prompt(state: dict[str, Any]) -> str:
     """Build prompt for the final decision agent."""
     claim_id = state.get("claim_id", "N/A")
     policy_number = state.get("policy_number", "N/A")
@@ -62,7 +62,7 @@ def build_decision_prompt(state: dict[str, Any], _agent_name: str) -> str:
     )
 
 
-def build_verifier_prompt(state: dict[str, Any], _agent_name: str) -> str:
+def build_verifier_prompt(state: dict[str, Any]) -> str:
     """Build prompt for the skeptical verifier agent."""
     claim_id = state.get("claim_id", "N/A")
     input_file = state.get("input_file", "N/A")

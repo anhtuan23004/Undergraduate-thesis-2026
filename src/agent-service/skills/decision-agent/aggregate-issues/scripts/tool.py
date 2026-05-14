@@ -36,7 +36,7 @@ def aggregate_issues(  # noqa: C901
         if "issues" in completeness_result:
             completeness_issues = completeness_result["issues"]
         elif isinstance(completeness_result, dict):
-            for _key, value in completeness_result.items():
+            for value in completeness_result.values():
                 if isinstance(value, dict) and "issues" in value:
                     completeness_issues.extend(value["issues"])
 
@@ -44,7 +44,7 @@ def aggregate_issues(  # noqa: C901
         if "issues" in quality_result:
             quality_issues = quality_result["issues"]
         elif isinstance(quality_result, dict):
-            for _key, value in quality_result.items():
+            for value in quality_result.values():
                 if isinstance(value, dict) and "issues" in value:
                     quality_issues.extend(value["issues"])
 

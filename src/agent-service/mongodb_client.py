@@ -1,10 +1,10 @@
 """MongoDB client utility with singleton pattern."""
 
 from config import settings
+from persistence.mongodb_config import get_mongodb_client_kwargs, normalize_mongodb_url
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
-from services.mongodb_config import get_mongodb_client_kwargs, normalize_mongodb_url
 
 _client: MongoClient | None = None
 _db: Database | None = None

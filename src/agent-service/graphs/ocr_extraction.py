@@ -1,20 +1,62 @@
 """OCR phase 2 extraction graph node."""
 
-import structlog
-from services.ocr_pipeline import OCR_STAGE_PHASE2, get_default_ocr_pipeline
+from collections.abc import Callable
+from typing import Any
 
-from graphs.constants import STAGE_FINAL, STAGE_NONE, STAGE_QUALITY, STATUS_RUNNING
-from graphs.state import GraphState
+import structlog
+from workflow.contracts import (
+    OCR_STAGE_PHASE2_EXTRACTED,
+    STAGE_FINAL,
+    STAGE_NONE,
+    STAGE_QUALITY,
+    STATUS_RUNNING,
+    GraphState,
+)
 
 logger = structlog.get_logger(__name__)
+
+_CLASSIFICATION_KEYS = (
+    "document_code",
+    "document_name",
+    "suggested_document_code",
+    "suggested_document_name",
+    "start_page",
+    "end_page",
+)
+
+
+def get_default_ocr_pipeline() -> Any:
+    """Return the configured OCR pipeline provider.
+
+    Production injects the provider when compiling the graph. Tests may
+    monkeypatch this compatibility function directly.
+    """
+    raise RuntimeError("OCR pipeline provider has not been configured")
+
+
+def create_ocr_extraction_node(pipeline_provider: Callable[[], Any]) -> Callable:
+    """Create an OCR extraction node bound to a concrete OCR pipeline provider."""
+
+    async def ocr_extraction_node(state: GraphState) -> dict:
+        return await _run_ocr_extraction(state, pipeline_provider())
+
+    return ocr_extraction_node
 
 
 async def run_ocr_extraction(state: GraphState) -> dict:
     """Extract structured fields after Completeness Agent approves Phase 1."""
+    try:
+        pipeline = get_default_ocr_pipeline()
+    except RuntimeError:
+        pipeline = None
+    return await _run_ocr_extraction(state, pipeline)
+
+
+async def _run_ocr_extraction(state: GraphState, pipeline: Any) -> dict:
+    """Extract structured fields with an injected OCR pipeline."""
     logger.info("Executing OCR extraction node", claim_id=state.get("claim_id"))
     extracted_docs = state.get("extracted_documents", {})
-    pipeline = get_default_ocr_pipeline()
-    phase1_documents = pipeline.phase2_input_documents(extracted_docs)
+    phase1_documents = _phase2_input_documents(extracted_docs, pipeline)
 
     try:
         if not phase1_documents:
@@ -33,7 +75,7 @@ async def run_ocr_extraction(state: GraphState) -> dict:
 
         return {
             "extracted_documents": phase2_result,
-            "ocr_stage": OCR_STAGE_PHASE2,
+            "ocr_stage": OCR_STAGE_PHASE2_EXTRACTED,
             "history": [
                 {
                     "step": "ocr_extraction",
@@ -89,3 +131,13 @@ async def run_ocr_extraction(state: GraphState) -> dict:
             "review_stage": STAGE_NONE,
             "workflow_status": STATUS_RUNNING,
         }
+
+
+def _phase2_input_documents(extracted_documents: dict, pipeline: Any) -> list[dict]:
+    if hasattr(pipeline, "phase2_input_documents"):
+        return pipeline.phase2_input_documents(extracted_documents)
+    return [
+        {key: doc[key] for key in _CLASSIFICATION_KEYS if key in doc}
+        for doc in extracted_documents.get("documents", [])
+        if isinstance(doc, dict)
+    ]

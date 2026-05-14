@@ -4,13 +4,15 @@ from collections.abc import Callable
 from typing import Any
 
 import structlog
-from graphs.constants import STATUS_RUNNING
 from tools.skill_loader import load_agent_skills
+from workflow.contracts import STATUS_RUNNING
 
 from agents.audit import save_agent_audit_log
 from agents.helpers import (
     create_agent_error_state,
     create_history_entry,
+    extract_called_tools,
+    extract_token_usage,
     load_system_prompt,
 )
 from agents.node_specs import (
@@ -45,7 +47,7 @@ class AgentFactory:
 
         async def agent_node(state: dict) -> dict:
             logger.info(f"Executing agent node: {spec.display_name}")
-            prompt = spec.prompt_builder(state, spec.display_name)
+            prompt = spec.prompt_builder(state)
 
             try:
                 raw_result = await self.llm_client.invoke_agent(
@@ -78,6 +80,8 @@ class AgentFactory:
                     prompt=prompt,
                     result=parsed_result,
                     step=spec.skill_name,
+                    called_tools=extract_called_tools(raw_result),
+                    token_usage=extract_token_usage(raw_result),
                 )
 
                 await save_agent_audit_log(

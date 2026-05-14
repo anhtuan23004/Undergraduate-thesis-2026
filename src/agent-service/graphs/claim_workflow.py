@@ -1,5 +1,6 @@
 """Main claim processing workflow (LangGraph)."""
 
+from collections.abc import Callable
 from typing import Any
 
 import structlog
@@ -8,8 +9,7 @@ from config import settings
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END as LANGGRAPH_END
 from langgraph.graph import StateGraph
-
-from graphs.constants import (
+from workflow.contracts import (
     AGENT_REVIEW,
     COMPLETENESS_CHECK,
     END,
@@ -17,7 +17,10 @@ from graphs.constants import (
     HUMAN_REVIEW,
     OCR_EXTRACTION,
     QUALITY_CHECK,
+    GraphState,
 )
+
+from graphs.ocr_extraction import create_ocr_extraction_node, run_ocr_extraction
 from graphs.routing import (
     route_after_agent_review,
     route_after_completeness,
@@ -26,7 +29,6 @@ from graphs.routing import (
     route_after_ocr_extraction,
     route_after_quality,
 )
-from graphs.state import GraphState
 
 logger = structlog.get_logger()
 
@@ -34,6 +36,7 @@ logger = structlog.get_logger()
 def build_claim_workflow(
     llm_client: Any,
     checkpointer: Any = None,
+    ocr_pipeline_provider: Callable[[], Any] | None = None,
 ) -> StateGraph:
     """Build the claim processing graph.
 
@@ -51,9 +54,12 @@ def build_claim_workflow(
     workflow = StateGraph(GraphState)
 
     workflow.add_node(COMPLETENESS_CHECK, c_factory.create_completeness_agent())
-    from graphs.ocr_extraction import run_ocr_extraction
-
-    workflow.add_node(OCR_EXTRACTION, run_ocr_extraction)
+    ocr_node = (
+        create_ocr_extraction_node(ocr_pipeline_provider)
+        if ocr_pipeline_provider
+        else run_ocr_extraction
+    )
+    workflow.add_node(OCR_EXTRACTION, ocr_node)
     workflow.add_node(QUALITY_CHECK, q_factory.create_quality_agent())
     workflow.add_node(FINAL_DECISION, d_factory.create_decision_agent())
 

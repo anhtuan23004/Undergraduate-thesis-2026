@@ -1,6 +1,6 @@
 """LangGraph workflow definitions."""
 
-from graphs.state import GraphState
+from workflow.contracts import GraphState
 
 __all__ = ["GraphState", "build_claim_workflow"]
 
