@@ -3,6 +3,7 @@ import requests
 from eval.batch_run import (
     _raise_for_status,
     extract_routing_path,
+    extract_token_usage,
     initialize_history,
     save_history,
     save_result,
@@ -26,8 +27,26 @@ def test_workflow_response_to_result_normalizes_final_decision_and_outputs():
         "pending_human_review": True,
         "paused": True,
         "history": [
-            {"agent": "CompletenessAgent", "step": "completeness_agent"},
-            {"agent": "QualityAgent", "step": "quality_agent"},
+            {
+                "agent": "CompletenessAgent",
+                "step": "completeness_agent",
+                "token_usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 2,
+                    "token_usage": 12,
+                    "token_usage_source": "provider_metadata",
+                },
+            },
+            {
+                "agent": "QualityAgent",
+                "step": "quality_agent",
+                "token_usage": {
+                    "prompt_tokens": 20,
+                    "completion_tokens": 4,
+                    "token_usage": 24,
+                    "token_usage_source": "provider_metadata",
+                },
+            },
             {"agent": "DecisionAgent", "step": "decision_agent"},
         ],
     }
@@ -39,6 +58,10 @@ def test_workflow_response_to_result_normalizes_final_decision_and_outputs():
     assert result.agent_outputs["CompletenessAgent"] == {"decision": "accept"}
     assert result.routing_path == ["completeness_check", "quality_check", "final_decision"]
     assert result.human_reviewed is True
+    assert result.prompt_tokens == 30
+    assert result.completion_tokens == 6
+    assert result.token_usage == 36
+    assert result.token_usage_source == "provider_metadata"
 
 
 def test_workflow_response_marks_missing_final_decision_as_needs_review_when_paused():
@@ -66,6 +89,44 @@ def test_extract_routing_path_adds_pause_node_once():
     )
 
     assert path == ["completeness_check", "quality_check", "human_review"]
+
+
+def test_extract_token_usage_sums_provider_metadata_history_entries():
+    usage = extract_token_usage(
+        [
+            {
+                "token_usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 2,
+                    "token_usage": 3,
+                    "token_usage_source": "provider_metadata",
+                }
+            },
+            {
+                "token_usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 200,
+                    "token_usage": 300,
+                    "token_usage_source": "char_estimate",
+                }
+            },
+            {
+                "token_usage": {
+                    "prompt_tokens": 4,
+                    "completion_tokens": 5,
+                    "token_usage": 9,
+                    "token_usage_source": "provider_metadata",
+                }
+            },
+        ]
+    )
+
+    assert usage == {
+        "prompt_tokens": 5,
+        "completion_tokens": 7,
+        "token_usage": 12,
+        "token_usage_source": "provider_metadata",
+    }
 
 
 def test_history_tracks_claim_states(tmp_path):
@@ -156,6 +217,31 @@ def test_no_upload_flag_is_deprecated_noop_for_current_agent_service_contract():
     assert cli_args.deprecated_no_upload is True
     assert batch_args.upload is True
     assert batch_args.deprecated_no_upload is True
+
+
+def test_clean_ground_truth_cli_defaults_to_dataset_manifest():
+    args = build_cli_parser().parse_args(["clean-ground-truth"])
+
+    assert args.command == "clean-ground-truth"
+    assert str(args.ground_truth).endswith("eval/dataset/ground_truth.json")
+    assert args.output is None
+
+
+def test_run_baseline_cli_defaults_to_single_agent_results():
+    args = build_cli_parser().parse_args(["run-baseline", "--dry-run", "--limit", "2"])
+
+    assert args.command == "run-baseline"
+    assert str(args.results_dir).endswith("eval/results/single_agent_claims")
+    assert args.dry_run is True
+    assert args.limit == 2
+
+
+def test_label_reference_cli_uses_gemini_31_pro_preview_by_default():
+    args = build_cli_parser().parse_args(["label-reference", "--dry-run", "--limit", "1"])
+
+    assert args.command == "label-reference"
+    assert args.model == "gemini-3.1-pro-preview"
+    assert str(args.output).endswith("eval/results/reviewed_labels.json")
 
 
 def test_http_error_includes_agent_service_detail():

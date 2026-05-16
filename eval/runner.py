@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from eval.json_utils import write_json_file
 from eval.metrics import (
     compute_completeness_accuracy,
     compute_f1_scores,
@@ -31,6 +32,7 @@ from eval.paths import (
     GROUND_TRUTH,
     REPORT_FIGURES_DIR,
     RESULTS_DIR,
+    RQ_REPORT,
 )
 from eval.schemas import ExperimentResult, get_expected_tools, normalize_final_decision
 
@@ -82,6 +84,11 @@ def _result_from_csv_row(row: dict[str, str]) -> ExperimentResult:
         called_tools_by_agent=_json_dict(row.get("called_tools_by_agent", "")),
         latency_ms=float(row.get("latency_ms") or 0.0),
         token_usage=int(float(row.get("token_usage") or 0)),
+        prompt_tokens=int(float(row.get("prompt_tokens") or 0)),
+        completion_tokens=int(float(row.get("completion_tokens") or 0)),
+        token_usage_source=row.get("token_usage_source", ""),
+        model_name=row.get("model_name", ""),
+        ocr_cache_key=row.get("ocr_cache_key", ""),
         langfuse_trace_id=row.get("langfuse_trace_id", ""),
         human_reviewed=row.get("human_reviewed", "").lower() == "true",
         human_override=row.get("human_override", "").lower() == "true",
@@ -124,6 +131,11 @@ def save_claim_level_csv(
         "called_tools_by_agent",
         "latency_ms",
         "token_usage",
+        "prompt_tokens",
+        "completion_tokens",
+        "token_usage_source",
+        "model_name",
+        "ocr_cache_key",
         "langfuse_trace_id",
         "human_reviewed",
         "human_override",
@@ -180,8 +192,7 @@ def _suggestion_from_result(result: ExperimentResult) -> dict[str, Any]:
 
 
 def _write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json_file(path, payload)
 
 
 def summarize(
@@ -260,27 +271,44 @@ def summarize(
             mode_summary["decision"] = compute_f1_scores(y_true, y_pred)
             mode_summary["completeness"] = compute_completeness_accuracy(
                 [labels_by_id[r.claim_id].get("expected_missing_docs", []) for r in comparable],
-                [_extract_issue_codes(r, "missing_docs") for r in comparable],
+                [
+                    _extract_issue_codes_from_agent(r, "CompletenessAgent", "missing_docs")
+                    for r in comparable
+                ],
             )
             mode_summary["quality_issues"] = compute_set_f1(
                 [labels_by_id[r.claim_id].get("expected_quality_issues", []) for r in comparable],
-                [_extract_issue_codes(r, "quality_issues") for r in comparable],
+                [
+                    _extract_issue_codes_from_agent(r, "QualityAgent", "quality_issues")
+                    for r in comparable
+                ],
             )
             mode_summary["icd_detection"] = compute_set_f1(
                 [labels_by_id[r.claim_id].get("expected_icd_codes", []) for r in comparable],
-                [_extract_list(r, "icd_codes") for r in comparable],
+                [_extract_list_from_agent(r, "QualityAgent", "icd_codes") for r in comparable],
+            )
+            mode_summary["medication_detection"] = _labelled_set_metric(
+                [labels_by_id[r.claim_id].get("expected_medications") for r in comparable],
+                [_extract_list_from_agent(r, "QualityAgent", "medications") for r in comparable],
             )
             mode_summary["exclusion_detection"] = compute_set_f1(
                 [labels_by_id[r.claim_id].get("expected_exclusions", []) for r in comparable],
-                [_extract_list(r, "exclusions") for r in comparable],
+                [_extract_list_from_agent(r, "QualityAgent", "exclusions") for r in comparable],
+            )
+            mode_summary["consistency_issues"] = _labelled_set_metric(
+                [labels_by_id[r.claim_id].get("expected_consistency_issues") for r in comparable],
+                [
+                    _extract_issue_codes_from_agent(r, "QualityAgent", "consistency_issues")
+                    for r in comparable
+                ],
             )
             mode_summary["routing_accuracy"] = compute_path_accuracy(
                 [labels_by_id[r.claim_id].get("expected_routing_path", []) for r in comparable],
                 [r.routing_path for r in comparable],
             )
             expected_tools, called_tools = _tool_vectors(comparable, labels_by_id)
-            mode_summary["tool_usage"] = compute_tool_f1(expected_tools, called_tools)
-            mode_summary["invalid_tool_call_rate"] = compute_invalid_tool_call_rate(
+            mode_summary["tool_usage"] = _tool_usage_summary(expected_tools, called_tools)
+            mode_summary["invalid_tool_call_rate"] = _invalid_tool_call_rate(
                 expected_tools, called_tools
             )
             mode_summary["tool_failure_rate"] = compute_tool_failure_rate(
@@ -288,9 +316,13 @@ def summarize(
             )
         summary["by_mode"][mode] = mode_summary
 
+    summary["research_questions"] = _research_question_summary(
+        summary, results, labels_by_id, labelled_claim_ids
+    )
     save_summary(summary, output_dir)
     save_claim_level_csv(results, output_dir)
     DEFAULT_REPORT_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    write_rq_report(summary, _report_path(output_dir))
     return summary
 
 
@@ -309,6 +341,28 @@ def _extract_issue_codes(result: ExperimentResult, key: str) -> list[str]:
     return sorted(set(codes))
 
 
+def _extract_issue_codes_from_agent(
+    result: ExperimentResult,
+    agent_name: str,
+    key: str,
+) -> list[str]:
+    single = result.agent_outputs.get("single_agent", {})
+    if result.mode == "single_agent" and key in single and isinstance(single[key], list):
+        items = [str(item) for item in single[key]]
+        if items:
+            return items
+        nested = _single_quality_issue_codes(single, key)
+        if nested:
+            return nested
+
+    output = _agent_output(result, agent_name)
+    if not isinstance(output, dict):
+        return []
+    if key in output and isinstance(output[key], list):
+        return _string_items(output[key])
+    return _issue_codes(output)
+
+
 def _extract_list(result: ExperimentResult, key: str) -> list[str]:
     single = result.agent_outputs.get("single_agent", {})
     if key in single and isinstance(single[key], list):
@@ -324,6 +378,118 @@ def _extract_list(result: ExperimentResult, key: str) -> list[str]:
     return sorted(set(values))
 
 
+def _extract_list_from_agent(result: ExperimentResult, agent_name: str, key: str) -> list[str]:
+    single = result.agent_outputs.get("single_agent", {})
+    if result.mode == "single_agent" and key in single and isinstance(single[key], list):
+        items = _string_items(single[key])
+        if items:
+            return items
+        nested = _single_quality_evidence_items(single, key)
+        if nested:
+            return nested
+
+    output = _agent_output(result, agent_name)
+    if not isinstance(output, dict):
+        return []
+    if key in output and isinstance(output[key], list):
+        return _string_items(output[key])
+    evidence = output.get("evidence") or {}
+    if isinstance(evidence, dict) and isinstance(evidence.get(key), list):
+        return _string_items(evidence[key])
+    return []
+
+
+def _single_quality_issue_codes(single_output: dict[str, Any], key: str) -> list[str]:
+    quality = single_output.get("quality_assessment") or {}
+    if not isinstance(quality, dict):
+        return []
+    codes = _issue_codes(quality)
+    if key == "quality_issues":
+        return codes
+    if key == "consistency_issues":
+        return [code for code in codes if "CONSISTENCY" in code.upper()]
+    return []
+
+
+def _single_quality_evidence_items(single_output: dict[str, Any], key: str) -> list[str]:
+    quality = single_output.get("quality_assessment") or {}
+    evidence = quality.get("evidence") if isinstance(quality, dict) else {}
+    if not isinstance(evidence, dict) or not isinstance(evidence.get(key), list):
+        return []
+    return _string_items(evidence[key])
+
+
+def _agent_output(result: ExperimentResult, agent_name: str) -> dict[str, Any]:
+    if agent_name in result.agent_outputs:
+        return result.agent_outputs[agent_name]
+    aliases = {
+        "DecisionAgent": ["FinalAgent"],
+        "CompletenessAgent": ["completeness_agent"],
+        "QualityAgent": ["quality_agent"],
+    }
+    for alias in aliases.get(agent_name, []):
+        if alias in result.agent_outputs:
+            return result.agent_outputs[alias]
+    return {}
+
+
+def _issue_codes(output: dict[str, Any]) -> list[str]:
+    codes: list[str] = []
+    for issue in output.get("issues", []):
+        if isinstance(issue, dict) and issue.get("code"):
+            codes.append(str(issue["code"]))
+    return sorted(set(codes))
+
+
+def _string_items(values: list[Any]) -> list[str]:
+    items: list[str] = []
+    for value in values:
+        if isinstance(value, dict):
+            normalized = value.get("code") or value.get("name") or value.get("value")
+            if normalized is None:
+                normalized = json.dumps(value, ensure_ascii=False, sort_keys=True)
+            items.append(str(normalized))
+        else:
+            items.append(str(value))
+    return sorted(set(items))
+
+
+def _labelled_set_metric(
+    expected_items: list[Any],
+    detected_items: list[list[str]],
+) -> dict[str, Any]:
+    labelled_pairs = [
+        (expected, detected)
+        for expected, detected in zip(expected_items, detected_items, strict=False)
+        if expected is not None
+    ]
+    if not labelled_pairs:
+        return {"status": "not_labelled"}
+    expected = [
+        _string_items(items if isinstance(items, list) else []) for items, _ in labelled_pairs
+    ]
+    detected = [items for _, items in labelled_pairs]
+    return {"status": "computed", **compute_set_f1(expected, detected)}
+
+
+def _tool_usage_summary(
+    expected_tools: list[list[str]],
+    called_tools: list[list[str]],
+) -> dict[str, Any]:
+    if not any(called_tools):
+        return {"status": "not_observed"}
+    return {"status": "computed", **compute_tool_f1(expected_tools, called_tools)}
+
+
+def _invalid_tool_call_rate(
+    expected_tools: list[list[str]],
+    called_tools: list[list[str]],
+) -> float | str:
+    if not any(called_tools):
+        return "not_observed"
+    return compute_invalid_tool_call_rate(expected_tools, called_tools)
+
+
 def _tool_vectors(
     results: list[ExperimentResult],
     claims_by_id: dict[str, dict[str, Any]],
@@ -335,6 +501,167 @@ def _tool_vectors(
         expected.append([tool for tools in expected_by_agent.values() for tool in tools])
         called.append([tool for tools in result.called_tools_by_agent.values() for tool in tools])
     return expected, called
+
+
+def _research_question_summary(
+    summary: dict[str, Any],
+    results: list[ExperimentResult],
+    labels_by_id: dict[str, dict[str, Any]],
+    labelled_claim_ids: set[str],
+) -> dict[str, Any]:
+    multi = summary["by_mode"].get("multi_agent", {})
+    return {
+        "RQ1": {
+            "question": "Final decision correctness against reference labels.",
+            "label_source": summary["label_source"],
+            "comparable_count": multi.get("comparable_count", 0),
+            "metrics": multi.get("decision", {"status": "not_computed"}),
+        },
+        "RQ2": {
+            "question": "Completeness Agent missing-document detection.",
+            "label_source": summary["label_source"],
+            "comparable_count": multi.get("comparable_count", 0),
+            "metrics": multi.get("completeness", {"status": "not_computed"}),
+        },
+        "RQ3": {
+            "question": "Quality Agent medical issue detection.",
+            "label_source": summary["label_source"],
+            "comparable_count": multi.get("comparable_count", 0),
+            "metrics": {
+                "quality_issues": multi.get("quality_issues", {"status": "not_computed"}),
+                "icd_detection": multi.get("icd_detection", {"status": "not_computed"}),
+                "medication_detection": multi.get(
+                    "medication_detection", {"status": "not_computed"}
+                ),
+                "exclusion_detection": multi.get("exclusion_detection", {"status": "not_computed"}),
+                "consistency_issues": multi.get("consistency_issues", {"status": "not_computed"}),
+            },
+        },
+        "RQ4": {
+            "question": "Trace, tool-call, and workflow adherence.",
+            "metrics": {
+                "routing_accuracy": multi.get("routing_accuracy", "not_computed"),
+                "trace_completeness": multi.get("trace_completeness", "not_computed"),
+                "tool_usage": multi.get("tool_usage", {"status": "not_computed"}),
+                "invalid_tool_call_rate": multi.get("invalid_tool_call_rate", "not_computed"),
+                "tool_failure_rate": multi.get("tool_failure_rate", "not_computed"),
+            },
+        },
+        "RQ5": _paired_mode_comparison(results, labels_by_id, labelled_claim_ids),
+    }
+
+
+def _paired_mode_comparison(
+    results: list[ExperimentResult],
+    labels_by_id: dict[str, dict[str, Any]],
+    labelled_claim_ids: set[str],
+) -> dict[str, Any]:
+    multi_by_id = {
+        result.claim_id: result
+        for result in results
+        if result.mode == "multi_agent" and result.claim_id in labelled_claim_ids
+    }
+    single_by_id = {
+        result.claim_id: result
+        for result in results
+        if result.mode == "single_agent" and result.claim_id in labelled_claim_ids
+    }
+    paired_ids = sorted(set(multi_by_id) & set(single_by_id))
+    if not paired_ids:
+        return {
+            "question": "Multi-agent advantage over single-agent baseline.",
+            "status": "not_computed",
+            "reason": "No paired multi-agent and single-agent results with reference labels.",
+            "paired_count": 0,
+        }
+
+    y_true = [
+        normalize_final_decision(labels_by_id[claim_id].get("expected_decision"))
+        for claim_id in paired_ids
+    ]
+    multi_pred = [
+        normalize_final_decision(multi_by_id[claim_id].final_decision) for claim_id in paired_ids
+    ]
+    single_pred = [
+        normalize_final_decision(single_by_id[claim_id].final_decision) for claim_id in paired_ids
+    ]
+    multi_scores = compute_f1_scores(y_true, multi_pred)
+    single_scores = compute_f1_scores(y_true, single_pred)
+    return {
+        "question": "Multi-agent advantage over single-agent baseline.",
+        "status": "computed",
+        "paired_count": len(paired_ids),
+        "multi_agent": {
+            "accuracy": multi_scores["accuracy"],
+            "f1_macro": multi_scores["f1_macro"],
+            "latency_mean_ms": _mean([multi_by_id[claim_id].latency_ms for claim_id in paired_ids]),
+            "avg_tokens_per_claim": _mean(
+                [multi_by_id[claim_id].token_usage for claim_id in paired_ids]
+            ),
+        },
+        "single_agent": {
+            "accuracy": single_scores["accuracy"],
+            "f1_macro": single_scores["f1_macro"],
+            "latency_mean_ms": _mean(
+                [single_by_id[claim_id].latency_ms for claim_id in paired_ids]
+            ),
+            "avg_tokens_per_claim": _mean(
+                [single_by_id[claim_id].token_usage for claim_id in paired_ids]
+            ),
+        },
+        "delta": {
+            "accuracy": multi_scores["accuracy"] - single_scores["accuracy"],
+            "f1_macro": multi_scores["f1_macro"] - single_scores["f1_macro"],
+        },
+    }
+
+
+def write_rq_report(summary: dict[str, Any], output_path: Path) -> None:
+    """Write a compact Markdown report organized by research question."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    rqs = summary.get("research_questions", {})
+    lines = [
+        "# Evaluation RQ Report",
+        "",
+        f"- Label source: `{summary.get('label_source', '')}`",
+        f"- Labelled claim count: {summary.get('labelled_claim_count', 0)}",
+        f"- Result count: {summary.get('result_count', 0)}",
+        "",
+    ]
+    for rq_id in ["RQ1", "RQ2", "RQ3", "RQ4", "RQ5"]:
+        payload = rqs.get(rq_id, {})
+        lines.extend(
+            [
+                f"## {rq_id}",
+                "",
+                str(payload.get("question", "")),
+                "",
+                "```json",
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                "```",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Limitations",
+            "",
+            "- Reference labels may be LLM-assisted and must be interpreted with their audit scope.",
+            "- OCR quality can affect both multi-agent and single-agent results.",
+            "- Tool-call metrics are reported as `not_observed` when trace data does not include tool calls.",
+            "- RQ5 is valid only for paired claims that share labels, OCR data, and model configuration.",
+            "",
+        ]
+    )
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _report_path(output_dir: Path) -> Path:
+    return RQ_REPORT if output_dir == DEFAULT_RESULTS_DIR else output_dir / "rq_report.md"
+
+
+def _mean(values: list[float | int]) -> float:
+    return sum(values) / len(values) if values else 0.0
 
 
 def main() -> None:

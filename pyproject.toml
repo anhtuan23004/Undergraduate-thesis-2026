@@ -73,6 +73,7 @@ include = ["src/", "tests/", "README.md", "AGENTS.md"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["src/agent-service/tests", "src/ocr-service/tests"]
+pythonpath = ["."]
 addopts = "-v --tb=short"
 filterwarnings = [
     "ignore::DeprecationWarning",
