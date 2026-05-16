@@ -13,7 +13,8 @@ import json
 import sys
 from pathlib import Path
 
-from eval import batch_run
+from eval import baseline, batch_run, reference_labels
+from eval.ground_truth import clean_ground_truth_file
 from eval.paths import (
     AGENT_SUGGESTIONS,
     CLAIM_RESULTS_DIR,
@@ -51,6 +52,17 @@ def main() -> None:
             suggestions_dir=args.suggestions_dir,
         )
         print(f"Wrote {len(rows)} suggestions: {args.output}")
+    elif args.command == "clean-ground-truth":
+        stats = clean_ground_truth_file(args.ground_truth, args.output)
+        print(json.dumps(stats, ensure_ascii=False, indent=2))
+    elif args.command == "run-baseline":
+        results = baseline.run_baseline(args)
+        if not args.dry_run:
+            print(f"Wrote {len(results)} baseline results: {args.results_dir}")
+    elif args.command == "label-reference":
+        payload = reference_labels.run_label_reference(args)
+        if not args.dry_run:
+            print(f"Wrote {len(payload.get('labels', []))} reference labels: {args.output}")
     elif args.command == "label-ui":
         _run_label_ui(args.port)
 
@@ -99,6 +111,27 @@ def build_parser() -> argparse.ArgumentParser:
 
     label_ui = subparsers.add_parser("label-ui", help="Open the Streamlit labeling UI.")
     label_ui.add_argument("--port", type=int, default=8502)
+
+    clean = subparsers.add_parser(
+        "clean-ground-truth",
+        help="Remove temporary fake labels from the dataset manifest.",
+    )
+    clean.add_argument("--ground-truth", type=Path, default=GROUND_TRUTH)
+    clean.add_argument("--output", type=Path)
+
+    run_baseline = subparsers.add_parser(
+        "run-baseline",
+        help="Run the single-agent baseline for RQ5.",
+        parents=[baseline.build_parser(add_help=False)],
+    )
+    run_baseline.set_defaults(command="run-baseline")
+
+    label_reference = subparsers.add_parser(
+        "label-reference",
+        help="Draft LLM-assisted reference labels with Gemini 3.1 Pro preview.",
+        parents=[reference_labels.build_parser(add_help=False)],
+    )
+    label_reference.set_defaults(command="label-reference")
 
     return parser
 

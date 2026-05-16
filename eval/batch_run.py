@@ -191,7 +191,7 @@ def _raise_for_status(response: requests.Response, action: str) -> None:
 
     detail = _response_error_detail(response)
     message = (
-        f"{response.status_code} {response.reason} while attempting to {action}: " f"{response.url}"
+        f"{response.status_code} {response.reason} while attempting to {action}: {response.url}"
     )
     if detail:
         message = f"{message} - {detail}"
@@ -232,6 +232,7 @@ def workflow_response_to_result(data: dict[str, Any], latency_ms: float) -> Expe
         final_decision=final_decision,
         routing_path=extract_routing_path(history, data.get("current_step"), data.get("pause_at")),
         called_tools_by_agent=extract_called_tools(history),
+        **extract_token_usage(history),
         latency_ms=latency_ms,
         langfuse_trace_id=str(data.get("langfuse_trace_id") or ""),
         human_reviewed=bool(data.get("pending_human_review") or data.get("paused")),
@@ -270,6 +271,33 @@ def extract_called_tools(history: list[dict[str, Any]]) -> dict[str, list[str]]:
         called.setdefault(str(agent), [])
         called[str(agent)].extend(str(tool) for tool in tools)
     return {agent: sorted(set(tools)) for agent, tools in called.items()}
+
+
+def extract_token_usage(history: list[dict[str, Any]]) -> dict[str, int | str]:
+    """Sum provider token usage emitted by workflow history entries."""
+    prompt_tokens = 0
+    completion_tokens = 0
+    total_tokens = 0
+    observed = False
+    for entry in history:
+        usage = entry.get("token_usage")
+        if not isinstance(usage, dict):
+            continue
+        if usage.get("token_usage_source") != "provider_metadata":
+            continue
+        observed = True
+        prompt_tokens += int(usage.get("prompt_tokens") or 0)
+        completion_tokens += int(usage.get("completion_tokens") or 0)
+        total_tokens += int(usage.get("token_usage") or 0)
+
+    if not observed:
+        return {}
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "token_usage": total_tokens,
+        "token_usage_source": "provider_metadata",
+    }
 
 
 def _agent_outputs(data: dict[str, Any]) -> dict[str, Any]:

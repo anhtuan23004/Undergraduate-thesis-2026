@@ -34,6 +34,11 @@ class ExperimentResult:
     tool_results: list[dict[str, Any]] = field(default_factory=list)
     latency_ms: float = 0.0
     token_usage: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    token_usage_source: str = ""
+    model_name: str = ""
+    ocr_cache_key: str = ""
     langfuse_trace_id: str = ""
     human_reviewed: bool = False
     human_override: bool = False
