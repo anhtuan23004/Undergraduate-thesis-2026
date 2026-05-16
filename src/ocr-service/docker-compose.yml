@@ -4,16 +4,33 @@ services:
       context: .
       dockerfile: Dockerfile
     image: aicycle-ocr-engine:latest
-    container_name: aicycle-ocr-engine
     ports:
-      - "${PORT:-8091}:8091"
-    env_file:
-      - .env
+      - "${OCR_SERVICE_PORT:-8091}:8000"
+    environment:
+      PORT: 8000
+      PROJECT_NAME: ${PROJECT_NAME:-OCR Service}
+      VERSION: ${VERSION:-1.0.0}
+      API_PREFIX: ${API_PREFIX:-/api/v1}
+      API_V2_PREFIX: ${API_V2_PREFIX:-/api/v2}
+      API_V3_PREFIX: ${API_V3_PREFIX:-/api/v3}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Set GEMINI_API_KEY in .env or shell}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-pro}
+      GEMINI_TEMPERATURE: ${GEMINI_TEMPERATURE:-0.2}
+      GEMINI_TOP_P: ${GEMINI_TOP_P:-0.95}
+      GEMINI_THINKING_BUDGET: ${GEMINI_THINKING_BUDGET:--1}
+      GEMINI_THINKING_LEVEL: ${GEMINI_THINKING_LEVEL:-low}
+      GEMINI_MAX_INLINE_IN_BYTES: ${GEMINI_MAX_INLINE_IN_BYTES:-104857600}
+      GEMINI_MAX_CONCURRENT_EXTRACTIONS: ${GEMINI_MAX_CONCURRENT_EXTRACTIONS:-3}
+      OCR_EXTRACT_ALL_DOCUMENTS: ${OCR_EXTRACT_ALL_DOCUMENTS:-true}
+      OCR_HIGH_ACCURACY_DOCUMENT_CODES: ${OCR_HIGH_ACCURACY_DOCUMENT_CODES:-claim_form}
+      OCR_HIGH_ACCURACY_MODEL: ${OCR_HIGH_ACCURACY_MODEL:-gemini-2.5-pro}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FILE: ${LOG_FILE:-ocr_service.log}
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:${PORT:-8091}/health').raise_for_status()"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
       interval: 30s
       timeout: 10s
       start_period: 15s

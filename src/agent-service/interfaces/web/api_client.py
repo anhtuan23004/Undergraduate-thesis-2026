@@ -11,7 +11,18 @@ class APIClient:
     def __init__(self, base_url: str = "http://localhost:8003"):
         self.base_url = base_url
         self._session = requests.Session()
-        self._session.headers.update({"Content-Type": "application/json"})
+
+    def __enter__(self) -> "APIClient":
+        """Return this client for context-manager usage."""
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        """Close the underlying HTTP session when leaving a context."""
+        self.close()
+
+    def close(self) -> None:
+        """Close the underlying HTTP session."""
+        self._session.close()
 
     def _request(
         self,
@@ -161,9 +172,7 @@ class APIClient:
         files = {"file": (file_name, file_bytes, mime_type or "application/octet-stream")}
 
         try:
-            # Use requests.post instead of self._session.post to avoid the session's
-            # Content-Type: application/json overriding the multipart/form-data boundary
-            response = requests.post(url, files=files, timeout=60)
+            response = self._session.post(url, files=files, timeout=60)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
@@ -247,36 +256,37 @@ class APIClient:
 
         try:
             if method.upper() == "POST":
-                resp = self._session.post(url, json=json_data, stream=True, timeout=600)
+                response_context = self._session.post(url, json=json_data, stream=True, timeout=600)
             else:
-                resp = self._session.get(url, stream=True, timeout=600)
+                response_context = self._session.get(url, stream=True, timeout=600)
 
-            resp.raise_for_status()
+            with response_context as resp:
+                resp.raise_for_status()
 
-            event_type = "message"
-            data_lines: list[str] = []
+                event_type = "message"
+                data_lines: list[str] = []
 
-            for raw_line in resp.iter_lines(decode_unicode=True):
-                if raw_line is None:
-                    continue
+                for raw_line in resp.iter_lines(decode_unicode=True):
+                    if raw_line is None:
+                        continue
 
-                line = raw_line
+                    line = raw_line
 
-                if line.startswith("event:"):
-                    event_type = line[len("event:") :].strip()
-                elif line.startswith("data:"):
-                    data_lines.append(line[len("data:") :].strip())
-                elif line == "":
-                    # WHY: Empty line is the SSE event boundary.
-                    if data_lines:
-                        raw_data = "\n".join(data_lines)
-                        try:
-                            payload = _json.loads(raw_data)
-                        except _json.JSONDecodeError:
-                            payload = {"raw": raw_data}
-                        yield (event_type, payload)
-                    event_type = "message"
-                    data_lines = []
+                    if line.startswith("event:"):
+                        event_type = line[len("event:") :].strip()
+                    elif line.startswith("data:"):
+                        data_lines.append(line[len("data:") :].strip())
+                    elif line == "":
+                        # WHY: Empty line is the SSE event boundary.
+                        if data_lines:
+                            raw_data = "\n".join(data_lines)
+                            try:
+                                payload = _json.loads(raw_data)
+                            except _json.JSONDecodeError:
+                                payload = {"raw": raw_data}
+                            yield (event_type, payload)
+                        event_type = "message"
+                        data_lines = []
 
         except requests.exceptions.RequestException as e:
             yield ("error", {"error": str(e)})
