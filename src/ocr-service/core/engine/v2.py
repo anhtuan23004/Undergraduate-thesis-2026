@@ -62,6 +62,202 @@ class OCRServiceV2(BaseGeminiEngine):
 
         return {"is_valid_document": is_valid}
 
+    @staticmethod
+    def _coerce_page_range(value: Any) -> tuple[int, int] | None:
+        if isinstance(value, dict):
+            raw_start = value.get("start_page")
+            raw_end = value.get("end_page")
+        elif isinstance(value, list | tuple) and len(value) == 2:
+            raw_start, raw_end = value
+        else:
+            return None
+
+        try:
+            start_page = int(raw_start)
+            end_page = int(raw_end)
+        except (TypeError, ValueError):
+            return None
+
+        if start_page < 1 or end_page < 1:
+            return None
+
+        return (min(start_page, end_page), max(start_page, end_page))
+
+    @staticmethod
+    def _expand_page_ranges(page_ranges: list[tuple[int, int]]) -> list[int]:
+        pages = []
+        for start_page, end_page in page_ranges:
+            pages.extend(range(start_page, end_page + 1))
+        return pages
+
+    @staticmethod
+    def _dedupe_page_order(page_order: list[int]) -> list[int]:
+        pages = []
+        seen = set()
+        for page in page_order:
+            if page in seen:
+                continue
+            seen.add(page)
+            pages.append(page)
+        return pages
+
+    @staticmethod
+    def _compress_page_order(page_order: list[int]) -> list[tuple[int, int]]:
+        if not page_order:
+            return []
+
+        ranges = []
+        range_start = page_order[0]
+        previous_page = page_order[0]
+
+        for page in page_order[1:]:
+            if page == previous_page + 1:
+                previous_page = page
+                continue
+
+            ranges.append((range_start, previous_page))
+            range_start = page
+            previous_page = page
+
+        ranges.append((range_start, previous_page))
+        return ranges
+
+    @classmethod
+    def _get_document_page_ranges(cls, doc: dict[str, Any]) -> list[tuple[int, int]]:
+        raw_ranges = doc.get("page_ranges")
+        ranges = []
+        if isinstance(raw_ranges, list):
+            for raw_range in raw_ranges:
+                page_range = cls._coerce_page_range(raw_range)
+                if page_range:
+                    ranges.append(page_range)
+
+        if ranges:
+            return ranges
+
+        return [_normalize_page_range(doc)]
+
+    @classmethod
+    def _get_document_page_order(cls, doc: dict[str, Any]) -> list[int]:
+        raw_order = doc.get("page_order")
+        if isinstance(raw_order, list):
+            pages = []
+            for raw_page in raw_order:
+                try:
+                    page = int(raw_page)
+                except (TypeError, ValueError):
+                    continue
+                if page > 0:
+                    pages.append(page)
+            if pages:
+                return cls._dedupe_page_order(pages)
+
+        page_ranges = cls._get_document_page_ranges(doc)
+        return cls._dedupe_page_order(cls._expand_page_ranges(page_ranges))
+
+    @staticmethod
+    def _coerce_duplicate_page(value: Any) -> dict[str, int] | None:
+        if not isinstance(value, dict):
+            return None
+
+        try:
+            page = int(value.get("page"))
+            duplicate_of = int(value.get("duplicate_of"))
+        except (TypeError, ValueError):
+            return None
+
+        if page < 1 or duplicate_of < 1 or page == duplicate_of:
+            return None
+
+        return {"page": page, "duplicate_of": duplicate_of}
+
+    @classmethod
+    def _get_document_duplicate_pages(cls, doc: dict[str, Any]) -> list[dict[str, int]]:
+        raw_duplicates = doc.get("duplicate_pages")
+        duplicates = []
+        seen = set()
+
+        if not isinstance(raw_duplicates, list):
+            return duplicates
+
+        for raw_duplicate in raw_duplicates:
+            duplicate = cls._coerce_duplicate_page(raw_duplicate)
+            if not duplicate:
+                continue
+
+            key = (duplicate["page"], duplicate["duplicate_of"])
+            if key in seen:
+                continue
+
+            seen.add(key)
+            duplicates.append(duplicate)
+
+        return duplicates
+
+    @classmethod
+    def _normalize_page_aware_segments(cls, docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for doc in docs:
+            if not isinstance(doc, dict):
+                continue
+
+            raw_page_order = cls._get_document_page_order(doc)
+            canonical_candidates = set(raw_page_order)
+            duplicate_candidates = [
+                duplicate
+                for duplicate in cls._get_document_duplicate_pages(doc)
+                if duplicate["duplicate_of"] in canonical_candidates
+            ]
+            duplicate_page_numbers = {duplicate["page"] for duplicate in duplicate_candidates}
+            page_order = [page for page in raw_page_order if page not in duplicate_page_numbers]
+
+            if not page_order:
+                page_order = raw_page_order
+                duplicate_candidates = []
+
+            canonical_pages = set(page_order)
+            duplicate_pages = []
+            seen_duplicate_pages = set()
+            for duplicate in duplicate_candidates:
+                duplicate_page = duplicate["page"]
+                if duplicate["duplicate_of"] not in canonical_pages:
+                    continue
+                if duplicate_page in canonical_pages:
+                    continue
+                if duplicate_page in seen_duplicate_pages:
+                    continue
+
+                seen_duplicate_pages.add(duplicate_page)
+                duplicate_pages.append(duplicate)
+
+            page_ranges = cls._compress_page_order(page_order)
+            if not page_ranges:
+                page_ranges = cls._get_document_page_ranges(doc)
+                page_order = cls._expand_page_ranges(page_ranges)
+                duplicate_pages = []
+
+            doc["page_ranges"] = [[start, end] for start, end in page_ranges]
+            doc["page_order"] = page_order
+            doc["duplicate_pages"] = duplicate_pages
+
+            trace_pages = page_order + [duplicate["page"] for duplicate in duplicate_pages]
+            doc["start_page"] = min(trace_pages) if trace_pages else doc.get("start_page", 1)
+            doc["end_page"] = max(trace_pages) if trace_pages else doc.get("end_page", 1)
+
+        return sorted(
+            docs,
+            key=lambda doc: (
+                min(doc.get("page_order") or [doc.get("start_page", 1)])
+                if isinstance(doc, dict)
+                else 1,
+                doc.get("end_page", 1) if isinstance(doc, dict) else 1,
+            ),
+        )
+
+    @classmethod
+    def _get_document_slice_ranges(cls, doc: dict[str, Any]) -> list[tuple[int, int]]:
+        page_order = cls._get_document_page_order(doc)
+        return cls._compress_page_order(page_order) or cls._get_document_page_ranges(doc)
+
     def _classify_and_segment(
         self,
         file_bytes: bytes,
@@ -124,6 +320,8 @@ class OCRServiceV2(BaseGeminiEngine):
 
         if not isinstance(result.get("documents"), list):
             result["documents"] = []
+
+        result["documents"] = self._normalize_page_aware_segments(result["documents"])
 
         return result, usage_info
 
@@ -323,13 +521,14 @@ class OCRServiceV2(BaseGeminiEngine):
         doc_data = doc.model_dump(exclude_none=True)
         doc_code = doc.document_code
         schema = schema_map.get(doc_code)
-        start_page, end_page = _normalize_page_range(doc_data)
+        page_ranges = self._get_document_slice_ranges(doc_data)
 
         chunk_bytes = file_bytes
         if mime_type.lower() == "application/pdf":
-            chunk_bytes = slice_pdf_multiple_ranges(file_bytes, [(start_page, end_page)])
+            chunk_bytes = slice_pdf_multiple_ranges(file_bytes, page_ranges)
 
-        logger.info(f"Phase 2: Extracting {doc_code} block (Pages {start_page}-{end_page})")
+        pages_str = ", ".join(f"{start_page}-{end_page}" for start_page, end_page in page_ranges)
+        logger.info(f"Phase 2: Extracting {doc_code} block (Pages {pages_str})")
         doc_model = _resolve_phase2_model(doc_code, high_accuracy_codes, model_name)
         extracted_res, phase2_usage = self._extract_segment(
             chunk_bytes,

@@ -138,7 +138,8 @@ OCR v2 separates classification from extraction.
 ```text
 Phase 1: /classify-segment
   input: file + optional schema selector
-  output: documents with document_code, document_name, start_page, end_page
+  output: documents with document_code, document_name, start_page, end_page,
+          page_ranges, page_order, duplicate_pages
 
 Phase 2: /extract
   input: same file + documents from Phase 1
@@ -161,12 +162,13 @@ flowchart TD
     C4 --> D
     C5 --> D
     D --> E[Return documents with document_code, document_name, start_page, end_page]
-    E --> F[Client calls /extract with same file and documents]
+    E --> E1[Normalize page_ranges/page_order/duplicate_pages]
+    E1 --> F[Client calls /extract with same file and documents]
 
     B -->|/extract| G[Validate documents from client]
     F --> G
     G --> H[Resolve extraction schemas]
-    H --> I[Slice PDF by each document page range]
+    H --> I[Slice PDF by page_order/page_ranges<br/>fallback start_page-end_page]
     I --> J[Gemini Phase 2: extract each document in parallel]
     J --> K[Return documents with extracted_data]
 
@@ -254,7 +256,10 @@ Example response:
       "document_code": "medical_report",
       "document_name": "Báo cáo y tế",
       "start_page": 1,
-      "end_page": 1
+      "end_page": 3,
+      "page_ranges": [[1, 1], [3, 3]],
+      "page_order": [1, 3],
+      "duplicate_pages": []
     },
     {
       "document_code": "unknown",
@@ -262,7 +267,10 @@ Example response:
       "suggested_document_code": "other_medical_document",
       "suggested_document_name": "Chứng từ y tế khác",
       "start_page": 2,
-      "end_page": 2
+      "end_page": 2,
+      "page_ranges": [[2, 2]],
+      "page_order": [2],
+      "duplicate_pages": []
     }
   ]
 }
@@ -282,7 +290,10 @@ curl -X POST "http://localhost:8091/api/v2/ocr/extract" \
         "document_code": "medical_report",
         "document_name": "Báo cáo y tế",
         "start_page": 1,
-        "end_page": 1
+        "end_page": 3,
+        "page_ranges": [[1, 1], [3, 3]],
+        "page_order": [1, 3],
+        "duplicate_pages": []
       }
     ]
   }'

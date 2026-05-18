@@ -26,6 +26,10 @@ The following document types may be present in this file. Each entry includes th
 
 <output_requirements>
 Do NOT extract any specific data fields. ONLY return the structured array of identified documents with `document_code`, `start_page`, and `end_page` (and suggested fields if unknown).
+For each document, also return `page_ranges` as an array of [start_page, end_page] pairs and `page_order` as a flat array of page numbers in the exact logical reading order, not simply the physical PDF order. If pages from the same document are non-adjacent or scanned out of order, merge them into one document and express the correct reading sequence with `page_order`. Use printed pagination markers such as "Trang 1/2", "Trang 2/2", "Page 1 of 2", or "1/2" as strong evidence that separated physical pages belong to the same document.
+Keep `page_ranges` in the same logical order as `page_order`. Never represent non-adjacent pages as one continuous range if intervening pages belong to other documents; use separate ranges such as [[8, 8], [16, 16]].
+Also return `duplicate_pages` as an array of objects with `page` and `duplicate_of`. A duplicate page belongs to the same logical document but visually repeats another page, so exclude it from `page_order` and `page_ranges` unless it contains additional unique information. Use an empty array when there are no duplicates.
+Keep `start_page` and `end_page` as the minimum and maximum physical pages covered by the document, including duplicate pages, for backward compatibility and traceability. If identity signals conflict, split them into separate documents.
 </output_requirements>
 """
 

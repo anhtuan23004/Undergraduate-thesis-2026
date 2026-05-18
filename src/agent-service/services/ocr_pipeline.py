@@ -31,6 +31,9 @@ _CLASSIFICATION_KEYS = (
     "suggested_document_name",
     "start_page",
     "end_page",
+    "page_ranges",
+    "page_order",
+    "duplicate_pages",
 )
 
 
