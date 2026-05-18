@@ -318,6 +318,9 @@ def test_ocr_pipeline_builds_phase2_input_documents():
                     "document_name": "Giấy khám bệnh",
                     "start_page": 1,
                     "end_page": 1,
+                    "page_ranges": [[1, 1], [3, 3]],
+                    "page_order": [1, 3],
+                    "duplicate_pages": [{"page": 2, "duplicate_of": 1}],
                     "extracted_data": {"diagnosis": "Viêm họng"},
                 },
                 "invalid",
@@ -331,5 +334,43 @@ def test_ocr_pipeline_builds_phase2_input_documents():
             "document_name": "Giấy khám bệnh",
             "start_page": 1,
             "end_page": 1,
+            "page_ranges": [[1, 1], [3, 3]],
+            "page_order": [1, 3],
+            "duplicate_pages": [{"page": 2, "duplicate_of": 1}],
         }
     ]
+
+
+def test_phase2_operation_spec_fingerprints_page_aware_documents(monkeypatch):
+    monkeypatch.setattr("services.ocr_pipeline.settings.OCR_V2_PIPELINE", "two_phase_gated")
+    monkeypatch.setattr("services.ocr_pipeline.settings.OCR_V2_EXTRACT_ALL_FIELDS", False)
+    monkeypatch.setattr("services.ocr_pipeline.settings.OCR_V2_DOCUMENT_CODES", "medical_report")
+    monkeypatch.setattr("services.ocr_pipeline.settings.OCR_V2_MODEL", "gemini-test")
+
+    first = phase2_operation_spec(
+        [
+            {
+                "document_code": "medical_report",
+                "start_page": 1,
+                "end_page": 3,
+                "page_ranges": [[1, 1], [3, 3]],
+                "page_order": [1, 3],
+                "duplicate_pages": [],
+            }
+        ]
+    )
+    second = phase2_operation_spec(
+        [
+            {
+                "document_code": "medical_report",
+                "start_page": 1,
+                "end_page": 3,
+                "page_ranges": [[3, 3], [1, 1]],
+                "page_order": [3, 1],
+                "duplicate_pages": [],
+            }
+        ]
+    )
+
+    assert first.source_documents_fingerprint != second.source_documents_fingerprint
+    assert first.fingerprint() != second.fingerprint()

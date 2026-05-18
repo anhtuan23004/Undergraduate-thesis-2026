@@ -4,6 +4,7 @@ import pytest
 from api.routes import ocr_router_v2, ocr_router_v2_form
 from pydantic import ValidationError
 from schemas import (
+    ClassificationSchema,
     ClassifySegmentRequest,
     ExtractFullRequest,
     ExtractRequest,
@@ -12,6 +13,7 @@ from schemas import (
     resolve_default_extraction_schemas,
     to_classification_schemas,
 )
+from utils.schema_builder import build_phase1_response_schema
 
 
 def _minimal_schema() -> dict:
@@ -40,6 +42,25 @@ def test_v2_router_prefixes_match_gemini_ocr_contract():
     assert ocr_router_v2.prefix == "/api/v2/ocr"
     assert ocr_router_v2_form.prefix == "/api/v2/ocr"
     assert any(route.path == "/api/v2/ocr/extract-full" for route in ocr_router_v2.routes)
+
+
+def test_phase1_response_schema_requires_page_aware_metadata():
+    schema = build_phase1_response_schema(
+        [
+            ClassificationSchema(
+                document_code="medical_report",
+                document_name="Báo cáo y tế",
+            )
+        ]
+    )
+    document_schema = schema["properties"]["documents"]["items"]
+
+    assert "page_ranges" in document_schema["properties"]
+    assert "page_order" in document_schema["properties"]
+    assert "duplicate_pages" in document_schema["properties"]
+    assert "page_ranges" in document_schema["required"]
+    assert "page_order" in document_schema["required"]
+    assert "duplicate_pages" in document_schema["required"]
 
 
 def test_extract_request_accepts_url_source():

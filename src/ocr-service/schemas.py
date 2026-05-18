@@ -126,6 +126,9 @@ class ClassifySegmentDocument(BaseModel):
     suggested_document_name: str | None = None
     start_page: int
     end_page: int
+    page_ranges: list[tuple[int, int]] | None = None
+    page_order: list[int] | None = None
+    duplicate_pages: list["DuplicatePage"] | None = None
 
 
 class ExtractRequest(FileSourceModel):
@@ -270,7 +273,17 @@ class ExtractedDocument(BaseModel):
     suggested_document_name: str | None = None
     start_page: int
     end_page: int
+    page_ranges: list[tuple[int, int]] | None = None
+    page_order: list[int] | None = None
+    duplicate_pages: list["DuplicatePage"] | None = None
     extracted_data: dict[str, Any]
+
+
+class DuplicatePage(BaseModel):
+    """Duplicate page metadata for page-aware segmentation."""
+
+    page: int
+    duplicate_of: int
 
 
 class PrefilterResponse(BaseModel):

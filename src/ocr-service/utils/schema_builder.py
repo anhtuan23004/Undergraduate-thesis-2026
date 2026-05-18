@@ -171,6 +171,39 @@ def build_phase1_response_schema(
         },
         "start_page": {"type": "integer"},
         "end_page": {"type": "integer"},
+        "page_ranges": {
+            "type": "array",
+            "description": "Ordered list of [start_page, end_page] physical PDF page pairs that belong to this document. Use separate ranges for non-adjacent pages; do not include intervening pages from other documents.",
+            "items": {
+                "type": "array",
+                "description": "A two-integer pair: [start_page, end_page].",
+                "items": {"type": "integer"},
+            },
+        },
+        "page_order": {
+            "type": "array",
+            "description": "Flat physical PDF page numbers in the logical reading order for this document. Use printed pagination markers such as 1/2 and 2/2 to order pages when physical scan order is wrong.",
+            "items": {"type": "integer"},
+        },
+        "duplicate_pages": {
+            "type": "array",
+            "description": "Pages that belong to this logical document but are visual duplicates of canonical pages and should not be used for extraction. Use an empty array when there are no duplicates.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "description": "Physical PDF page number that is a duplicate.",
+                    },
+                    "duplicate_of": {
+                        "type": "integer",
+                        "description": "Physical PDF page number in page_order that this page duplicates.",
+                    },
+                },
+                "required": ["page", "duplicate_of"],
+                "additionalProperties": False,
+            },
+        },
     }
 
     if extract_all_documents:
@@ -186,7 +219,15 @@ def build_phase1_response_schema(
     document_item_schema: dict[str, Any] = {
         "type": "object",
         "properties": properties,
-        "required": ["document_code", "document_name", "start_page", "end_page"],
+        "required": [
+            "document_code",
+            "document_name",
+            "start_page",
+            "end_page",
+            "page_ranges",
+            "page_order",
+            "duplicate_pages",
+        ],
         "additionalProperties": False,
     }
 
