@@ -60,6 +60,12 @@ if [ -f "$BACKUP_DIR/clickhouse_data.tar.gz" ]; then
     alpine sh -c "rm -rf /var/lib/clickhouse/* && tar xzf /backup/clickhouse_data.tar.gz -C /var/lib/clickhouse"
   $LANGFUSE_COMPOSE start clickhouse
   echo "    Done."
+elif [ -f "$BACKUP_DIR/clickhouse_backup.zip" ]; then
+  echo "==> Restoring ClickHouse from legacy backup (clickhouse_backup.zip)..."
+  $LANGFUSE_COMPOSE exec -T clickhouse clickhouse-client \
+    --user "$CH_USER" --password "$CH_PASS" \
+    --query "RESTORE ALL FROM Disk('backups', 'clickhouse_backup.zip')"
+  echo "    Done."
 fi
 
 # --- Langfuse MinIO ---

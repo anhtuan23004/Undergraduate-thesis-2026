@@ -38,11 +38,13 @@ echo "    Done: langfuse_postgres.sql"
 # --- Langfuse ClickHouse ---
 echo "==> Backing up Langfuse ClickHouse (volume copy)..."
 $LANGFUSE_COMPOSE stop clickhouse
+trap '$LANGFUSE_COMPOSE start clickhouse' EXIT
 docker run --rm \
   --volumes-from "$($LANGFUSE_COMPOSE ps -aq clickhouse)" \
   -v "$BACKUP_DIR":/backup \
   alpine tar czf /backup/clickhouse_data.tar.gz -C /var/lib/clickhouse .
 $LANGFUSE_COMPOSE start clickhouse
+trap - EXIT
 echo "    Done: clickhouse_data.tar.gz"
 
 # --- Langfuse MinIO ---
