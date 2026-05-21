@@ -19,6 +19,7 @@ src/agent-service/uploads/*
 data/dataset
 .gitnexus
 docs/*
+backups/*
 eval/results/*
 !eval/results/.gitkeep
 !eval/results/claims/
