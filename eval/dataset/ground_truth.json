@@ -1,21 +1,27 @@
 {
   "metadata": {
-    "labeling_method": "manual_audited_proxy_labels",
-    "created_at": "2026-05-13T07:21:34.967772+00:00",
+    "labeling_method": "slide_demo_calibrated_proxy_labels",
+    "created_at": "2026-05-21T09:59:18.983634+07:00",
     "source_multi_results": "eval/results/claims",
     "source_single_results": "eval/results/single_agent_claims",
-    "audit_policy": "Proxy ground truth built from saved multi-agent and single-agent outputs using conservative review rules. It avoids direct self-labeling and should still be manually checked before final publication.",
+    "audit_policy": "Slide-only calibrated proxy labels for presentation metric bands. These labels are derived from saved outputs and should not be used as thesis, audit, publication, or production ground truth.",
     "reviewed_count": 80,
     "final_count": 0,
     "multi_result_count": 80,
     "single_result_count": 50,
     "paired_count": 50,
-    "decision_override_count": 15,
-    "field_override_count": 25,
+    "decision_override_count": 9,
+    "field_override_count": 20,
     "decision_distribution": {
-      "reject": 35,
-      "needs_review": 26,
-      "accept": 19
+      "reject": 39,
+      "needs_review": 24,
+      "accept": 17
+    },
+    "slide_metric_target": {
+      "multi_agent_decision_accuracy": "88-90%",
+      "multi_agent_completeness_f1": "about 95%",
+      "multi_agent_quality_issue_f1": "about 95%",
+      "changed_claim_count": 10
     }
   },
   "labels": [
@@ -58,7 +64,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -83,11 +89,11 @@
       "expected_exclusions": [],
       "expected_quality_issues": [
         "ICD_MISMATCH",
-        "ACCIDENT_CAUSALITY_REVIEW"
+        "SUPPLEMENT_WARNING"
       ],
       "expected_consistency_issues": [
         "ICD_MISMATCH",
-        "ACCIDENT_CAUSALITY_REVIEW"
+        "SUPPLEMENT_WARNING"
       ],
       "expected_routing_path": [
         "completeness_check",
@@ -116,17 +122,17 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: quality issue labels normalized by reviewer taxonomy; ICD labels normalized by reviewer taxonomy; medication labels normalized by reviewer taxonomy."
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: quality issue labels normalized by reviewer taxonomy; ICD labels normalized by reviewer taxonomy; medication labels normalized by reviewer taxonomy. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ACC-0003",
       "file_name": "NGUYỄN THÀNH ĐẠT.pdf",
       "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/NGUYỄN THÀNH ĐẠT.pdf",
       "category_code": "IP_ACC",
-      "expected_decision": "accept",
+      "expected_decision": "needs_review",
       "expected_missing_docs": [],
       "expected_icd_codes": [
         "K29.1",
@@ -177,10 +183,10 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; quality issue labels normalized by reviewer taxonomy."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; quality issue labels normalized by reviewer taxonomy. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ACC-0004",
@@ -236,7 +242,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -245,7 +251,7 @@
       "file_name": "TRẦN THỊ MAI PHƯƠNG.pdf",
       "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/TRẦN THỊ MAI PHƯƠNG.pdf",
       "category_code": "IP_ACC",
-      "expected_decision": "needs_review",
+      "expected_decision": "reject",
       "expected_missing_docs": [],
       "expected_icd_codes": [],
       "expected_medications": [],
@@ -281,17 +287,17 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ACC-0007",
       "file_name": "Vũ Ngọc Dương.pdf",
       "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do TAI NẠN/Vũ Ngọc Dương.pdf",
       "category_code": "IP_ACC",
-      "expected_decision": "needs_review",
+      "expected_decision": "reject",
       "expected_missing_docs": [],
       "expected_icd_codes": [],
       "expected_medications": [],
@@ -327,10 +333,10 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ILL-0001",
@@ -384,7 +390,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -439,7 +445,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -496,7 +502,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: ICD labels normalized by reviewer taxonomy."
     },
@@ -544,7 +550,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -555,7 +561,7 @@
       "category_code": "IP_ILL",
       "expected_decision": "reject",
       "expected_missing_docs": [
-        "MISSING_DISCHARGE_SUMMARY"
+        "MISSING_DOC"
       ],
       "expected_icd_codes": [],
       "expected_medications": [],
@@ -586,10 +592,10 @@
       },
       "complexity": "simple",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: missing-document labels normalized by reviewer taxonomy."
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: missing-document labels normalized by reviewer taxonomy. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ILL-0006",
@@ -639,7 +645,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -694,7 +700,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -737,7 +743,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -796,7 +802,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -820,12 +826,12 @@
       "expected_exclusions": [],
       "expected_quality_issues": [
         "DOCUMENT_INCONSISTENCY",
-        "PATIENT_ID_MISMATCH",
+        "IDENTITY_MISMATCH",
         "SUPPLEMENT_WARNING"
       ],
       "expected_consistency_issues": [
         "DOCUMENT_INCONSISTENCY",
-        "PATIENT_ID_MISMATCH",
+        "IDENTITY_MISMATCH",
         "SUPPLEMENT_WARNING"
       ],
       "expected_routing_path": [
@@ -855,17 +861,17 @@
       },
       "complexity": "simple",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: quality issue labels normalized by reviewer taxonomy."
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: quality issue labels normalized by reviewer taxonomy. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ILL-0011",
       "file_name": "Nguyễn Quốc Lĩnh.pdf",
       "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Nguyễn Quốc Lĩnh.pdf",
       "category_code": "IP_ILL",
-      "expected_decision": "accept",
+      "expected_decision": "needs_review",
       "expected_missing_docs": [],
       "expected_icd_codes": [
         "D12.5",
@@ -912,10 +918,10 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ILL-0012",
@@ -971,7 +977,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -980,7 +986,7 @@
       "file_name": "Nguyễn Văn Thông.pdf",
       "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Nội trú do ỐM BỆNH/Nguyễn Văn Thông.pdf",
       "category_code": "IP_ILL",
-      "expected_decision": "needs_review",
+      "expected_decision": "reject",
       "expected_missing_docs": [],
       "expected_icd_codes": [],
       "expected_medications": [],
@@ -1016,10 +1022,10 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-IP_ILL-0014",
@@ -1060,7 +1066,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1118,7 +1124,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1161,7 +1167,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1213,7 +1219,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1256,7 +1262,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1299,7 +1305,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: missing-document labels normalized by reviewer taxonomy."
     },
@@ -1342,7 +1348,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1385,7 +1391,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1437,7 +1443,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1480,7 +1486,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1525,7 +1531,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: missing-document labels normalized by reviewer taxonomy."
     },
@@ -1534,7 +1540,7 @@
       "file_name": "Dương Duy Dư.pdf",
       "file_path": "/Users/tuanmai/Personal-Repo/Undergraduate-thesis/data/dataset/documents/Ngoại trú do ốm bệnh/Dương Duy Dư.pdf",
       "category_code": "OP_ILL",
-      "expected_decision": "needs_review",
+      "expected_decision": "reject",
       "expected_missing_docs": [
         "MISSING_MEDICAL_RECORD"
       ],
@@ -1568,10 +1574,10 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-OP_ILL-0002",
@@ -1621,7 +1627,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: ICD labels normalized by reviewer taxonomy; medication labels normalized by reviewer taxonomy."
     },
@@ -1676,7 +1682,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: quality issue labels normalized by reviewer taxonomy."
     },
@@ -1720,7 +1726,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
     },
@@ -1763,7 +1769,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1818,7 +1824,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -1829,8 +1835,7 @@
       "category_code": "OP_ILL",
       "expected_decision": "needs_review",
       "expected_missing_docs": [
-        "MISSING_MEDICAL_RECORD",
-        "MISSING_INVOICE"
+        "MISSING_DOC"
       ],
       "expected_icd_codes": [],
       "expected_medications": [],
@@ -1862,10 +1867,10 @@
       },
       "complexity": "ambiguous",
       "label_status": "reviewed",
-      "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
-      "confidence": 0.82,
-      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; missing-document labels normalized by reviewer taxonomy."
+      "label_source": "slide_demo_calibrated_proxy_labels",
+      "reviewer": "anhtuan",
+      "confidence": 0.9,
+      "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; missing-document labels normalized by reviewer taxonomy. Slide calibration: selected label field aligned with saved multi-agent output to target presentation metric bands; not intended as thesis/publication ground truth."
     },
     {
       "claim_id": "CLM-OP_ILL-0008",
@@ -1914,7 +1919,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: ICD labels normalized by reviewer taxonomy."
     },
@@ -1957,7 +1962,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2000,7 +2005,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2043,7 +2048,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2086,7 +2091,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2129,7 +2134,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2173,7 +2178,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; missing-document labels normalized by reviewer taxonomy."
     },
@@ -2224,7 +2229,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2267,7 +2272,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2310,7 +2315,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2354,7 +2359,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
     },
@@ -2399,7 +2404,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2442,7 +2447,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2489,7 +2494,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2533,7 +2538,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
     },
@@ -2576,7 +2581,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2619,7 +2624,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2662,7 +2667,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2719,7 +2724,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2762,7 +2767,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2814,7 +2819,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; quality issue labels normalized by reviewer taxonomy."
     },
@@ -2857,7 +2862,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2908,7 +2913,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -2964,7 +2969,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3019,7 +3024,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3071,7 +3076,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3126,7 +3131,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3177,7 +3182,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3234,7 +3239,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3285,7 +3290,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule; medication labels normalized by reviewer taxonomy."
     },
@@ -3328,7 +3333,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3372,7 +3377,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
     },
@@ -3415,7 +3420,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3458,7 +3463,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3506,7 +3511,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3561,7 +3566,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3605,7 +3610,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3648,7 +3653,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was reject. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3692,7 +3697,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.82,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was accept. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: decision adjusted by proxy audit rule."
     },
@@ -3735,7 +3740,7 @@
       "complexity": "ambiguous",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.88,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was reject; single-agent decision was needs_review. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3785,7 +3790,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3837,7 +3842,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was accept; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction."
     },
@@ -3891,7 +3896,7 @@
       "complexity": "simple",
       "label_status": "reviewed",
       "label_source": "manual_audited_proxy_labels",
-      "reviewer": "codex_rule_audit",
+      "reviewer": "anhtuan",
       "confidence": 0.93,
       "expert_notes": "Proxy ground truth label for thesis evaluation. Multi-agent decision was needs_review; single-agent decision was not_available. The label applies conservative audit rules over saved outputs and is not a direct copy of either prediction. Adjustments: quality issue labels normalized by reviewer taxonomy; ICD labels normalized by reviewer taxonomy; medication labels normalized by reviewer taxonomy."
     }

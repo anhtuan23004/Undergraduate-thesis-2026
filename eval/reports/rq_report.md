@@ -14,31 +14,31 @@ Final decision correctness against reference labels.
   "label_source": "eval/results/reviewed_labels.json",
   "comparable_count": 80,
   "metrics": {
-    "accuracy": 0.8125,
-    "f1_macro": 0.801416403483587,
-    "f1_weighted": 0.8008254378409416,
-    "precision_macro": 0.8418584825234442,
-    "recall_macro": 0.7935222672064777,
+    "accuracy": 0.8875,
+    "f1_macro": 0.8797704447632712,
+    "f1_weighted": 0.8814992826398852,
+    "precision_macro": 0.9100596760443308,
+    "recall_macro": 0.869281045751634,
     "f1_per_category": {
-      "accept": 0.8888888888888888,
-      "reject": 0.8641975308641976,
-      "needs_review": 0.6511627906976744
+      "accept": 0.9411764705882353,
+      "reject": 0.9176470588235294,
+      "needs_review": 0.7804878048780487
     },
     "confusion_matrix": [
       [
         16,
         0,
-        3
+        1
       ],
       [
         0,
-        35,
+        39,
         0
       ],
       [
         1,
-        11,
-        14
+        7,
+        16
       ]
     ]
   }
@@ -55,9 +55,9 @@ Completeness Agent missing-document detection.
   "label_source": "eval/results/reviewed_labels.json",
   "comparable_count": 80,
   "metrics": {
-    "precision": 0.9047619047619048,
-    "recall": 0.8837209302325582,
-    "f1": 0.8941176470588236
+    "precision": 0.9523809523809523,
+    "recall": 0.9523809523809523,
+    "f1": 0.9523809523809523
   }
 }
 ```
@@ -73,9 +73,9 @@ Quality Agent medical issue detection.
   "comparable_count": 80,
   "metrics": {
     "quality_issues": {
-      "precision": 0.9038461538461539,
-      "recall": 0.9215686274509803,
-      "f1": 0.9126213592233009
+      "precision": 0.9423076923076923,
+      "recall": 0.9607843137254902,
+      "f1": 0.9514563106796117
     },
     "icd_detection": {
       "precision": 0.9298245614035088,
@@ -95,9 +95,9 @@ Quality Agent medical issue detection.
     },
     "consistency_issues": {
       "status": "computed",
-      "precision": 0.9038461538461539,
-      "recall": 0.9215686274509803,
-      "f1": 0.9126213592233009
+      "precision": 0.9423076923076923,
+      "recall": 0.9607843137254902,
+      "f1": 0.9514563106796117
     }
   }
 }
@@ -135,20 +135,20 @@ Multi-agent advantage over single-agent baseline.
   "status": "computed",
   "paired_count": 50,
   "multi_agent": {
-    "accuracy": 0.8,
-    "f1_macro": 0.7579365079365079,
+    "accuracy": 0.82,
+    "f1_macro": 0.773391812865497,
     "latency_mean_ms": 34261.387522459954,
     "avg_tokens_per_claim": 0.0
   },
   "single_agent": {
-    "accuracy": 0.62,
-    "f1_macro": 0.6286650286650287,
+    "accuracy": 0.6,
+    "f1_macro": 0.6098039215686275,
     "latency_mean_ms": 29863.215051619773,
     "avg_tokens_per_claim": 54261.04
   },
   "delta": {
-    "accuracy": 0.18000000000000005,
-    "f1_macro": 0.1292714792714792
+    "accuracy": 0.21999999999999997,
+    "f1_macro": 0.16358789129686946
   }
 }
 ```
