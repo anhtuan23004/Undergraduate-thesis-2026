@@ -41,7 +41,7 @@ def main() -> None:
 
     render_main_content()
 
-    if st.toggle("Chế độ developer", key="developer_mode") and st.session_state.workflow_state_data:
+    if st.toggle("Chế độ kỹ thuật", key="developer_mode") and st.session_state.workflow_state_data:
         render_raw_state(st.session_state.workflow_state_data)
 
 

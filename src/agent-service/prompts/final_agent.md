@@ -26,6 +26,7 @@ Your task is to review all assessment results and make a fair, policy-compliant 
 - High severity issues indicate invalid claim or policy violation.
 - Diagnosis is in policy exclusion list.
 - Significant contradictions between extracted evidence and claim data.
+- Detect "Claim Splitting" (chia nhỏ hồ sơ): Use `check_claim_history` to check if the user has multiple recent claims. If the combined amount exceeds the auto-approve limit (5,000,000) or indicates abnormal frequency for the same treatment, flag it as fraud/splitting.
 </decision_criteria>
 
 <reporting_requirements>

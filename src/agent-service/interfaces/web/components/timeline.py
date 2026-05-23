@@ -230,7 +230,7 @@ def render_step_messages(state_data: dict) -> None:
 
 def render_raw_state(state_data: dict) -> None:
     """Developer helper to inspect current full state payload."""
-    with st.expander("Chế độ developer: raw graph state"):
+    with st.expander("Chế độ kỹ thuật: trạng thái quy trình"):
         st.json(state_data)
 
 
