@@ -149,6 +149,12 @@ def render_medical_findings(findings: dict) -> None:  # noqa: C901
 def render_evidence_panel(evidence: dict, step_key: str = "") -> None:  # noqa: C901
     """Display extracted evidence with a compact reviewer layout."""
     with st.expander("📋 Bằng chứng trích xuất từ tài liệu", expanded=False):
+        low_conf_fields = evidence.get("low_confidence_fields", [])
+        if low_conf_fields:
+            st.error(
+                f"🔴 Có {len(low_conf_fields)} trường dữ liệu trích xuất OCR có độ tin cậy thấp. Vui lòng đối chiếu lại với chứng từ gốc.",
+                icon="⚠️",
+            )
 
         def format_val(key, value):
             if value is None:
@@ -192,15 +198,28 @@ def render_evidence_panel(evidence: dict, step_key: str = "") -> None:  # noqa: 
         }
 
         rendered_keys = set()
-        internal_keys = {"history", "data", "is_auto_reviewed", "confidence_score"}
+        internal_keys = {
+            "history",
+            "data",
+            "is_auto_reviewed",
+            "confidence_score",
+            "low_confidence_fields",
+        }
 
         def render_field(key_list, default_label=None):
             """Render the first available key in key_list and mark all as rendered."""
+            low_conf_fields = evidence.get("low_confidence_fields", [])
             for key in key_list:
                 if key in evidence and key not in rendered_keys:
                     val = evidence[key]
                     label = field_labels.get(key, default_label or key.replace("_", " ").title())
-                    st.write(f"- **{label}:** {format_val(key, val)}")
+                    formatted_val = format_val(key, val)
+
+                    if key in low_conf_fields:
+                        st.markdown(f"- **{label}:** :red[{formatted_val}] ⚠️")
+                    else:
+                        st.write(f"- **{label}:** {formatted_val}")
+
                     rendered_keys.update(key_list)
                     return True
             return False

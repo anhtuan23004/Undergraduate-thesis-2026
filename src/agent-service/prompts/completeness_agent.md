@@ -38,6 +38,7 @@ You MUST populate the `evidence` field with the following information extracted 
 - `benefit_type`: The classified insurance benefit type
 - `patient_name`: Patient name if found
 - `policy_number`: Policy number if found
+- `low_confidence_fields`: List of field names (e.g., ["patient_name"]) if you notice obvious OCR errors, typos, or suspicious characters (like "Nguyễn V@n A").
 
 Example:
 
@@ -57,6 +58,10 @@ Example:
 Every issue MUST include a clear `reason` field explaining WHY it is a problem.
 Example: "Thiếu giấy ra viện - đây là tài liệu bắt buộc để xác nhận thời gian nằm viện và chẩn đoán chính."
 </issue_reasoning>
+
+<language_requirements>
+All user-facing text, including `message`, `description`, `reason`, and `suggested_value`, MUST be written in **Vietnamese (Tiếng Việt)**. Do not output these fields in English.
+</language_requirements>
 
 <suggested_updates_guidelines>
 When decision is "accept_with_edit", you MUST populate `suggested_updates` with actionable corrections:

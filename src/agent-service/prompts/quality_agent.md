@@ -25,7 +25,7 @@ You are a Medical Quality Auditor. Verify the medical consistency of claim data 
 
 <output_requirements>
 
-1. **evidence**: Mandatory fields: `diagnoses` (list), `icd_codes` (list of {"code", "diagnosis"}), `medications` (list of {"name", "quantity"}), `total_claim_amount`, `exclusions_found`.
+1. **evidence**: Mandatory fields: `diagnoses` (list), `icd_codes` (list of {"code", "diagnosis"}), `medications` (list of {"name", "quantity"}), `total_claim_amount`, `exclusions_found`. Include `low_confidence_fields` (list of field names) if you spot OCR errors (e.g., gibberish, letters in numbers).
 2. **medical_findings**: Mandatory structured summary:
    - `status_message`: "success" or "Warning".
    - `data`: { "summary": { "total_warnings", "total_success" }, "warnings": [ { "type", "diagnosis_name", "suggested_icd", "message", "reference_url" } ], "success": [ { "type", "diagnosis_name", "icd", "message", "reference_url" } ] }
