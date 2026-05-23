@@ -101,7 +101,7 @@ class AssessmentOutput(BaseModel):
     )
     evidence: dict[str, Any] | None = Field(
         default=None,
-        description="Bằng chứng trích xuất từ tài liệu (tài liệu, chẩn đoán, thuốc, tổng tiền...)",
+        description="Bằng chứng trích xuất từ tài liệu (tài liệu, chẩn đoán, thuốc, tổng tiền...). Có thể bao gồm danh sách 'low_confidence_fields' (tên các trường) nếu nghi ngờ kết quả OCR.",
     )
     medical_findings: MedicalQualityFindings | None = Field(
         default=None,

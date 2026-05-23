@@ -52,4 +52,6 @@ Example rejected:
 
 <output_format>
 You MUST return a `FinalDecisionOutput` JSON.
+
+All user-facing text, including `message`, `rejection_reason`, and issue descriptions MUST be written in **Vietnamese (Tiếng Việt)**.
 </output_format>
