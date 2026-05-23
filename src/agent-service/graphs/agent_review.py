@@ -88,18 +88,43 @@ class AgentReviewNode:
             i.get("severity") in SEVERITY_REVIEW_REQUIRED for i in issues if isinstance(i, dict)
         )
 
+        # Claim Splitting Check
+        from mongodb_client import get_recent_claims_total
+
+        policy_number = state.get("policy_number", "")
+        recent_claims_total = 0.0
+        if policy_number:
+            try:
+                import asyncio
+
+                recent_claims_total = await asyncio.to_thread(
+                    get_recent_claims_total, policy_number, 30
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[Agent Review] Failed to get claim history for {policy_number}: {e}"
+                )
+
         # Preliminary check: Hard constraints
-        is_safe_amount = total_amount < self.amount_threshold
+        is_safe_amount = (total_amount + recent_claims_total) < self.amount_threshold
         is_safe_severity = not has_high_risk_issues
         has_suggestions = len(suggested_updates) > 0
 
         if not (is_safe_amount and is_safe_severity and has_suggestions):
             reason = "Nên để thẩm định thủ công: "
+            reason_code = REASON_HARD_CONSTRAINTS_FAILED
             if not is_safe_amount:
-                reason += (
-                    f"Số tiền {total_amount:,.0f} >= "
-                    f"ngưỡng tự động {self.amount_threshold:,.0f}. "
-                )
+                if recent_claims_total > 0:
+                    reason += (
+                        f"Tổng số tiền yêu cầu cộng dồn 30 ngày ({total_amount + recent_claims_total:,.0f}) >= "
+                        f"ngưỡng tự động {self.amount_threshold:,.0f} (Hồ sơ hiện tại: {total_amount:,.0f}, Lịch sử: {recent_claims_total:,.0f}). Dấu hiệu Claim Splitting. "
+                    )
+                    reason_code = "claim_splitting"
+                else:
+                    reason += (
+                        f"Số tiền {total_amount:,.0f} >= "
+                        f"ngưỡng tự động {self.amount_threshold:,.0f}. "
+                    )
             if not is_safe_severity:
                 reason += "Tồn tại cảnh báo mức Nghiêm trọng/Cao/Trung bình. "
             if not has_suggestions:
@@ -111,7 +136,7 @@ class AgentReviewNode:
                 agent_result,
                 stage,
                 confidence,
-                REASON_HARD_CONSTRAINTS_FAILED,
+                reason_code,
                 reason,
             )
 

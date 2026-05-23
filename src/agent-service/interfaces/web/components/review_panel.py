@@ -29,7 +29,7 @@ def render_human_review_panel(
 
     with left_col:
         with st.container(border=True):
-            st.markdown("**Kết quả từ Agent**")
+            st.markdown("**Kết quả từ tác tử**")
             render_assessment_findings(assessment)
 
     with right_col:
