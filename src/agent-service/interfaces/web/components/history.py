@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from .formatters import format_history_label as _format_history_label
-from .formatters import friendly_status, friendly_step_name
+from .formatters import friendly_decision, friendly_status, friendly_step_name
 
 format_history_label = _format_history_label
 
@@ -44,7 +44,7 @@ def render_history_log(history: list[dict]) -> None:
                 "Bước": step_label,
                 "Tác nhân": item.get("agent", "Hệ thống"),
                 "Trạng thái": status,
-                "Quyết định": str(decision).upper() if decision != "-" else "-",
+                "Quyết định": friendly_decision(decision),
                 "Số lỗi": issue_count,
                 "Thông điệp": message,
             }

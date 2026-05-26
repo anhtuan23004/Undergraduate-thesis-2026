@@ -52,5 +52,22 @@ def friendly_status(decision: Any, result: dict) -> str:
     return "Đã ghi nhận"
 
 
+def friendly_decision(decision: Any) -> str:
+    """Map raw decision values to Vietnamese display labels."""
+    decision_text = str(decision).lower()
+    if decision_text in ("approve", "accept", "accepted"):
+        return "Phê duyệt"
+    if decision_text in ("reject", "rejected"):
+        return "Từ chối"
+    if decision_text in ("accept_with_edit", "edit"):
+        return "Cần chỉnh sửa"
+    if decision in (None, ""):
+        return "-"
+    if decision == "-":
+        return "-"
+    return str(decision)
+
+
 _friendly_step_name = friendly_step_name
 _friendly_status = friendly_status
+_friendly_decision = friendly_decision

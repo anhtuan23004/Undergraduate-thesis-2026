@@ -17,9 +17,11 @@ from .constants import (
     UIState,
 )
 from .formatters import (
+    _friendly_decision,
     _friendly_status,
     _friendly_step_name,
     format_history_label,
+    friendly_decision,
     friendly_status,
     friendly_step_name,
 )
@@ -83,6 +85,7 @@ __all__ = [
     "UIState",
     "_compute_timeline_status",
     "_friendly_status",
+    "_friendly_decision",
     "_friendly_step_name",
     "_get_pending_assessment",
     "_get_editable_assessment",
@@ -96,6 +99,7 @@ __all__ = [
     "compute_timeline_status",
     "format_history_label",
     "friendly_status",
+    "friendly_decision",
     "friendly_step_name",
     "get_pending_assessment",
     "get_editable_assessment",

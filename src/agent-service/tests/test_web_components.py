@@ -10,6 +10,7 @@ from interfaces.web.components import (
     StepStatus,
     UIState,
     compute_timeline_status,
+    friendly_decision,
     friendly_status,
     friendly_step_name,
     get_ui_state,
@@ -56,6 +57,9 @@ def test_history_formatters() -> None:
     assert friendly_step_name("final_decision") == "Kết luận cuối cùng"
     assert friendly_status("approve", {}) == "Đạt"
     assert friendly_status("reject", {}) == "Không đạt"
+    assert friendly_decision("approve") == "Phê duyệt"
+    assert friendly_decision("reject") == "Từ chối"
+    assert friendly_decision("accept_with_edit") == "Cần chỉnh sửa"
     assert friendly_status("-", {"error": "boom"}) == "Lỗi"
 
 
@@ -73,3 +77,42 @@ def test_workflow_document_url_uses_run_id_and_api_base_url() -> None:
         workflow_document_url({"run_id": "run 1"})
         == "http://localhost:8003/api/v1/workflows/document/run%201"
     )
+
+
+def test_final_reject_prefers_vietnamese_rejection_reason() -> None:
+    final_dashboard = _final_dashboard_module()
+    result = {
+        "decision": "reject",
+        "message": "Final decision rejected by reviewer: Missing invoice",
+        "rejection_reason": "Thiếu hóa đơn viện phí",
+    }
+
+    assert final_dashboard.final_result_message(result) == "Thiếu hóa đơn viện phí"
+
+
+def test_format_issues_summary_uses_vietnamese_labels() -> None:
+    final_dashboard = _final_dashboard_module()
+    rows = final_dashboard.format_issues_summary(
+        [{"category": "completeness", "count": 2, "severity": "high"}]
+    )
+
+    assert rows == [
+        {
+            "Nhóm vấn đề": "Tính đầy đủ hồ sơ",
+            "Số lượng": 2,
+            "Mức độ": "Cao",
+        }
+    ]
+
+
+def _final_dashboard_module():
+    pandas = types.ModuleType("pandas")
+    pandas.DataFrame = lambda rows: rows
+    sys.modules.setdefault("pandas", pandas)
+
+    streamlit = types.ModuleType("streamlit")
+    streamlit.__getattr__ = lambda name: (lambda *args, **kwargs: None)
+    sys.modules.setdefault("streamlit", streamlit)
+
+    sys.modules.pop("interfaces.web.components.final_dashboard", None)
+    return import_module("interfaces.web.components.final_dashboard")

@@ -14,6 +14,7 @@ from .findings import (
     render_evidence_panel,
     render_suggested_updates,
 )
+from .formatters import friendly_decision
 
 
 def render_human_review_panel(
@@ -87,7 +88,7 @@ def render_assessment_findings(assessment: dict | None) -> None:
         return
 
     st.write(f"Hợp lệ: **{assessment.get('valid', '-')}**")
-    st.write(f"Quyết định: **{assessment.get('decision', '-')}**")
+    st.write(f"Quyết định: **{friendly_decision(assessment.get('decision', '-'))}**")
 
     render_confidence_badge(assessment)
 

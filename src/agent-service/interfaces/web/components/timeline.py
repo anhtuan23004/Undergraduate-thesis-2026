@@ -22,6 +22,7 @@ from .findings import (
     render_medical_findings,
     render_suggested_updates,
 )
+from .formatters import friendly_decision
 from .history import format_history_label, render_history_log
 from .review_panel import render_agent_review_summary
 from .timeline_state import compute_timeline_status, get_ui_state
@@ -202,7 +203,7 @@ def render_step_messages(state_data: dict) -> None:
             col1, col2 = st.columns([1, 4])
             with col1:
                 st.caption("Quyết định")
-                st.write(f"**{str(decision).upper()}**")
+                st.write(f"**{friendly_decision(decision)}**")
             with col2:
                 st.caption("Thông điệp")
                 st.write(message)
