@@ -53,8 +53,9 @@ def render_human_review_panel(
             edited_result = None
             if decision == HITLDecision.EDIT.value:
                 st.markdown("**Trình sửa dữ liệu có cấu trúc (JSON)**")
+                editable_assessment = get_editable_assessment(state_data)
                 default_editor_payload = (
-                    assessment if assessment else {"valid": False, "issues": []}
+                    editable_assessment if editable_assessment else {"valid": False, "issues": []}
                 )
                 text_value = st.text_area(
                     "Chỉnh sửa dữ liệu JSON Agent trích xuất",
@@ -152,11 +153,21 @@ def get_pending_assessment(state_data: dict) -> dict | None:
         return state_data.get("agent_1_result")
     if state_data.get("review_stage") == "quality":
         return state_data.get("agent_2_result")
+    if state_data.get("review_stage") == "final":
+        return state_data.get("final_result")
     if state_data.get("agent_2_result"):
         return state_data.get("agent_2_result")
     return state_data.get("agent_1_result")
 
 
+def get_editable_assessment(state_data: dict) -> dict | None:
+    """Return the payload that an edit decision should submit."""
+    if state_data.get("review_stage") == "final":
+        return state_data.get("agent_2_result") or state_data.get("final_result")
+    return get_pending_assessment(state_data)
+
+
 _get_pending_assessment = get_pending_assessment
+_get_editable_assessment = get_editable_assessment
 _render_agent_review_summary = render_agent_review_summary
 _render_assessment_findings = render_assessment_findings
