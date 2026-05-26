@@ -55,11 +55,13 @@ _LAZY_EXPORTS = {
     "render_brand_theme": (".theme", "render_brand_theme"),
     "render_app_header": (".timeline", "render_app_header"),
     "render_claim_submission": (".timeline", "render_claim_submission"),
+    "render_claim_summary_metrics": (".timeline", "render_claim_summary_metrics"),
     "render_monitoring": (".timeline", "render_monitoring"),
     "render_raw_state": (".timeline", "render_raw_state"),
     "render_sidebar": (".timeline", "render_sidebar"),
     "render_step_messages": (".timeline", "render_step_messages"),
     "render_timeline": (".timeline", "render_timeline"),
+    "render_workflow_status_summary": (".timeline", "render_workflow_status_summary"),
 }
 
 
@@ -109,6 +111,7 @@ __all__ = [
     "render_assessment_findings",
     "render_brand_theme",
     "render_claim_submission",
+    "render_claim_summary_metrics",
     "render_confidence_badge",
     "render_document_tab_link",
     "render_error_state",
@@ -124,5 +127,6 @@ __all__ = [
     "render_step_messages",
     "render_suggested_updates",
     "render_timeline",
+    "render_workflow_status_summary",
     "workflow_document_url",
 ]

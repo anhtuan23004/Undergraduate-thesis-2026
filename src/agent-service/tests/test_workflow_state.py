@@ -46,6 +46,7 @@ def test_build_workflow_response_preserves_run_response_shape_by_default():
         {
             "run_id": "run-1",
             "claim_id": "claim-1",
+            "policy_number": "policy-1",
             "extracted_documents": {"documents": []},
             "agent_1_result": {"valid": True},
             "agent_2_result": None,
@@ -66,6 +67,7 @@ def test_build_workflow_response_preserves_run_response_shape_by_default():
     assert response == {
         "run_id": "run-1",
         "claim_id": "claim-1",
+        "policy_number": "policy-1",
         "extracted_documents": {"documents": []},
         "final_result": None,
         "agent_1_result": {"valid": True},
