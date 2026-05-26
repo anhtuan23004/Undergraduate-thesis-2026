@@ -15,6 +15,7 @@ from .constants import (
     STEP_TITLES,
     UI_STATE_LABELS,
 )
+from .final_dashboard import claim_identity_summary
 from .findings import (
     render_confidence_badge,
     render_evidence_panel,
@@ -136,23 +137,52 @@ def render_claim_submission(on_start: Callable) -> None:
 def render_monitoring(state_data: dict) -> None:
     """Step 2: workflow monitoring timeline, live status, and history."""
     st.subheader(":material/monitoring: Bước 2 - Theo dõi tiến trình")
+    render_claim_summary_metrics(state_data)
 
     ui_state = get_ui_state(state_data)
     current_step = str(state_data.get("current_step") or "unknown")
 
-    top_col1, top_col2, top_col3 = st.columns(3)
-    with top_col1:
-        st.metric("Bước hiện tại", current_step, border=True)
-    with top_col2:
-        st.metric("Mã phiên", (state_data.get("run_id") or "")[:12], border=True)
-    with top_col3:
-        st.metric(
-            "Trạng thái giao diện", UI_STATE_LABELS.get(ui_state, "Không xác định"), border=True
-        )
+    render_workflow_status_summary(
+        current_step=current_step,
+        run_id=str(state_data.get("run_id") or ""),
+        ui_status=UI_STATE_LABELS.get(ui_state, "Không xác định"),
+    )
 
     render_timeline(state_data)
     render_step_messages(state_data)
     render_history_log(state_data.get("history", []))
+
+
+def render_claim_summary_metrics(state_data: dict) -> None:
+    """Show claim identity fields at the top of monitoring."""
+    summary = claim_identity_summary(state_data)
+
+    with st.container(border=True):
+        cols = st.columns(3)
+        items = [
+            ("Mã hồ sơ", summary["claim_id"]),
+            ("Người được bảo hiểm", summary["insured_name"]),
+            ("Số hợp đồng", summary["policy_number"]),
+        ]
+        for col, (label, value) in zip(cols, items, strict=True):
+            with col:
+                st.caption(label)
+                st.markdown(f"**{value}**")
+
+
+def render_workflow_status_summary(current_step: str, run_id: str, ui_status: str) -> None:
+    """Show compact workflow status fields."""
+    run_short = run_id[:12] if run_id else "—"
+    with st.container(border=True):
+        st.caption(
+            " · ".join(
+                [
+                    f"Bước hiện tại: {current_step}",
+                    f"Mã phiên: {run_short}",
+                    f"Trạng thái: {ui_status}",
+                ]
+            )
+        )
 
 
 def render_timeline(state_data: dict) -> None:

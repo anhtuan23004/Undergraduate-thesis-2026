@@ -83,6 +83,7 @@ def build_workflow_response(
     response = {
         "run_id": result.get("run_id"),
         "claim_id": result.get("claim_id"),
+        "policy_number": result.get("policy_number"),
         "extracted_documents": result.get("extracted_documents"),
         "final_result": result.get("final_result"),
         "agent_1_result": result.get("agent_1_result"),
