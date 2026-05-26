@@ -105,13 +105,63 @@ def test_format_issues_summary_uses_vietnamese_labels() -> None:
     ]
 
 
+def test_claim_identity_summary_uses_completeness_evidence_patient_name() -> None:
+    final_dashboard = _final_dashboard_module()
+
+    summary = final_dashboard.claim_identity_summary(
+        {
+            "claim_id": "CLM-001",
+            "policy_number": "POL-001",
+            "agent_1_result": {
+                "evidence": {
+                    "patient_name": "Nguyễn Văn A",
+                    "policy_number": "POL-EVIDENCE",
+                }
+            },
+        }
+    )
+
+    assert summary == {
+        "claim_id": "CLM-001",
+        "insured_name": "Nguyễn Văn A",
+        "policy_number": "POL-001",
+    }
+
+
+def test_claim_identity_summary_falls_back_to_extracted_documents() -> None:
+    final_dashboard = _final_dashboard_module()
+
+    summary = final_dashboard.claim_identity_summary(
+        {
+            "claim_id": "CLM-002",
+            "extracted_documents": {
+                "documents": [
+                    {
+                        "document_name": "Giấy khám bệnh",
+                        "extracted_data": {
+                            "insured_person_name": "Trần Thị B",
+                            "so_hop_dong": "POL-002",
+                        },
+                    }
+                ]
+            },
+        }
+    )
+
+    assert summary == {
+        "claim_id": "CLM-002",
+        "insured_name": "Trần Thị B",
+        "policy_number": "POL-002",
+    }
+
+
 def _final_dashboard_module():
     pandas = types.ModuleType("pandas")
     pandas.DataFrame = lambda rows: rows
     sys.modules.setdefault("pandas", pandas)
 
     streamlit = types.ModuleType("streamlit")
-    streamlit.__getattr__ = lambda name: (lambda *args, **kwargs: None)
+    streamlit.__getattr__ = lambda name: lambda *args, **kwargs: None
     sys.modules.setdefault("streamlit", streamlit)
 
     sys.modules.pop("interfaces.web.components.final_dashboard", None)
