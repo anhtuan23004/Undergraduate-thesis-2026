@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from .document_view import render_document_tab_link
+from .formatters import friendly_decision
 from .history import render_history_log
 
 
@@ -19,25 +20,30 @@ def render_final_dashboard(state_data: dict) -> None:
 
     decision = str(final_result.get("decision") or "").lower()
     approved_amount = final_result.get("approved_amount") or 0
-    message = final_result.get("message") or final_result.get("rejection_reason") or "-"
+    message = final_result_message(final_result)
 
     with st.container(border=True):
+        decision_label = friendly_decision(decision).upper()
         if decision == "approve":
-            st.success("PHÊ DUYỆT")
+            st.success(decision_label)
         else:
-            st.error("TỪ CHỐI")
+            st.error(decision_label)
 
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Số tiền bồi thường", f"{approved_amount:,}")
         with col2:
-            st.write("**Lý do / diễn giải**")
+            st.write(f"**{final_message_heading(decision)}**")
             st.write(message)
 
         issues_summary = final_result.get("issues_summary") or []
         if issues_summary:
             st.markdown("**Tổng hợp vấn đề**")
-            st.dataframe(pd.DataFrame(issues_summary), hide_index=True, use_container_width=True)
+            st.dataframe(
+                pd.DataFrame(format_issues_summary(issues_summary)),
+                hide_index=True,
+                use_container_width=True,
+            )
 
     st.markdown("**Nhật ký kiểm toán toàn quy trình**")
     render_history_log(state_data.get("history", []))
@@ -49,3 +55,64 @@ def render_final_dashboard(state_data: dict) -> None:
         mime="application/json",
         use_container_width=True,
     )
+
+
+def final_message_heading(decision: str) -> str:
+    """Return the Vietnamese heading for the final decision explanation."""
+    return "Lý do từ chối" if decision == "reject" else "Diễn giải"
+
+
+def final_result_message(final_result: dict) -> str:
+    """Return a Vietnamese-facing final result message."""
+    decision = str(final_result.get("decision") or "").lower()
+    if decision == "reject":
+        return (
+            final_result.get("rejection_reason")
+            or _translate_known_final_message(final_result.get("message"))
+            or "Hồ sơ bị từ chối. Vui lòng xem phần tổng hợp vấn đề để biết chi tiết."
+        )
+    return final_result.get("message") or "Hồ sơ được phê duyệt."
+
+
+def format_issues_summary(issues_summary: list[dict]) -> list[dict]:
+    """Format final issue summary rows with Vietnamese labels."""
+    return [
+        {
+            "Nhóm vấn đề": _issue_category_label(item.get("category")),
+            "Số lượng": item.get("count", "-"),
+            "Mức độ": _severity_label(item.get("severity")),
+        }
+        for item in issues_summary
+        if isinstance(item, dict)
+    ]
+
+
+def _issue_category_label(category: object) -> str:
+    labels = {
+        "completeness": "Tính đầy đủ hồ sơ",
+        "quality": "Chất lượng y tế",
+        "policy": "Quy tắc bảo hiểm",
+    }
+    return labels.get(str(category or "").lower(), str(category or "-"))
+
+
+def _severity_label(severity: object) -> str:
+    labels = {
+        "critical": "Nghiêm trọng",
+        "high": "Cao",
+        "medium": "Trung bình",
+        "low": "Thấp",
+    }
+    return labels.get(str(severity or "").lower(), str(severity or "-"))
+
+
+def _translate_known_final_message(message: object) -> str | None:
+    text = str(message or "").strip()
+    if not text:
+        return None
+    lowered = text.lower()
+    if "final decision rejected by reviewer" in lowered:
+        return text.split(":", 1)[-1].strip() or "Thẩm định viên từ chối kết luận cuối cùng."
+    if "reviewer rejected the final decision" in lowered:
+        return "Thẩm định viên từ chối kết luận cuối cùng."
+    return text
