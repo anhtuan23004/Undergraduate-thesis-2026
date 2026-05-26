@@ -38,6 +38,20 @@ SEVERITY_COLORS = {
     "low": "🟢",
 }
 
+SEVERITY_LABELS = {
+    "critical": "Nghiêm trọng",
+    "high": "Cao",
+    "medium": "Trung bình",
+    "low": "Thấp",
+}
+
+UI_STATE_LABELS = {
+    UIState.PROCESSING: "Đang xử lý",
+    UIState.WAITING_FOR_HUMAN: "Chờ thẩm định",
+    UIState.ERROR: "Lỗi",
+    UIState.COMPLETED: "Hoàn tất",
+}
+
 STEP_ORDER = ["completeness", "agent_review", "quality", "human_review", "final_decision"]
 
 STEP_LABELS = {
@@ -51,7 +65,7 @@ STEP_LABELS = {
 
 STEP_TITLES = {
     "completeness": "Bước 1 - Kiểm tra tính đầy đủ",
-    "agent_review": "Bước 2 - Duyệt tự động (Agent Review)",
+    "agent_review": "Bước 2 - Duyệt tự động",
     "quality": "Bước 3 - Kiểm tra chất lượng y tế",
     "human_review": "Bước 4 - Kết quả thẩm định thủ công",
     "final_decision": "Bước 5 - Kết luận cuối cùng",
@@ -92,6 +106,6 @@ FRIENDLY_STEP_NAMES = {
     "human_review": "Thẩm định thủ công",
     "human_review_complete": "Hoàn tất thẩm định thủ công",
     "manual_continue": "Tiếp tục thủ công",
-    "agent_review": "Duyệt tự động (Agent Review)",
-    "verifier_agent": "Xác minh chéo (Verifier)",
+    "agent_review": "Duyệt tự động",
+    "verifier_agent": "Xác minh chéo",
 }

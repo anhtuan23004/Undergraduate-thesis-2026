@@ -12,7 +12,7 @@ from .history import render_history_log
 
 
 def render_final_dashboard(state_data: dict) -> None:
-    """Step 4: final decision card, details, and audit trail."""
+    """Step 4: final decision card, details, and audit log."""
     st.subheader(":material/gavel: Bước 4 - Kết quả cuối cùng")
     render_document_tab_link(state_data)
     final_result = state_data.get("final_result") or {}
@@ -39,7 +39,7 @@ def render_final_dashboard(state_data: dict) -> None:
             st.markdown("**Tổng hợp vấn đề**")
             st.dataframe(pd.DataFrame(issues_summary), hide_index=True, use_container_width=True)
 
-    st.markdown("**Audit trail toàn quy trình**")
+    st.markdown("**Nhật ký kiểm toán toàn quy trình**")
     render_history_log(state_data.get("history", []))
 
     st.download_button(

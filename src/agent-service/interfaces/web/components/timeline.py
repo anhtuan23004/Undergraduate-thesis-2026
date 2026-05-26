@@ -13,6 +13,7 @@ from .constants import (
     STEP_LABELS,
     STEP_ORDER,
     STEP_TITLES,
+    UI_STATE_LABELS,
 )
 from .findings import (
     render_confidence_badge,
@@ -30,7 +31,7 @@ def render_app_header(current_run_id: str | None, api_url: str) -> None:
     """Render top title section."""
     st.title(":material/health_and_safety: Hệ thống quản lý hồ sơ bồi thường")
     run_short = current_run_id[:8] if current_run_id else "-"
-    st.caption(f"Luồng LangGraph có Human-in-the-Loop | run_id: {run_short} | API: {api_url}")
+    st.caption(f"Luồng LangGraph có kiểm soát con người | run_id: {run_short} | API: {api_url}")
 
 
 def render_sidebar(
@@ -96,13 +97,13 @@ def render_claim_submission(on_start: Callable) -> None:
             col1, col2 = st.columns(2)
             with col1:
                 claim_id = st.text_input(
-                    "Mã hồ sơ (Claim ID)",
+                    "Mã hồ sơ",
                     value=f"CLM-{int(datetime.now().timestamp())}",
                     key="claim_id_input",
                 )
             with col2:
                 policy_number = st.text_input(
-                    "Số hợp đồng (Policy Number)",
+                    "Số hợp đồng",
                     value="POL-2026",
                     key="policy_number_input",
                 )
@@ -121,12 +122,12 @@ def render_claim_submission(on_start: Callable) -> None:
                 )
 
             submit = st.form_submit_button(
-                ":material/play_circle: Chạy workflow", type="primary", use_container_width=True
+                ":material/play_circle: Chạy quy trình", type="primary", use_container_width=True
             )
 
         if submit:
             if not uploaded_file:
-                st.error("Vui lòng tải tệp trước khi chạy workflow.")
+                st.error("Vui lòng tải tệp trước khi chạy quy trình.")
                 return
             on_start(claim_id.strip(), policy_number.strip(), uploaded_file.name, uploaded_file)
 
@@ -144,7 +145,9 @@ def render_monitoring(state_data: dict) -> None:
     with top_col2:
         st.metric("Mã phiên", (state_data.get("run_id") or "")[:12], border=True)
     with top_col3:
-        st.metric("Trạng thái UI", ui_state.value.upper(), border=True)
+        st.metric(
+            "Trạng thái giao diện", UI_STATE_LABELS.get(ui_state, "Không xác định"), border=True
+        )
 
     render_timeline(state_data)
     render_step_messages(state_data)
@@ -193,7 +196,7 @@ def render_step_messages(state_data: dict) -> None:
 
             decision = payload.get("decision") or payload.get("status") or "-"
             message = (
-                payload.get("message") or payload.get("rejection_reason") or "Không có message"
+                payload.get("message") or payload.get("rejection_reason") or "Không có thông điệp"
             )
 
             col1, col2 = st.columns([1, 4])
@@ -201,7 +204,7 @@ def render_step_messages(state_data: dict) -> None:
                 st.caption("Quyết định")
                 st.write(f"**{str(decision).upper()}**")
             with col2:
-                st.caption("Message")
+                st.caption("Thông điệp")
                 st.write(message)
 
             render_confidence_badge(payload)

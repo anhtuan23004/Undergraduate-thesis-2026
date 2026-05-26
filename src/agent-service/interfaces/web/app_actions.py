@@ -54,7 +54,7 @@ def handle_start_workflow(
             render_error_state(
                 f"Tải tệp thất bại: {upload_result['error']}",
                 error_payload=upload_result,
-                context_label="upload",
+                context_label="tải tài liệu",
             )
             return
 
@@ -89,7 +89,7 @@ def handle_resume_workflow(
 
     run_id = st.session_state.current_run_id
     if not run_id:
-        render_error_state("Không tìm thấy run_id để tiếp tục workflow")
+        render_error_state("Không tìm thấy run_id để tiếp tục quy trình")
         return
 
     st.session_state.pending_paused_continue_request = False
@@ -109,7 +109,7 @@ def handle_resume_workflow(
             render_error_state(
                 result["error"],
                 error_payload=result,
-                context_label="resume workflow",
+                context_label="tiếp tục quy trình",
             )
             return
 
@@ -163,7 +163,7 @@ def refresh_status(silent: bool = False) -> dict | None:
                 render_error_state(
                     result["error"],
                     error_payload=result,
-                    context_label="lấy trạng thái workflow",
+                    context_label="lấy trạng thái quy trình",
                 )
             return None
 

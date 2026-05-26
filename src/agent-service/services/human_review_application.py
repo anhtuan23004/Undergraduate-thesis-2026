@@ -112,13 +112,13 @@ def build_human_review_update(stage: str, command: HumanReviewCommand) -> dict[s
         state_update[edited_key] = command.edited_result
 
     if stage == STAGE_FINAL and command.decision == "reject":
-        rejection_reason = command.notes or "Reviewer rejected the final decision."
+        rejection_reason = command.notes or "Thẩm định viên từ chối kết luận cuối cùng."
         state_update["final_result"] = {
             "decision": "reject",
             "approved_amount": 0,
             "rejection_reason": rejection_reason,
             "issues_summary": [],
-            "message": f"Final decision rejected by reviewer: {rejection_reason}",
+            "message": f"Kết luận cuối cùng bị thẩm định viên từ chối: {rejection_reason}",
         }
 
     return state_update

@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 import streamlit as st
 
-from .constants import HITL_DECISION_LABELS, SEVERITY_COLORS, HITLDecision
+from .constants import HITL_DECISION_LABELS, SEVERITY_COLORS, SEVERITY_LABELS, HITLDecision
 from .document_view import render_document_tab_link
 from .findings import (
     render_confidence_badge,
@@ -23,7 +23,7 @@ def render_human_review_panel(
 ) -> None:
     """Step 3: split-view HITL panel with optional edit JSON."""
     st.subheader(":material/person_search: Bước 3 - Giao diện thẩm định")
-    st.warning("Hồ sơ cần thẩm định thủ công. Vui lòng đưa ra quyết định để tiếp tục workflow.")
+    st.warning("Hồ sơ cần thẩm định thủ công. Vui lòng đưa ra quyết định để tiếp tục quy trình.")
     render_document_tab_link(state_data)
 
     assessment = get_pending_assessment(state_data)
@@ -60,7 +60,7 @@ def render_human_review_panel(
                     editable_assessment if editable_assessment else {"valid": False, "issues": []}
                 )
                 text_value = st.text_area(
-                    "Chỉnh sửa dữ liệu JSON Agent trích xuất",
+                    "Chỉnh sửa dữ liệu JSON do tác tử trích xuất",
                     value=json.dumps(default_editor_payload, ensure_ascii=False, indent=2),
                     height=260,
                     key="hitl_edit_json",
@@ -72,7 +72,7 @@ def render_human_review_panel(
                     return
 
             if st.button(
-                ":material/play_circle: Tiếp tục workflow",
+                ":material/play_circle: Tiếp tục quy trình",
                 type="primary",
                 use_container_width=True,
                 disabled=action_locked,
@@ -102,11 +102,12 @@ def render_assessment_findings(assessment: dict | None) -> None:
         for issue in issues:
             severity = str(issue.get("severity", "low")).lower()
             icon = SEVERITY_COLORS.get(severity, "⚪")
+            severity_label = SEVERITY_LABELS.get(severity, severity)
             code = issue.get("code", "-")
             description = issue.get("description", "")
             reason = issue.get("reason", "")
             reason_text = f" — *{reason}*" if reason else ""
-            st.write(f"{icon} [{severity.upper()}] {code} - {description}{reason_text}")
+            st.write(f"{icon} [{severity_label}] {code} - {description}{reason_text}")
 
     evidence = assessment.get("evidence")
     if evidence:

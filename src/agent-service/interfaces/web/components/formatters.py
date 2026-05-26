@@ -23,7 +23,7 @@ def friendly_step_name(step_raw: str) -> str:
         return FRIENDLY_STEP_NAMES[raw]
 
     if "agent_review" in raw or "verifier" in raw:
-        return "Duyệt tự động (Agent Review)"
+        return "Duyệt tự động"
     if "completeness" in raw:
         return "Kiểm tra tính đầy đủ"
     if "quality" in raw:
@@ -33,7 +33,7 @@ def friendly_step_name(step_raw: str) -> str:
     if "final" in raw or "decision" in raw:
         return "Kết luận cuối cùng"
     if "start" in raw:
-        return "Khởi tạo workflow"
+        return "Khởi tạo quy trình"
     return step_raw
 
 

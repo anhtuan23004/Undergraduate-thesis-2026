@@ -42,7 +42,7 @@ def render_history_log(history: list[dict]) -> None:
             {
                 "STT": idx,
                 "Bước": step_label,
-                "Tác nhân": item.get("agent", "System"),
+                "Tác nhân": item.get("agent", "Hệ thống"),
                 "Trạng thái": status,
                 "Quyết định": str(decision).upper() if decision != "-" else "-",
                 "Số lỗi": issue_count,
