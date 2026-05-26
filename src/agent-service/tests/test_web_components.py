@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import sys
+import types
+from importlib import import_module
+
 from interfaces.web.components import (
     StepStatus,
     UIState,
@@ -53,3 +57,19 @@ def test_history_formatters() -> None:
     assert friendly_status("approve", {}) == "Đạt"
     assert friendly_status("reject", {}) == "Không đạt"
     assert friendly_status("-", {"error": "boom"}) == "Lỗi"
+
+
+def test_workflow_document_url_uses_run_id_and_api_base_url() -> None:
+    streamlit = types.ModuleType("streamlit")
+    streamlit.session_state = {"api_base_url": "http://localhost:8003/"}
+    sys.modules["streamlit"] = streamlit
+    sys.modules.pop("interfaces.web.components.document_view", None)
+
+    workflow_document_url = import_module(
+        "interfaces.web.components.document_view"
+    ).workflow_document_url
+
+    assert (
+        workflow_document_url({"run_id": "run 1"})
+        == "http://localhost:8003/api/v1/workflows/document/run%201"
+    )

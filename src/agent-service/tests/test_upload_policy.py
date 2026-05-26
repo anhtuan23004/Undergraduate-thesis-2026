@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from api.upload import router
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -70,3 +72,39 @@ def test_upload_saves_allowed_file_with_safe_basename(monkeypatch, tmp_path) -> 
     assert payload["filename"] == "claim.pdf"
     assert payload["file_path"].startswith(str(tmp_path))
     assert payload["size_bytes"] == len(b"%PDF-1.4")
+
+
+def test_view_workflow_document_serves_uploaded_file(monkeypatch, tmp_path) -> None:
+    input_file = tmp_path / "claim.pdf"
+    input_file.write_bytes(b"%PDF-1.4")
+    monkeypatch.setattr("api.upload.settings.UPLOADS_DIR", str(tmp_path))
+
+    class FakeGraph:
+        async def aget_state(self, config):
+            return SimpleNamespace(values={"input_file": str(input_file)})
+
+    async def fake_get_graph():
+        return FakeGraph()
+
+    monkeypatch.setattr("api.upload.get_graph", fake_get_graph)
+
+    response = _client().get("/api/v1/workflows/document/run-1")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content == b"%PDF-1.4"
+
+
+def test_view_workflow_document_rejects_missing_run(monkeypatch) -> None:
+    class FakeGraph:
+        async def aget_state(self, config):
+            return None
+
+    async def fake_get_graph():
+        return FakeGraph()
+
+    monkeypatch.setattr("api.upload.get_graph", fake_get_graph)
+
+    response = _client().get("/api/v1/workflows/document/missing-run")
+
+    assert response.status_code == 404
