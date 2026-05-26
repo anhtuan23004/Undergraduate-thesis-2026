@@ -20,7 +20,7 @@ def consume_stream_events(
         if event_type == "run_started":
             run_id = payload.get("run_id")
             st.session_state.current_run_id = run_id
-            status.write(f"🚀 Workflow khởi tạo — run_id: `{run_id[:8]}`")
+            status.write(f"🚀 Quy trình đã khởi tạo — run_id: `{run_id[:8]}`")
 
         elif event_type == "node_start":
             step_label = STEP_LABELS.get(payload.get("step"), payload.get("node", ""))
@@ -42,7 +42,7 @@ def consume_stream_events(
             render_error_state(
                 payload.get("error", "Lỗi không xác định khi nhận luồng xử lý"),
                 error_payload=payload,
-                context_label="luồng xử lý workflow",
+                context_label="luồng xử lý quy trình",
             )
             return None
 

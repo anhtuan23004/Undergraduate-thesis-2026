@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from .constants import SEVERITY_COLORS
+from .constants import SEVERITY_COLORS, SEVERITY_LABELS
 
 
 def render_issue_details(issues: list[dict]) -> None:
@@ -16,6 +16,7 @@ def render_issue_details(issues: list[dict]) -> None:
     for issue in issues:
         severity = str(issue.get("severity", "low")).lower()
         icon = SEVERITY_COLORS.get(severity, "⚪")
+        severity_label = SEVERITY_LABELS.get(severity, severity)
         code = issue.get("code") or issue.get("category") or "-"
         description = issue.get("description") or issue.get("message") or "-"
         reason = issue.get("reason") or "-"
@@ -26,7 +27,7 @@ def render_issue_details(issues: list[dict]) -> None:
 
         rows.append(
             {
-                "Mức độ": f"{icon} {severity.upper()}",
+                "Mức độ": f"{icon} {severity_label}",
                 "Mã/Nhóm": str(code),
                 "Mô tả": str(description),
                 "Lý do": str(reason),

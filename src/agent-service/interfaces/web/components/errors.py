@@ -8,13 +8,13 @@ import streamlit as st
 def render_error_state(
     error_message: str,
     error_payload: dict | None = None,
-    context_label: str = "workflow",
+    context_label: str = "quy trình",
 ) -> None:
     """Render API/workflow error with full details for human review."""
     st.error(f"Lỗi {context_label}: {error_message}")
 
     with st.container(border=True):
-        st.markdown("**Chi tiết lỗi cho Human Review**")
+        st.markdown("**Chi tiết lỗi cho thẩm định thủ công**")
 
         status_code = None
         endpoint = None
@@ -29,7 +29,7 @@ def render_error_state(
             st.caption("Mã lỗi HTTP")
             st.write(str(status_code) if status_code is not None else "-")
         with col2:
-            st.caption("Endpoint")
+            st.caption("Đường dẫn API")
             st.write(endpoint or "-")
 
         st.caption("Thông tin chi tiết")

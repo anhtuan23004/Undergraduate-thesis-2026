@@ -112,9 +112,9 @@ def render_state_detail(data: dict) -> None:
 
     if ui_state == UIState.ERROR:
         render_error_state(
-            str(data.get("error") or "Lỗi workflow không xác định"),
+            str(data.get("error") or "Lỗi quy trình không xác định"),
             error_payload=data,
-            context_label="workflow",
+            context_label="quy trình",
         )
         if st.button(
             ":material/replay: Thử chạy tiếp",
@@ -124,7 +124,7 @@ def render_state_detail(data: dict) -> None:
         return
 
     if data.get("paused") and not data.get("pending_human_review"):
-        st.info("Workflow đang tạm dừng ở một bước tự động")
+        st.info("Quy trình đang tạm dừng ở một bước tự động")
         if st.button(
             ":material/play_circle: Tiếp tục bước tạm dừng",
             type="primary",
