@@ -7,12 +7,14 @@ import json
 import pandas as pd
 import streamlit as st
 
+from .document_view import render_document_tab_link
 from .history import render_history_log
 
 
 def render_final_dashboard(state_data: dict) -> None:
     """Step 4: final decision card, details, and audit trail."""
     st.subheader(":material/gavel: Bước 4 - Kết quả cuối cùng")
+    render_document_tab_link(state_data)
     final_result = state_data.get("final_result") or {}
 
     decision = str(final_result.get("decision") or "").lower()

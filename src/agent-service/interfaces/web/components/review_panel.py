@@ -8,6 +8,7 @@ from collections.abc import Callable
 import streamlit as st
 
 from .constants import HITL_DECISION_LABELS, SEVERITY_COLORS, HITLDecision
+from .document_view import render_document_tab_link
 from .findings import (
     render_confidence_badge,
     render_evidence_panel,
@@ -23,6 +24,7 @@ def render_human_review_panel(
     """Step 3: split-view HITL panel with optional edit JSON."""
     st.subheader(":material/person_search: Bước 3 - Giao diện thẩm định")
     st.warning("Hồ sơ cần thẩm định thủ công. Vui lòng đưa ra quyết định để tiếp tục workflow.")
+    render_document_tab_link(state_data)
 
     assessment = get_pending_assessment(state_data)
     left_col, right_col = st.columns([1.2, 1.0])

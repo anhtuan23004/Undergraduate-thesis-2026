@@ -1,10 +1,18 @@
 """Upload API routes for workflow documents."""
 
+import mimetypes
 import uuid
 
 from config import settings
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from services.file_policy import resolve_upload_dir, safe_upload_filename, validate_upload_metadata
+from fastapi.responses import FileResponse
+from services.file_policy import (
+    resolve_upload_dir,
+    resolve_upload_path,
+    safe_upload_filename,
+    validate_upload_metadata,
+)
+from services.graph_service import get_graph
 
 from .helpers import compute_file_hash
 from .schemas import UploadResponse
@@ -59,3 +67,27 @@ async def upload_workflow_document(file: UploadFile = File(...)) -> UploadRespon
         raise HTTPException(
             status_code=500, detail=f"Không thể lưu tệp đã tải lên: {str(e)}"
         ) from e
+
+
+@router.get("/workflows/document/{run_id}")
+async def view_workflow_document(run_id: str) -> FileResponse:
+    """Return the uploaded workflow document for browser preview."""
+    graph = await get_graph()
+    config = {"configurable": {"thread_id": run_id}}
+    state = await graph.aget_state(config)
+
+    if not state or not state.values:
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy lượt chạy {run_id}")
+
+    input_file = state.values.get("input_file")
+    file_path = resolve_upload_path(input_file)
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu đã tải lên")
+
+    media_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=file_path.name,
+        content_disposition_type="inline",
+    )

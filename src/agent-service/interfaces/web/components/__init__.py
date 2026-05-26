@@ -27,6 +27,8 @@ from .timeline_state import _compute_timeline_status, compute_timeline_status, g
 
 _LAZY_EXPORTS = {
     "render_error_state": (".errors", "render_error_state"),
+    "render_document_tab_link": (".document_view", "render_document_tab_link"),
+    "workflow_document_url": (".document_view", "workflow_document_url"),
     "render_final_dashboard": (".final_dashboard", "render_final_dashboard"),
     "_render_confidence_badge": (".findings", "_render_confidence_badge"),
     "_render_evidence_panel": (".findings", "_render_evidence_panel"),
@@ -104,6 +106,7 @@ __all__ = [
     "render_brand_theme",
     "render_claim_submission",
     "render_confidence_badge",
+    "render_document_tab_link",
     "render_error_state",
     "render_evidence_panel",
     "render_final_dashboard",
@@ -117,4 +120,5 @@ __all__ = [
     "render_step_messages",
     "render_suggested_updates",
     "render_timeline",
+    "workflow_document_url",
 ]
