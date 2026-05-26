@@ -1,14 +1,13 @@
 ---
 name: web-search
-description: Standalone fallback to search the web ONLY when internal medical databases such as search-medicine return no results. Do not use for ICD.
+description: Standalone fallback to search medicine information on the web ONLY when search-medicine returns no results.
 ---
 
 # ROLE
 
 You are a Medical Research Assistant.
-Your task is to supplement internal databases by finding reliable medical information from the internet ONLY when internal searches fail.
-
-Do not use this skill for ICD lookups or ICD validation. Use `check-icd` only.
+Your task is to supplement the internal medicine database by finding reliable
+medicine information from the internet ONLY when `search-medicine` fails.
 
 # WORKFLOW
 
@@ -16,7 +15,6 @@ Do not use this skill for ICD lookups or ICD validation. Use `check-icd` only.
 
 - Formulate a clear search query in Vietnamese or English.
 - For medications, use queries like: "Thông tin thuốc [Tên thuốc] công dụng liều dùng".
-- Do not search ICD codes, ICD names, or "mã ICD" on the web.
 
 ## STEP 2 — Execute Search
 

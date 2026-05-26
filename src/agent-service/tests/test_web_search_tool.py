@@ -92,33 +92,8 @@ def test_web_search_compacts_and_ranks_medicine_results(monkeypatch):
     assert FakeTavilyClient.last_kwargs["include_raw_content"] == "text"
 
 
-def test_web_search_rejects_icd_queries_without_calling_tavily(monkeypatch):
-    module = _load_web_search_module("test_web_search_tool_icd")
-
-    class FakeTavilyClient:
-        called = False
-
-        def __init__(self, api_key):
-            self.api_key = api_key
-
-        def search(self, **kwargs):
-            FakeTavilyClient.called = True
-            return {"results": []}
-
-    monkeypatch.setattr(module, "TavilyClient", FakeTavilyClient)
-    monkeypatch.setattr(module.settings, "TAVILY_API_KEY", "test-key")
-
-    raw_result = module.web_search.invoke({"query": "ICD J02.9", "max_results": 2})
-    result = json.loads(raw_result)
-
-    assert result["status"] == "error"
-    assert result["results"] == []
-    assert "check-icd" in result["message"]
-    assert FakeTavilyClient.called is False
-
-
-def test_web_search_keeps_non_icd_generic_queries_unrestricted(monkeypatch):
-    module = _load_web_search_module("test_web_search_tool_generic")
+def test_web_search_allows_medicine_queries_with_b12_like_token(monkeypatch):
+    module = _load_web_search_module("test_web_search_tool_b12")
 
     class FakeTavilyClient:
         last_kwargs = None
@@ -131,9 +106,9 @@ def test_web_search_keeps_non_icd_generic_queries_unrestricted(monkeypatch):
             return {
                 "results": [
                     {
-                        "title": "Insurance policy update",
-                        "content": "Coverage policy update.",
-                        "url": "https://policy.example/update",
+                        "title": "Vitamin B12 công dụng",
+                        "content": "Vitamin B12 được dùng để bổ sung vitamin.",
+                        "url": "https://trungtamthuoc.com/vitamin-b12",
                     }
                 ],
             }
@@ -141,12 +116,9 @@ def test_web_search_keeps_non_icd_generic_queries_unrestricted(monkeypatch):
     monkeypatch.setattr(module, "TavilyClient", FakeTavilyClient)
     monkeypatch.setattr(module.settings, "TAVILY_API_KEY", "test-key")
 
-    raw_result = module.web_search.invoke(
-        {"query": "latest health insurance policy", "max_results": 2}
-    )
+    raw_result = module.web_search.invoke({"query": "thuốc vitamin B12 công dụng"})
     result = json.loads(raw_result)
 
     assert result["status"] == "success"
-    assert result["results"][0]["title"] == "Insurance policy update"
-    assert "include_domains" not in FakeTavilyClient.last_kwargs
-    assert "include_raw_content" not in FakeTavilyClient.last_kwargs
+    assert FakeTavilyClient.last_kwargs["include_domains"] == module.MEDICINE_INFO_DOMAINS
+    assert FakeTavilyClient.last_kwargs["include_raw_content"] == "text"

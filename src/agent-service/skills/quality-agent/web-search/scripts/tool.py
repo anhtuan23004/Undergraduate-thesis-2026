@@ -1,7 +1,6 @@
 """Web search tool for medical information using Tavily.
 
-This tool allows the agent to search the web for medical information,
-drug details, or insurance policy updates.
+This tool allows the agent to search the web for medicine information.
 """
 
 import json
@@ -33,25 +32,6 @@ MEDICINE_INFO_DOMAINS = [
 ]
 
 ALLOWED_MEDICINE_DOMAINS = set(MEDICINE_INFO_DOMAINS)
-
-MEDICINE_QUERY_HINTS = (
-    "thuốc",
-    "biệt dược",
-    "hoạt chất",
-    "hàm lượng",
-    "dạng bào chế",
-    "số đăng ký",
-    "sđk",
-    "công dụng",
-    "chỉ định",
-    "liều dùng",
-    "tablet",
-    "capsule",
-    "injection",
-    "mg",
-    "mcg",
-    "ml",
-)
 
 MEDICINE_INFO_SIGNALS = {
     "usage": ("công dụng", "chỉ định", "điều trị"),
@@ -172,13 +152,6 @@ TITLE_STOPWORDS = {
 REGISTRATION_PATTERN = re.compile(
     r"\b(?:VD|VN|VNB|GC|QL|SDK|SĐK)[-/]?\d[\w./-]*\b",
     re.IGNORECASE,
-)
-ICD_CODE_PATTERN = re.compile(r"\b[A-Z][0-9]{2}(?:\.?[0-9A-Z]{1,4})?\b", re.IGNORECASE)
-ICD_QUERY_KEYWORDS = (
-    "icd",
-    "icd-10",
-    "mã icd",
-    "ma icd",
 )
 
 
@@ -334,15 +307,13 @@ def _result_quality(result: dict) -> float:
     return len(_medicine_signals(result, usage_evidence)) * 10 + usage_bonus + tavily_score
 
 
-def _compact_result(result: dict, include_medicine_fields: bool) -> dict:
+def _compact_result(result: dict) -> dict:
     url = result.get("url", "")
     compact = {
         "title": _truncate(result.get("title"), MAX_TITLE_CHARS),
         "content": _truncate(result.get("content"), MAX_CONTENT_CHARS),
         "url": url,
     }
-    if not include_medicine_fields:
-        return compact
 
     usage_evidence = _usage_evidence(result)
     compact["domain"] = _domain_from_url(url)
@@ -361,49 +332,26 @@ def _compact_response(
     response: dict,
     *,
     max_results: int,
-    medicine_search: bool,
 ) -> dict:
     raw_results = response.get("results") or []
-    if medicine_search:
-        raw_results = [result for result in raw_results if _is_allowed_domain(result)]
-        ranked_results = sorted(raw_results, key=_result_quality, reverse=True)
-    else:
-        ranked_results = raw_results
+    raw_results = [result for result in raw_results if _is_allowed_domain(result)]
+    ranked_results = sorted(raw_results, key=_result_quality, reverse=True)
 
     selected_results = ranked_results[: min(max_results, MAX_WEB_RESULTS)]
     compact = {
         "status": "success",
         "answer": _truncate(response.get("answer"), MAX_ANSWER_CHARS),
-        "results": [
-            _compact_result(result, include_medicine_fields=medicine_search)
-            for result in selected_results
-        ],
+        "results": [_compact_result(result) for result in selected_results],
     }
     return compact
 
 
-def _looks_like_medicine_query(query: str) -> bool:
-    normalized_query = query.lower()
-    if any(hint in normalized_query for hint in MEDICINE_QUERY_HINTS):
-        return True
-    return bool(re.search(r"\b\d+(?:[.,]\d+)?\s*(?:mg|mcg|g|ml|%)\b", normalized_query))
-
-
-def _looks_like_icd_query(query: str) -> bool:
-    normalized_query = query.lower()
-    if any(keyword in normalized_query for keyword in ICD_QUERY_KEYWORDS):
-        return True
-    return bool(ICD_CODE_PATTERN.search(query))
-
-
 @tool("web-search")
 def web_search(query: str, max_results: int = 3) -> str:
-    """Search the web for medical information as a fallback.
+    """Search the web for medicine information as a fallback.
 
-    ONLY use this tool if internal databases (like search-medicine or check-icd)
-    return no results or insufficient information. This tool is for finding
-    missing medications, rare diseases, or latest insurance policies on the web.
-    Do not use this tool for ICD lookups; use check-icd instead.
+    ONLY use this tool if search-medicine returns no results or insufficient
+    information. This tool is for finding missing medication details on the web.
 
     Args:
         query: The search query string.
@@ -415,16 +363,6 @@ def web_search(query: str, max_results: int = 3) -> str:
     if not query or not query.strip():
         return json.dumps(
             {"status": "error", "message": "No query provided", "results": []},
-            ensure_ascii=False,
-        )
-
-    if _looks_like_icd_query(query):
-        return json.dumps(
-            {
-                "status": "error",
-                "message": "ICD lookup is not supported by web-search. Use check-icd instead.",
-                "results": [],
-            },
             ensure_ascii=False,
         )
 
@@ -445,20 +383,14 @@ def web_search(query: str, max_results: int = 3) -> str:
 
     try:
         requested_results = max(1, min(max_results, MAX_WEB_RESULTS))
-        medicine_search = _looks_like_medicine_query(query)
         search_kwargs = {
             "query": query,
             "search_depth": "basic",
-            "max_results": max(5, requested_results) if medicine_search else requested_results,
+            "max_results": max(5, requested_results),
+            "include_domains": MEDICINE_INFO_DOMAINS,
+            "include_answer": "advanced",
+            "include_raw_content": "text",
         }
-        if medicine_search:
-            search_kwargs.update(
-                {
-                    "include_domains": MEDICINE_INFO_DOMAINS,
-                    "include_answer": "advanced",
-                    "include_raw_content": "text",
-                }
-            )
 
         search_results = tavily_client.search(
             **search_kwargs,
@@ -467,7 +399,6 @@ def web_search(query: str, max_results: int = 3) -> str:
         compact_results = _compact_response(
             search_results,
             max_results=requested_results,
-            medicine_search=medicine_search,
         )
         compact_results["query"] = query
         return json.dumps(compact_results, ensure_ascii=False)
