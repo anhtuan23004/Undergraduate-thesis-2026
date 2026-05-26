@@ -8,6 +8,7 @@ from typing import Any
 
 from config import settings
 from schemas.agent_outputs import HumanReviewResult
+from workflow.contracts import STAGE_FINAL
 from workflow.policy import (
     STAGE_POLICIES,
     StagePolicy,
@@ -109,6 +110,16 @@ def build_human_review_update(stage: str, command: HumanReviewCommand) -> dict[s
     edited_key = edited_result_key_after_human_review(stage, command)
     if edited_key:
         state_update[edited_key] = command.edited_result
+
+    if stage == STAGE_FINAL and command.decision == "reject":
+        rejection_reason = command.notes or "Reviewer rejected the final decision."
+        state_update["final_result"] = {
+            "decision": "reject",
+            "approved_amount": 0,
+            "rejection_reason": rejection_reason,
+            "issues_summary": [],
+            "message": f"Final decision rejected by reviewer: {rejection_reason}",
+        }
 
     return state_update
 

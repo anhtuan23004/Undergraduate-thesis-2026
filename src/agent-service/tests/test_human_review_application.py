@@ -150,6 +150,29 @@ async def test_apply_approve_does_not_write_edited_result_key():
 
 
 @pytest.mark.asyncio
+async def test_apply_final_reject_writes_reviewer_rejection_result():
+    graph = FakeGraph(
+        {
+            "run_id": "run-1",
+            "claim_id": "claim-1",
+            "review_stage": "final",
+            "final_result": {"decision": "approve", "approved_amount": 1000000},
+            "extracted_documents": {},
+        }
+    )
+    app = HumanReviewApplication(lambda: _provide(graph), timeout_seconds=5)
+
+    await app.apply("run-1", HumanReviewCommand(decision="reject", notes="Sai quyền lợi"))
+
+    update = graph.updates[0]["state_update"]
+    assert update["human_review_result"]["stage"] == "final"
+    assert update["final_result"]["decision"] == "reject"
+    assert update["final_result"]["approved_amount"] == 0
+    assert update["final_result"]["rejection_reason"] == "Sai quyền lợi"
+    assert "Sai quyền lợi" in update["final_result"]["message"]
+
+
+@pytest.mark.asyncio
 async def test_apply_missing_run_raises_not_found():
     app = HumanReviewApplication(lambda: _provide(FakeGraph(None)), timeout_seconds=5)
 
